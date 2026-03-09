@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>划线猫 - 侧边栏</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+</head>
+
+<body>
+    <div id="sidepanel-container">
+        <header class="header">
+            <h1 class="title">🐱 划线猫</h1>
+            <div class="search-box">
+                <input id="search-input" type="text" placeholder="搜索高亮内容..." />
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <div class="toolbar-row">
+                <div class="colors">
+                    <div class="color-option" data-color="yellow" title="黄色"></div>
+                    <div class="color-option" data-color="mint" title="薄荷绿"></div>
+                    <div class="color-option" data-color="coral" title="珊瑚色"></div>
+                </div>
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="site-toggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <span id="site-toggle-label">启用</span>
+                </div>
+            </div>
+            <div class="toolbar-row" style="justify-content: flex-end; gap: 8px;">
+                <button id="manage-btn" class="secondary-btn">⚙️ 管理</button>
+                <button id="select-mode-btn" class="secondary-btn">✅ 多选</button>
+            </div>
+        </div>
+
+        <!-- Batch selection header (hidden by default) -->
+        <div id="batch-header" class="batch-header hidden">
+            <label class="select-all-label">
+                <input type="checkbox" id="select-all-checkbox" />
+                <span id="select-count">全选 (0条)</span>
+            </label>
+            <button id="cancel-select-btn" class="cancel-btn">取消</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="current">当前页面</button>
+            <button class="tab-btn" data-tab="all">全部高亮</button>
+        </div>
+
+        <div id="current-tab" class="tab-content active">
+            <div id="current-page-info" class="page-info"></div>
+            <div id="current-highlights" class="highlights-list"></div>
+        </div>
+
+        <div id="all-tab" class="tab-content">
+            <div id="all-pages-list" class="pages-list"></div>
+        </div>
+
+        <footer class="footer">
+            <div class="sync-status" id="sync-status">
+                <span class="sync-icon">☁️</span>
+                <span id="sync-text">已同步</span>
+            </div>
+            <div class="footer-actions">
+                <button id="export-btn" class="footer-btn" title="导出">📥 导出</button>
+                <button id="refresh-btn" class="footer-btn" title="刷新">🔄</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Batch action bar (hidden by default) -->
+    <div id="batch-action-bar" class="batch-action-bar hidden">
+        <button id="batch-delete-btn" class="batch-btn danger"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg> 删除所选</button>
+        <button id="batch-copy-btn" class="batch-btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg> 合并复制</button>
+    </div>
+
+    <!-- Export dropdown menu -->
+    <div id="export-menu" class="export-menu hidden">
+        <button class="export-option" data-format="markdown">📄 Markdown</button>
+        <button class="export-option" data-format="notion">📝 Notion 格式</button>
+        <button class="export-option" data-format="obsidian">💎 Obsidian 格式</button>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

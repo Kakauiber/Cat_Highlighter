@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>高亮管理</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+
+<body>
+  <div id="options-container">
+    <header>
+      <h1>高亮管理</h1>
+      <input id="search-input" type="text" placeholder="搜索站点或高亮内容..." />
+      <div class="actions">
+        <button id="select-mode-btn" class="select-mode-btn">✅ 多选</button>
+        <select id="export-dropdown" class="export-dropdown">
+          <option value="">📥 导出...</option>
+          <option value="markdown">📄 Markdown 格式</option>
+          <option value="notion">📝 Notion 格式</option>
+          <option value="obsidian">💎 Obsidian 格式</option>
+        </select>
+        <button id="sync-btn" class="sync-btn">🔄 同步</button>
+      </div>
+      <div id="sync-status" class="sync-status">☁️ 检查同步状态...</div>
+    </header>
+    <!-- Batch selection header (hidden by default) -->
+    <div id="batch-header" class="batch-header hidden">
+      <label class="select-all-label">
+        <input type="checkbox" id="select-all-checkbox" />
+        <span id="select-count">已选 0 条</span>
+      </label>
+      <button id="cancel-select-btn" class="cancel-btn">取消</button>
+    </div>
+    <div id="pages-list"></div>
+    <div id="blacklist-section" style="margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px;">
+      <h2>黑名单管理</h2>
+      <p style="color:#666;font-size:14px;margin-bottom:10px;">以下网站已被禁用划线功能：</p>
+      <div id="blacklist-container"></div>
+    </div>
+  </div>
+  <!-- Batch action bar (hidden by default) -->
+  <div id="batch-action-bar" class="batch-action-bar hidden">
+    <button id="batch-delete-btn" class="batch-btn danger">🗑️ 删除所选</button>
+    <button id="batch-copy-btn" class="batch-btn primary">📋 合并复制</button>
+  </div>
+  <script src="options.js"></script>
+</body>
+
+</html>

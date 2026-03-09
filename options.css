@@ -1,0 +1,371 @@
+body {
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+  /* Soft neutral background for the management page */
+  background: #f5f6fa;
+  color: #2f2f2f;
+}
+
+#options-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 16px 20px;
+}
+
+header h1 {
+  flex: 1 0 100%;
+  font-size: 24px;
+  margin: 0;
+  color: #333;
+  font-weight: 600;
+}
+
+#search-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  min-width: 200px;
+  background: #fafafa;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  padding: 8px 14px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  background: linear-gradient(180deg, #fffdf7 0%, #fff8e1 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background 0.2s ease;
+}
+
+.actions button:hover {
+  background: linear-gradient(180deg, #fff6d3 0%, #ffefd5 100%);
+}
+
+#pages-list details {
+  margin-bottom: 16px;
+  background: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+#pages-list summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+  list-style: none;
+  padding: 4px 0;
+}
+
+#pages-list summary .page-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.page-title {
+  font-size: 16px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.page-url {
+  font-size: 12px;
+  color: #777;
+  word-break: break-all;
+}
+
+.count {
+  font-size: 12px;
+  color: #666;
+}
+
+.highlights {
+  margin-top: 8px;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.highlight-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdfcf9;
+  padding: 6px 8px;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.color-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.highlight-row .text {
+  flex: 1;
+  font-size: 13px;
+  color: #444;
+  word-break: break-word;
+}
+
+.highlight-row button {
+  border: none;
+  background: none;
+  color: #a33;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.highlight-row button:hover {
+  background: rgba(200, 0, 0, 0.05);
+}
+
+.page-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.page-actions button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid #e0e0e0;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background 0.2s ease;
+}
+
+.page-actions button:hover {
+  background: linear-gradient(180deg, #f7f7f7 0%, #f2f2f2 100%);
+}
+
+/* Export dropdown */
+.export-dropdown {
+  padding: 8px 14px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  background: linear-gradient(180deg, #fffdf7 0%, #fff8e1 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.export-dropdown:hover {
+  background-color: #fff6d3;
+}
+
+.export-dropdown:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Sync button */
+.sync-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  border: 1px solid #667eea;
+  background: linear-gradient(180deg, #667eea 0%, #5a6fd6 100%);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.sync-btn:hover {
+  background: linear-gradient(180deg, #5a6fd6 0%, #4e5fc9 100%);
+  transform: translateY(-1px);
+}
+
+/* Sync status */
+.sync-status {
+  width: 100%;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- Batch Selection Mode Styles --- */
+.hidden {
+  display: none !important;
+}
+
+/* Select mode button */
+.select-mode-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  background: linear-gradient(180deg, #fffdf7 0%, #fff8e1 100%);
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.select-mode-btn:hover {
+  background: linear-gradient(180deg, #fff6d3 0%, #ffefd5 100%);
+}
+
+.select-mode-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* Batch header */
+.batch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #eef0ff;
+  border-bottom: 1px solid #d0d5f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #555;
+}
+
+.select-all-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.cancel-btn {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+/* Batch action bar */
+.batch-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  justify-content: center;
+}
+
+.batch-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.batch-btn.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.batch-btn.danger:hover {
+  background: #fecaca;
+}
+
+.batch-btn.primary {
+  background: #667eea;
+  color: #fff;
+}
+
+.batch-btn.primary:hover {
+  background: #5a6fd6;
+}
+
+/* Highlight row in selection mode */
+.highlight-row.selectable {
+  cursor: pointer;
+}
+
+.highlight-row .item-checkbox {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.highlight-row.selected {
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+}
+
+/* Adjust container when batch action bar is visible */
+.selection-mode #pages-list {
+  padding-bottom: 80px;
+}

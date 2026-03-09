@@ -1,0 +1,716 @@
+/* Side Panel Styles for 划线猫 */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #fafafa;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+#sidepanel-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 400px;
+}
+
+/* Header */
+.header {
+    background: linear-gradient(90deg, #FEE8B0 0%, #FCA591 33%, #E862B0 66%, #C238F2 100%);
+    color: white;
+    padding: 16px;
+    flex-shrink: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.header .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.search-box input::placeholder {
+    color: #999;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    flex-shrink: 0;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: #666;
+    transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+    background: #f5f5f5;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: 500;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Page Info */
+.page-info {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.page-info .page-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.page-info .page-url {
+    font-size: 11px;
+    color: #999;
+    word-break: break-all;
+}
+
+.page-info .highlight-count {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #667eea;
+}
+
+.page-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.page-meta-btn {
+    border: 1px solid #e4e6eb;
+    background: #f8f9fb;
+    color: #556070;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-meta-btn:hover:not(:disabled) {
+    background: #eef2ff;
+    border-color: #cfd8ff;
+    color: #4957c6;
+}
+
+.page-meta-btn.danger:hover:not(:disabled) {
+    background: #fff1f1;
+    border-color: #ffd1d1;
+    color: #c24141;
+}
+
+.page-meta-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Highlights List */
+.highlights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.highlight-item {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.highlight-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.highlight-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.highlight-text {
+    font-size: 13px;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.highlight-annotation {
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.highlight-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.highlight-item:hover .highlight-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: #f0f0f0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.action-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: #555;
+}
+
+.action-btn:hover {
+    background: #e0e0e0;
+}
+
+.action-btn:hover svg {
+    stroke: #333;
+}
+
+/* Pages List (All tab) */
+.pages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.page-group {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.page-group-header {
+    padding: 12px;
+    background: #f8f8f8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-group-header:hover {
+    background: #f0f0f0;
+}
+
+.page-group-title {
+    flex: 1;
+    font-weight: 500;
+    font-size: 13px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.page-group-count {
+    font-size: 11px;
+    color: #667eea;
+    background: #eef0ff;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.page-group-expand {
+    color: #999;
+    transition: transform 0.2s;
+}
+
+.page-group.expanded .page-group-expand {
+    transform: rotate(90deg);
+}
+
+.page-group-highlights {
+    display: none;
+    padding: 8px;
+    border-top: 1px solid #eee;
+}
+
+.page-group.expanded .page-group-highlights {
+    display: block;
+}
+
+.page-group-actions {
+    display: none;
+    gap: 8px;
+    padding: 0 8px 10px;
+    border-top: 1px solid #eee;
+    background: #fff;
+}
+
+.page-group.expanded .page-group-actions {
+    display: flex;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+}
+
+.empty-state .empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.empty-state .empty-text {
+    font-size: 14px;
+}
+
+/* Footer */
+.footer {
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #888;
+}
+
+.sync-icon {
+    font-size: 14px;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.footer-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.footer-btn:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+/* Export Menu */
+.export-menu {
+    position: fixed;
+    bottom: 60px;
+    right: 16px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.export-menu.hidden {
+    display: none;
+}
+
+.export-option {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.export-option:hover {
+    background: #f5f5f5;
+}
+
+.export-option:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
+/* Color Map */
+.color-yellow {
+    background: #FFEA8A;
+}
+
+.color-mint {
+    background: #86EFAC;
+}
+
+.color-coral {
+    background: #FDA4AF;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #bbb;
+}
+
+/* --- Styles migrated from Popup --- */
+.toolbar {
+    background: white;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.toolbar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.colors {
+    display: flex;
+    gap: 8px;
+}
+
+.color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option[data-color="yellow"] {
+    background: #fff2a8;
+}
+
+.color-option[data-color="mint"] {
+    background: #77e6b6;
+}
+
+.color-option[data-color="coral"] {
+    background: #ffb3a7;
+}
+
+.color-option.selected {
+    border-color: #667eea;
+    transform: scale(1.1);
+}
+
+/* Toggle Switch */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #555;
+    gap: 8px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+    margin: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #667eea;
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px #667eea;
+}
+
+input:checked+.slider:before {
+    transform: translateX(14px);
+}
+
+.secondary-btn {
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: #f8f8f8;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #555;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.secondary-btn:hover {
+    background: #eee;
+}
+
+/* --- Batch Selection Mode Styles --- */
+.hidden {
+    display: none !important;
+}
+
+/* Batch Header */
+.batch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #eef0ff;
+    border-bottom: 1px solid #d0d5f0;
+}
+
+.select-all-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+}
+
+.select-all-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.cancel-btn {
+    padding: 4px 12px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+}
+
+.cancel-btn:hover {
+    background: #f5f5f5;
+}
+
+/* Batch Action Bar */
+.batch-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.batch-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.batch-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.batch-btn.danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.batch-btn.danger:hover {
+    background: #fecaca;
+}
+
+.batch-btn.primary {
+    background: #667eea;
+    color: #fff;
+}
+
+.batch-btn.primary:hover {
+    background: #5a6fd6;
+}
+
+/* Highlight item in selection mode */
+.highlight-item.selectable {
+    cursor: pointer;
+}
+
+.highlight-item.selectable .item-checkbox {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.highlight-item.selected {
+    background: #f0f4ff;
+    border: 1px solid #c7d2fe;
+}
+
+/* Hide action buttons in selection mode */
+.selection-mode .highlight-actions {
+    display: none !important;
+}
+
+.selection-mode .page-card-actions,
+.selection-mode .page-group-actions {
+    display: none !important;
+}
+
+/* Adjust footer when batch action bar is visible */
+.footer.with-batch-bar {
+    margin-bottom: 60px;
+}

@@ -1,0 +1,49 @@
+{
+    "manifest_version": 3,
+    "name": "划线猫",
+    "description": "在任意网页上高亮或划线所选文本，支持颜色选择、批注、复制及一键删除，并在刷新后自动恢复，并提供管理界面、侧边栏、云端同步和多格式导出功能。",
+    "version": "1.5.2",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "clipboardWrite",
+        "storage",
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "action": {
+        "default_title": "划线猫",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "32": "icons/icon32.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "options_page": "options.html"
+}
