@@ -280,6 +280,14 @@ body {
     background: #f0f0f0;
 }
 
+.page-group-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+    flex-shrink: 0;
+}
+
 .page-group-title {
     flex: 1;
     font-weight: 500;
@@ -343,85 +351,6 @@ body {
 
 .empty-state .empty-text {
     font-size: 14px;
-}
-
-/* Footer */
-.footer {
-    background: #fff;
-    border-top: 1px solid #e0e0e0;
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-}
-
-.sync-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #888;
-}
-
-.sync-icon {
-    font-size: 14px;
-}
-
-.footer-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.footer-btn {
-    padding: 6px 12px;
-    border: 1px solid #ddd;
-    background: #fff;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: all 0.2s;
-}
-
-.footer-btn:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
-}
-
-/* Export Menu */
-.export-menu {
-    position: fixed;
-    bottom: 60px;
-    right: 16px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    z-index: 1000;
-}
-
-.export-menu.hidden {
-    display: none;
-}
-
-.export-option {
-    display: block;
-    width: 100%;
-    padding: 12px 16px;
-    border: none;
-    background: none;
-    text-align: left;
-    cursor: pointer;
-    font-size: 13px;
-    transition: background 0.2s;
-}
-
-.export-option:hover {
-    background: #f5f5f5;
-}
-
-.export-option:not(:last-child) {
-    border-bottom: 1px solid #eee;
 }
 
 /* Color Map */
@@ -682,6 +611,15 @@ input:checked+.slider:before {
     background: #5a6fd6;
 }
 
+.batch-btn.secondary {
+    background: #eef2ff;
+    color: #4957c6;
+}
+
+.batch-btn.secondary:hover {
+    background: #dfe7ff;
+}
+
 /* Highlight item in selection mode */
 .highlight-item.selectable {
     cursor: pointer;
@@ -710,7 +648,6 @@ input:checked+.slider:before {
     display: none !important;
 }
 
-/* Adjust footer when batch action bar is visible */
-.footer.with-batch-bar {
-    margin-bottom: 60px;
+.selection-mode .tab-content {
+    padding-bottom: 88px;
 }

@@ -17,11 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const allPagesList = document.getElementById('all-pages-list');
-    const syncStatus = document.getElementById('sync-status');
-    const syncText = document.getElementById('sync-text');
-    const exportBtn = document.getElementById('export-btn');
-    const exportMenu = document.getElementById('export-menu');
-    const refreshBtn = document.getElementById('refresh-btn');
     // New Elements
     const colorOptions = document.querySelectorAll('.color-option');
     const siteToggle = document.getElementById('site-toggle');
@@ -36,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchActionBar = document.getElementById('batch-action-bar');
     const batchDeleteBtn = document.getElementById('batch-delete-btn');
     const batchCopyBtn = document.getElementById('batch-copy-btn');
-    const footer = document.querySelector('.footer');
+    const batchExportBtn = document.getElementById('batch-export-btn');
 
     // --- 1. Color Selection Logic ---
     let selectedColor = localStorage.getItem('selectedHighlightColor') || 'yellow';
@@ -120,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allPagesData = [];
     let currentPageData = null;
     let activeTab = 'current';
+    const expandedPageKeys = new Set();
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
@@ -139,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTab.classList.remove('active');
                 allTab.classList.add('active');
             }
+            updateBatchActionVisibility();
             renderCurrentView();
         });
     });
@@ -146,30 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Search functionality
     searchInput.addEventListener('input', () => {
         renderCurrentView();
-    });
-
-    // Export menu toggle
-    exportBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        exportMenu.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', () => {
-        exportMenu.classList.add('hidden');
-    });
-
-    // Export options
-    document.querySelectorAll('.export-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const format = btn.dataset.format;
-            exportHighlights(format);
-            exportMenu.classList.add('hidden');
-        });
-    });
-
-    // Refresh button
-    refreshBtn.addEventListener('click', () => {
-        loadAllData();
     });
 
     // Get the active web tab. Side panel runs in an extension context, so
@@ -335,8 +308,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load all highlight data
     async function loadAllData() {
         // Show loading state
-        syncText.textContent = '同步中...';
-
         try {
             currentPageData = null;
             const prefix = 'page_highlights_';
@@ -378,14 +349,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Update sync status
-            syncText.textContent = '已同步';
             console.log('[SidePanel] Current page highlights:', currentPageData?.highlights?.length || 0);
 
             // Render
             renderCurrentView();
         } catch (err) {
             console.error('Failed to load data:', err);
-            syncText.textContent = '同步失败';
         }
     }
 
@@ -602,9 +571,38 @@ document.addEventListener('DOMContentLoaded', () => {
     function createPageGroup(page, filter) {
         const group = document.createElement('div');
         group.className = 'page-group';
+        group.dataset.pageKey = page.key;
+
+        if (expandedPageKeys.has(page.key)) {
+            group.classList.add('expanded');
+        }
 
         const header = document.createElement('div');
         header.className = 'page-group-header';
+
+        const filtered = filter
+            ? page.highlights.filter(h =>
+                String(h.text || '').toLowerCase().includes(filter) ||
+                String(h.annotation || '').toLowerCase().includes(filter)
+            )
+            : page.highlights;
+
+        if (isSelectionMode) {
+            const pageCheckbox = document.createElement('input');
+            pageCheckbox.type = 'checkbox';
+            pageCheckbox.className = 'page-group-checkbox';
+
+            const selectedCount = filtered.filter(h => selectedIds.has(h.id)).length;
+            pageCheckbox.checked = filtered.length > 0 && selectedCount === filtered.length;
+            pageCheckbox.indeterminate = selectedCount > 0 && selectedCount < filtered.length;
+            pageCheckbox.disabled = filtered.length === 0;
+            pageCheckbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setPageSelection(group, page, filtered, pageCheckbox.checked);
+            });
+
+            header.appendChild(pageCheckbox);
+        }
 
         const title = document.createElement('div');
         title.className = 'page-group-title';
@@ -623,6 +621,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         header.addEventListener('click', () => {
             group.classList.toggle('expanded');
+            if (group.classList.contains('expanded')) {
+                expandedPageKeys.add(page.key);
+            } else {
+                expandedPageKeys.delete(page.key);
+            }
         });
 
         group.appendChild(header);
@@ -630,14 +633,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Highlights container
         const highlightsContainer = document.createElement('div');
         highlightsContainer.className = 'page-group-highlights';
-
-        // Filter highlights within this page
-        const filtered = filter
-            ? page.highlights.filter(h =>
-                String(h.text || '').toLowerCase().includes(filter) ||
-                String(h.annotation || '').toLowerCase().includes(filter)
-            )
-            : page.highlights;
 
         filtered.forEach(h => {
             const item = createHighlightItem(h, page);
@@ -786,39 +781,34 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     }
 
-    // Export highlights
-    function exportHighlights(format) {
-        const pages = activeTab === 'current' && currentPageData
-            ? [currentPageData]
-            : allPagesData;
+    function exportSelectedHighlights() {
+        if (activeTab !== 'all' || !isSelectionMode) {
+            alert('请先在“全部高亮”中选择要导出的内容');
+            return;
+        }
 
-        if (!pages || pages.length === 0) {
+        if (selectedIds.size === 0) {
+            alert('请先选择要导出的高亮');
+            return;
+        }
+
+        const pages = allPagesData
+            .map(page => ({
+                ...page,
+                highlights: page.highlights.filter(h => selectedIds.has(h.id))
+            }))
+            .filter(page => page.highlights.length > 0);
+
+        if (pages.length === 0) {
             alert('没有可导出的高亮');
             return;
         }
 
-        let content = '';
-        let filename = '';
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-
-        switch (format) {
-            case 'notion':
-                content = exportToNotion(pages);
-                filename = `catlines_notion_${dateStr}.md`;
-                break;
-            case 'obsidian':
-                content = exportToObsidian(pages);
-                filename = `catlines_obsidian_${dateStr}.md`;
-                break;
-            default:
-                content = exportToMarkdown(pages);
-                filename = `catlines_${dateStr}.md`;
-        }
-
-        downloadFile(content, filename, 'text/markdown;charset=utf-8');
+        const content = exportToMarkdown(pages);
+        downloadFile(content, `catlines_selected_${dateStr}.md`, 'text/markdown;charset=utf-8');
     }
 
-    // Export to Markdown format
     function exportToMarkdown(pages) {
         let md = '';
         pages.forEach((page, index) => {
@@ -831,55 +821,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (index < pages.length - 1) md += '\n';
         });
-        return md;
-    }
-
-    // Export to Notion format
-    function exportToNotion(pages) {
-        let md = `# 划线猫导出 - ${new Date().toLocaleDateString('zh-CN')}\n\n`;
-
-        pages.forEach(page => {
-            // Use toggle block format for Notion
-            md += `<details>\n<summary><strong>${page.title}</strong></summary>\n\n`;
-            md += `🔗 [打开链接](${page.url})\n\n`;
-
-            page.highlights.forEach(h => {
-                const colorEmoji = h.color === 'yellow' ? '🟡' : h.color === 'mint' ? '🟢' : '🔴';
-                const text = String(h.text).replace(/\r?\n/g, ' ');
-                md += `- [ ] ${colorEmoji} ${text}\n`;
-                if (h.annotation) {
-                    md += `  - 📝 ${h.annotation}\n`;
-                }
-            });
-
-            md += `\n</details>\n\n`;
-        });
-
-        return md;
-    }
-
-    // Export to Obsidian format
-    function exportToObsidian(pages) {
-        const now = new Date();
-        let md = `---\ntags: [划线猫, 高亮]\ndate: ${now.toISOString().slice(0, 10)}\n---\n\n`;
-        md += `# 高亮笔记 - ${now.toLocaleDateString('zh-CN')}\n\n`;
-
-        pages.forEach(page => {
-            md += `## ${page.title}\n\n`;
-            md += `> 来源：[${page.url}](${page.url})\n\n`;
-
-            page.highlights.forEach(h => {
-                const text = String(h.text).replace(/\r?\n/g, ' ');
-                // Use Obsidian highlight syntax
-                md += `==${text}==\n\n`;
-                if (h.annotation) {
-                    md += `> [!note] 批注\n> ${h.annotation}\n\n`;
-                }
-            });
-
-            md += `---\n\n`;
-        });
-
         return md;
     }
 
@@ -918,17 +859,64 @@ document.addEventListener('DOMContentLoaded', () => {
             selectionMap.delete(id);
         }
         updateSelectCount();
+        updatePageGroupSelectionStates();
+    }
+
+    function setPageSelection(groupEl, page, highlights, isSelected) {
+        highlights.forEach(h => {
+            if (isSelected) {
+                selectedIds.add(h.id);
+                selectionMap.set(h.id, page.key);
+            } else {
+                selectedIds.delete(h.id);
+                selectionMap.delete(h.id);
+            }
+        });
+
+        groupEl.querySelectorAll('.highlight-item').forEach(item => {
+            const itemId = item.dataset.id;
+            const checked = selectedIds.has(itemId);
+            item.classList.toggle('selected', checked);
+
+            const checkbox = item.querySelector('.item-checkbox');
+            if (checkbox) {
+                checkbox.checked = checked;
+            }
+        });
+
+        updateSelectCount();
+        updatePageGroupSelectionStates();
+    }
+
+    function updatePageGroupSelectionStates() {
+        if (!isSelectionMode || activeTab !== 'all') {
+            return;
+        }
+
+        document.querySelectorAll('.page-group').forEach(group => {
+            const pageCheckbox = group.querySelector('.page-group-checkbox');
+            if (!pageCheckbox) return;
+
+            const itemCheckboxes = Array.from(group.querySelectorAll('.item-checkbox'));
+            const checkedCount = itemCheckboxes.filter(checkbox => checkbox.checked).length;
+            const totalCount = itemCheckboxes.length;
+
+            pageCheckbox.checked = totalCount > 0 && checkedCount === totalCount;
+            pageCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+            pageCheckbox.disabled = totalCount === 0;
+        });
     }
 
     // Update the select count display
     function updateSelectCount() {
         const count = selectedIds.size;
-        selectCount.textContent = `已选 ${count} 条`;
+        selectCount.textContent = `已选 ${count} 条（勾选前框可全选）`;
 
         // Update select all checkbox state
         const totalCount = getTotalHighlightCount();
         selectAllCheckbox.checked = count > 0 && count === totalCount;
         selectAllCheckbox.indeterminate = count > 0 && count < totalCount;
+        updateBatchActionVisibility();
     }
 
     // Get total highlight count for current view
@@ -950,7 +938,6 @@ document.addEventListener('DOMContentLoaded', () => {
         selectModeBtn.classList.add('active');
         batchHeader.classList.remove('hidden');
         batchActionBar.classList.remove('hidden');
-        footer.classList.add('with-batch-bar');
         document.getElementById('sidepanel-container').classList.add('selection-mode');
 
         updateSelectCount();
@@ -967,11 +954,19 @@ document.addEventListener('DOMContentLoaded', () => {
         selectModeBtn.classList.remove('active');
         batchHeader.classList.add('hidden');
         batchActionBar.classList.add('hidden');
-        footer.classList.remove('with-batch-bar');
         document.getElementById('sidepanel-container').classList.remove('selection-mode');
         selectAllCheckbox.checked = false;
+        updateBatchActionVisibility();
 
         renderCurrentView();
+    }
+
+    function updateBatchActionVisibility() {
+        if (!batchExportBtn) return;
+
+        const shouldShowExport = isSelectionMode && activeTab === 'all';
+        batchExportBtn.classList.toggle('hidden', !shouldShowExport);
+        batchExportBtn.disabled = !shouldShowExport || selectedIds.size === 0;
     }
 
     // Select/deselect all
@@ -1112,6 +1107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         mergeCopySelected();
     });
 
+    if (batchExportBtn) {
+        batchExportBtn.addEventListener('click', () => {
+            exportSelectedHighlights();
+        });
+    }
+
     // Listen for storage changes to update in real-time
     // Use debounce to ensure data is fully written before reloading
     let storageUpdateTimeout = null;
@@ -1143,5 +1144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial load
+    updateBatchActionVisibility();
     loadAllData();
 });

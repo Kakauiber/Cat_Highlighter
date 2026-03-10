@@ -33,8 +33,8 @@
                 </div>
             </div>
             <div class="toolbar-row" style="justify-content: flex-end; gap: 8px;">
-                <button id="manage-btn" class="secondary-btn">⚙️ 管理</button>
                 <button id="select-mode-btn" class="secondary-btn">✅ 多选</button>
+                <button id="manage-btn" class="secondary-btn">⚙️ 管理</button>
             </div>
         </div>
 
@@ -42,7 +42,7 @@
         <div id="batch-header" class="batch-header hidden">
             <label class="select-all-label">
                 <input type="checkbox" id="select-all-checkbox" />
-                <span id="select-count">全选 (0条)</span>
+                <span id="select-count">已选 0 条（勾选前框可全选）</span>
             </label>
             <button id="cancel-select-btn" class="cancel-btn">取消</button>
         </div>
@@ -60,17 +60,6 @@
         <div id="all-tab" class="tab-content">
             <div id="all-pages-list" class="pages-list"></div>
         </div>
-
-        <footer class="footer">
-            <div class="sync-status" id="sync-status">
-                <span class="sync-icon">☁️</span>
-                <span id="sync-text">已同步</span>
-            </div>
-            <div class="footer-actions">
-                <button id="export-btn" class="footer-btn" title="导出">📥 导出</button>
-                <button id="refresh-btn" class="footer-btn" title="刷新">🔄</button>
-            </div>
-        </footer>
     </div>
 
     <!-- Batch action bar (hidden by default) -->
@@ -85,13 +74,12 @@
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg> 合并复制</button>
-    </div>
-
-    <!-- Export dropdown menu -->
-    <div id="export-menu" class="export-menu hidden">
-        <button class="export-option" data-format="markdown">📄 Markdown</button>
-        <button class="export-option" data-format="notion">📝 Notion 格式</button>
-        <button class="export-option" data-format="obsidian">💎 Obsidian 格式</button>
+        <button id="batch-export-btn" class="batch-btn secondary hidden"><svg viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg> 导出所选</button>
     </div>
 
     <script src="sidepanel.js"></script>

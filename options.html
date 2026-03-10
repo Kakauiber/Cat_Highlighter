@@ -18,18 +18,14 @@
         <select id="export-dropdown" class="export-dropdown">
           <option value="">📥 导出...</option>
           <option value="markdown">📄 Markdown 格式</option>
-          <option value="notion">📝 Notion 格式</option>
-          <option value="obsidian">💎 Obsidian 格式</option>
         </select>
-        <button id="sync-btn" class="sync-btn">🔄 同步</button>
       </div>
-      <div id="sync-status" class="sync-status">☁️ 检查同步状态...</div>
     </header>
     <!-- Batch selection header (hidden by default) -->
     <div id="batch-header" class="batch-header hidden">
       <label class="select-all-label">
         <input type="checkbox" id="select-all-checkbox" />
-        <span id="select-count">已选 0 条</span>
+        <span id="select-count">已选 0 条（勾选前框可全选）</span>
       </label>
       <button id="cancel-select-btn" class="cancel-btn">取消</button>
     </div>

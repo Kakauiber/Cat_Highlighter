@@ -7,7 +7,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const pagesList = document.getElementById('pages-list');
   const searchInput = document.getElementById('search-input');
-  const exportAllBtn = document.getElementById('export-all-btn');
 
   // Cache of page data: { key, url, title, highlights: [...] }
   let pagesData = [];
@@ -35,57 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const batchDeleteBtn = document.getElementById('batch-delete-btn');
   const batchCopyBtn = document.getElementById('batch-copy-btn');
 
-  // Storage key for the user's MoWen API key
-  const MOWEN_API_KEY_KEY = 'mowen_api_key';
-
-  /**
-   * Send the highlights of a given page to MoWen via its MCP API.  Prompts
-   * for an API key on first use and stores it in chrome.storage.local for
-   * subsequent calls.  The note content includes the page URL and all
-   * highlighted text with annotations.  On success or failure, an alert
-   * notifies the user.
-   *
-   * @param {Object} page The page object containing url, title and highlights
-   */
-  function sendToMowen(page) {
-    // Build note content: include page link and highlight text/annotations
-    const noteLines = [];
-    noteLines.push(`页面链接: ${page.url}`);
-    page.highlights.forEach(h => {
-      let line = String(h.text || '').replace(/\r?\n/g, ' ').trim();
-      if (h.annotation) line += `\n\n批注：${h.annotation}`;
-      noteLines.push(line);
-    });
-    const content = noteLines.join('\n\n');
-
-    // Retrieve API key from storage or prompt the user
-    chrome.storage.local.get([MOWEN_API_KEY_KEY], (res) => {
-      let apiKey = res[MOWEN_API_KEY_KEY];
-      if (!apiKey) {
-        apiKey = prompt('请输入墨问 API Key (仅第一次需要输入)：');
-        if (!apiKey) return;
-        chrome.storage.local.set({ [MOWEN_API_KEY_KEY]: apiKey });
-      }
-      const endpoint = `https://open.mowen.cn/api/open/mcp/v1/note?key=${encodeURIComponent(apiKey)}`;
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: page.title || page.url,
-          content: content,
-          // 尝试将笔记设为私有，如果接口支持可以传入私有标志
-          // 部分 MCP 服务可能需要额外调用 ChangeNoteSettings 工具；此处仅示例
-          visibility: 'private'
-        })
-      }).then(r => r.json()).then(data => {
-        alert('高亮内容已发送到墨问，具体结果请在墨问查看。');
-      }).catch(err => {
-        console.error('发送到墨问失败', err);
-        alert('发送失败，请检查 API Key 或网络连接。');
-      });
-    });
-  }
-
   /**
    * Load all stored highlights from chrome.storage.local.  Keys prefixed
    * with 'page_highlights_' represent highlight arrays for a given URL.
@@ -106,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       // Sort pages alphabetically by title
-      pagesData.sort((a, b) => a.title.localeCompare(b.title));
       pagesData.sort((a, b) => a.title.localeCompare(b.title));
       renderList();
     });
@@ -211,9 +158,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!matches) return;
       any = true;
       const details = document.createElement('details');
+      details.dataset.pageKey = page.key;
       // Preserve expanded state
       if (openedPageKeys.has(page.key)) details.open = true;
       const summary = document.createElement('summary');
+      const summaryMain = document.createElement('div');
+      summaryMain.className = 'summary-main';
+
+      if (isSelectionMode) {
+        const pageCheckbox = document.createElement('input');
+        pageCheckbox.type = 'checkbox';
+        pageCheckbox.className = 'page-select-checkbox';
+
+        const selectedCount = page.highlights.filter(h => selectedIds.has(h.id)).length;
+        pageCheckbox.checked = page.highlights.length > 0 && selectedCount === page.highlights.length;
+        pageCheckbox.indeterminate = selectedCount > 0 && selectedCount < page.highlights.length;
+        pageCheckbox.disabled = page.highlights.length === 0;
+        pageCheckbox.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setPageSelection(details, page, pageCheckbox.checked);
+        });
+
+        summaryMain.appendChild(pageCheckbox);
+      }
+
       const infoDiv = document.createElement('div');
       infoDiv.className = 'page-info';
       const titleSpan = document.createElement('span');
@@ -224,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
       urlSpan.className = 'page-url';
       urlSpan.textContent = page.url;
       infoDiv.appendChild(urlSpan);
-      summary.appendChild(infoDiv);
+      summaryMain.appendChild(infoDiv);
+      summary.appendChild(summaryMain);
       const countSpan = document.createElement('span');
       countSpan.className = 'count';
       countSpan.textContent = `${page.highlights.length} 条`;
@@ -305,48 +274,40 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(row);
       });
       details.appendChild(container);
-      // Page-level actions
-      const actions = document.createElement('div');
-      actions.className = 'page-actions';
-      // Delete all highlights on page
-      const deletePageBtn = document.createElement('button');
-      deletePageBtn.textContent = '删除本页';
-      deletePageBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (confirm('确定删除此站点的所有高亮吗？')) {
-          await deletePageHighlights(page);
-        }
-      });
-      actions.appendChild(deletePageBtn);
-      // Copy all highlights from this page to clipboard
-      const copyPageBtn = document.createElement('button');
-      copyPageBtn.textContent = '复制本页';
-      copyPageBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Concatenate highlight texts with line breaks
-        const texts = page.highlights.map(h => String(h.text || '').replace(/\r?\n/g, ' ').trim()).join('\n');
-        if (texts) {
-          navigator.clipboard.writeText(texts).catch(err => console.warn('复制失败', err));
-        }
-      });
-      actions.appendChild(copyPageBtn);
-      // Send to MoWen via MCP
-      const mowenBtn = document.createElement('button');
-      mowenBtn.textContent = '发送到墨问';
-      mowenBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        sendToMowen(page);
-      });
-      actions.appendChild(mowenBtn);
-      // Export this page only
-      const exportPageBtn = document.createElement('button');
-      exportPageBtn.textContent = '导出本页';
-      exportPageBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        exportToMarkdown([page]);
-      });
-      actions.appendChild(exportPageBtn);
-      details.appendChild(actions);
+      if (!isSelectionMode) {
+        const actions = document.createElement('div');
+        actions.className = 'page-actions';
+        // Delete all highlights on page
+        const deletePageBtn = document.createElement('button');
+        deletePageBtn.textContent = '删除本页';
+        deletePageBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (confirm('确定删除此站点的所有高亮吗？')) {
+            await deletePageHighlights(page);
+          }
+        });
+        actions.appendChild(deletePageBtn);
+        // Copy all highlights from this page to clipboard
+        const copyPageBtn = document.createElement('button');
+        copyPageBtn.textContent = '复制本页';
+        copyPageBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const texts = page.highlights.map(h => String(h.text || '').replace(/\r?\n/g, ' ').trim()).join('\n');
+          if (texts) {
+            navigator.clipboard.writeText(texts).catch(err => console.warn('复制失败', err));
+          }
+        });
+        actions.appendChild(copyPageBtn);
+        // Export this page only
+        const exportPageBtn = document.createElement('button');
+        exportPageBtn.textContent = '导出本页';
+        exportPageBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          exportPages([page]);
+        });
+        actions.appendChild(exportPageBtn);
+        details.appendChild(actions);
+      }
       pagesList.appendChild(details);
       // Track open/close
       details.addEventListener('toggle', () => {
@@ -392,33 +353,16 @@ document.addEventListener('DOMContentLoaded', () => {
    * 'catlines_' followed by the date (YYYYMMDD).
    *
    * @param {Array} pages
-   * @param {string} format - 'markdown', 'notion', or 'obsidian'
    */
-  function exportPages(pages, format = 'markdown') {
+  function exportPages(pages) {
     if (!pages || pages.length === 0) {
       alert('没有可导出的高亮');
       return;
     }
 
-    let content = '';
-    let filename = '';
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-
-    switch (format) {
-      case 'notion':
-        content = exportToNotionFormat(pages);
-        filename = `catlines_notion_${dateStr}.md`;
-        break;
-      case 'obsidian':
-        content = exportToObsidianFormat(pages);
-        filename = `catlines_obsidian_${dateStr}.md`;
-        break;
-      default:
-        content = exportToMarkdownFormat(pages);
-        filename = `catlines_${dateStr}.md`;
-    }
-
-    downloadFile(content, filename, 'text/markdown;charset=utf-8');
+    const content = exportToMarkdownFormat(pages);
+    downloadFile(content, `catlines_${dateStr}.md`, 'text/markdown;charset=utf-8');
   }
 
   /**
@@ -440,59 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Generate Notion-compatible format content.
-   */
-  function exportToNotionFormat(pages) {
-    let md = `# 划线猫导出 - ${new Date().toLocaleDateString('zh-CN')}\n\n`;
-
-    pages.forEach(page => {
-      // Use toggle block format for Notion
-      md += `<details>\n<summary><strong>${page.title}</strong></summary>\n\n`;
-      md += `🔗 [打开链接](${page.url})\n\n`;
-
-      page.highlights.forEach(h => {
-        const colorEmoji = h.color === 'yellow' ? '🟡' : h.color === 'mint' ? '🟢' : '🔴';
-        const text = String(h.text).replace(/\r?\n/g, ' ');
-        md += `- [ ] ${colorEmoji} ${text}\n`;
-        if (h.annotation) {
-          md += `  - 📝 ${h.annotation}\n`;
-        }
-      });
-
-      md += `\n</details>\n\n`;
-    });
-
-    return md;
-  }
-
-  /**
-   * Generate Obsidian-compatible format content.
-   */
-  function exportToObsidianFormat(pages) {
-    const now = new Date();
-    let md = `---\ntags: [划线猫, 高亮]\ndate: ${now.toISOString().slice(0, 10)}\n---\n\n`;
-    md += `# 高亮笔记 - ${now.toLocaleDateString('zh-CN')}\n\n`;
-
-    pages.forEach(page => {
-      md += `## ${page.title}\n\n`;
-      md += `> 来源：[${page.url}](${page.url})\n\n`;
-
-      page.highlights.forEach(h => {
-        const text = String(h.text).replace(/\r?\n/g, ' ');
-        // Use Obsidian highlight syntax
-        md += `==${text}==\n\n`;
-        if (h.annotation) {
-          md += `> [!note] 批注\n> ${h.annotation}\n\n`;
-        }
-      });
-
-      md += `---\n\n`;
-    });
-
-    return md;
-  }
-
-  /**
    * Download file helper.
    */
   function downloadFile(content, filename, type) {
@@ -507,21 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   }
 
-  /**
-   * Show sync status indicator.
-   */
-  function updateSyncStatus() {
-    const statusEl = document.getElementById('sync-status');
-    if (!statusEl) return;
-
-    chrome.storage.sync.get(['highlight_index'], (result) => {
-      const index = result.highlight_index || [];
-      const count = index.length;
-      statusEl.innerHTML = `☁️ 已同步 ${count} 条到云端`;
-      statusEl.style.color = '#27ae60';
-    });
-  }
-
   // Event listeners
   searchInput.addEventListener('input', () => {
     renderList();
@@ -532,36 +408,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportDropdown) {
     exportDropdown.addEventListener('change', (e) => {
       const format = e.target.value;
-      if (format) {
-        exportPages(pagesData, format);
+      if (format === 'markdown') {
+        exportPages(pagesData);
         e.target.value = ''; // Reset dropdown
       }
-    });
-  } else {
-    // Fallback for old button
-    exportAllBtn.addEventListener('click', () => {
-      exportPages(pagesData, 'markdown');
-    });
-  }
-
-  // Manual sync button
-  const syncBtn = document.getElementById('sync-btn');
-  if (syncBtn) {
-    syncBtn.addEventListener('click', () => {
-      // Trigger re-sync by reading and re-writing sync data
-      chrome.storage.sync.get(['highlight_index'], (result) => {
-        const index = result.highlight_index || [];
-        chrome.storage.sync.set({ highlight_index: index }, () => {
-          alert('同步完成！');
-          updateSyncStatus();
-        });
-      });
     });
   }
 
   loadData();
   renderBlacklist();
-  updateSyncStatus();
 
   // --- Batch Selection Functions ---
 
@@ -575,6 +430,50 @@ document.addEventListener('DOMContentLoaded', () => {
       selectionMap.delete(id);
     }
     updateSelectCount();
+    updatePageCheckboxStates();
+  }
+
+  function setPageSelection(detailsEl, page, isSelected) {
+    page.highlights.forEach(h => {
+      if (isSelected) {
+        selectedIds.add(h.id);
+        selectionMap.set(h.id, page.key);
+      } else {
+        selectedIds.delete(h.id);
+        selectionMap.delete(h.id);
+      }
+    });
+
+    detailsEl.querySelectorAll('.highlight-row').forEach(row => {
+      const rowId = row.dataset.id;
+      const checked = selectedIds.has(rowId);
+      row.classList.toggle('selected', checked);
+
+      const checkbox = row.querySelector('.item-checkbox');
+      if (checkbox) {
+        checkbox.checked = checked;
+      }
+    });
+
+    updateSelectCount();
+    updatePageCheckboxStates();
+  }
+
+  function updatePageCheckboxStates() {
+    if (!isSelectionMode) return;
+
+    document.querySelectorAll('#pages-list details').forEach(details => {
+      const pageCheckbox = details.querySelector('.page-select-checkbox');
+      if (!pageCheckbox) return;
+
+      const itemCheckboxes = Array.from(details.querySelectorAll('.item-checkbox'));
+      const checkedCount = itemCheckboxes.filter(checkbox => checkbox.checked).length;
+      const totalCount = itemCheckboxes.length;
+
+      pageCheckbox.checked = totalCount > 0 && checkedCount === totalCount;
+      pageCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+      pageCheckbox.disabled = totalCount === 0;
+    });
   }
 
   // Enter selection mode
@@ -635,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update the select count display
   function updateSelectCount() {
     const count = selectedIds.size;
-    if (selectCount) selectCount.textContent = `已选 ${count} 条`;
+    if (selectCount) selectCount.textContent = `已选 ${count} 条（勾选前框可全选）`;
 
     // Update select all checkbox state
     const totalCount = getTotalHighlightCount();
@@ -671,17 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const arr = Array.isArray(result[pageKey]) ? result[pageKey] : [];
       const newArr = arr.filter(item => !ids.includes(item.id));
       await chrome.storage.local.set({ [pageKey]: newArr });
-
-      // Also delete from sync storage
-      try {
-        const syncResult = await chrome.storage.sync.get(['highlight_index']);
-        if (syncResult.highlight_index) {
-          const index = syncResult.highlight_index.filter(item => !ids.includes(item.id));
-          await chrome.storage.sync.set({ highlight_index: index });
-        }
-      } catch (e) {
-        console.warn('Failed to delete from sync:', e);
-      }
+      await removeIdsFromSyncIndex(ids);
     }
 
     exitSelectionMode();
