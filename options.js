@@ -324,6 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getVisiblePages() {
+    const filter = searchInput.value.trim().toLowerCase();
+    return pagesData.filter(page =>
+      page.title.toLowerCase().includes(filter) ||
+      page.url.toLowerCase().includes(filter) ||
+      page.highlights.some(h => String(h.text || '').toLowerCase().includes(filter))
+    );
+  }
+
   /**
    * Delete a specific highlight within a page and reload data (retaining
    * expanded pages).
@@ -514,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectionMap.clear();
 
     if (selectAll) {
-      pagesData.forEach(page => {
+      getVisiblePages().forEach(page => {
         page.highlights.forEach(h => {
           selectedIds.add(h.id);
           selectionMap.set(h.id, page.key);
@@ -528,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Get total highlight count
   function getTotalHighlightCount() {
-    return pagesData.reduce((sum, page) => sum + page.highlights.length, 0);
+    return getVisiblePages().reduce((sum, page) => sum + page.highlights.length, 0);
   }
 
   // Update the select count display
@@ -571,6 +580,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const newArr = arr.filter(item => !ids.includes(item.id));
       await chrome.storage.local.set({ [pageKey]: newArr });
       await removeIdsFromSyncIndex(ids);
+
+      const pageUrl = pageKey.startsWith('page_highlights_') ? pageKey.substring('page_highlights_'.length) : '';
+      if (pageUrl) {
+        await Promise.all(ids.map(id =>
+          notifyTabsForPage(pageUrl, { command: 'removeHighlight', id })
+        ));
+      }
     }
 
     exitSelectionMode();

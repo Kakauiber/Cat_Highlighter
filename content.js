@@ -405,26 +405,50 @@ function initExtension() {
    * Remove a highlight with the given id from the DOM and storage.
    * Unwraps the span to preserve original text.
    */
-  function removeHighlight(id) {
+  function removeIdsFromSyncIndex(ids) {
+    if (!ids || ids.length === 0) return;
+
+    try {
+      chrome.storage && chrome.storage.sync.get(['highlight_index'], (result) => {
+        const index = Array.isArray(result.highlight_index) ? result.highlight_index : [];
+        chrome.storage.sync.set({
+          highlight_index: index.filter(item => item && !ids.includes(item.id))
+        });
+      });
+    } catch (e) { }
+  }
+
+  function removeHighlightsByIds(ids) {
+    const uniqueIds = Array.from(new Set((ids || []).filter(Boolean)));
+    if (uniqueIds.length === 0) return;
+
     const storageKey = getStorageKey();
 
-    // Remove span(s) with matching id
-    document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
-      const parent = span.parentNode;
-      while (span.firstChild) parent.insertBefore(span.firstChild, span);
-      parent.removeChild(span);
+    uniqueIds.forEach(id => {
+      document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
+        const parent = span.parentNode;
+        if (!parent) return;
+        while (span.firstChild) parent.insertBefore(span.firstChild, span);
+        parent.removeChild(span);
+      });
+
+      const overlay = document.getElementById('hl-overlay-' + id);
+      if (overlay) overlay.remove();
     });
-    // Remove any overlay or tooltip
-    const overlay = document.getElementById('hl-overlay-' + id);
-    if (overlay) overlay.remove();
-    // Update chrome.storage.local
+
     try {
       chrome.storage && chrome.storage.local.get([storageKey], (result) => {
         const arr = Array.isArray(result[storageKey]) ? result[storageKey] : [];
-        const filtered = arr.filter(item => item.id !== id);
+        const filtered = arr.filter(item => !uniqueIds.includes(item.id));
         chrome.storage.local.set({ [storageKey]: filtered });
       });
     } catch (e) { }
+
+    removeIdsFromSyncIndex(uniqueIds);
+  }
+
+  function removeHighlight(id) {
+    removeHighlightsByIds([id]);
   }
 
   /**
@@ -1174,14 +1198,15 @@ function initExtension() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
+    const ids = new Set();
     document.querySelectorAll('span[data-hl-id]').forEach(span => {
       try {
         if (range.intersectsNode(span)) {
-          const id = span.getAttribute('data-hl-id');
-          removeHighlight(id);
+          ids.add(span.getAttribute('data-hl-id'));
         }
       } catch (e) { }
     });
+    removeHighlightsByIds(Array.from(ids));
   }
 
   /**

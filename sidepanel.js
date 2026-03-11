@@ -369,6 +369,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getFilteredHighlights(page, filter) {
+        if (!page) return [];
+        if (!filter) return page.highlights;
+
+        return page.highlights.filter(h => {
+            const text = String(h.text || '').toLowerCase();
+            const annotation = String(h.annotation || '').toLowerCase();
+            return text.includes(filter) || annotation.includes(filter);
+        });
+    }
+
+    function getVisibleAllPages(filter) {
+        return allPagesData
+            .filter(page => {
+                if (!filter) return true;
+                const titleMatch = page.title.toLowerCase().includes(filter);
+                const urlMatch = page.url.toLowerCase().includes(filter);
+                const highlightMatch = page.highlights.some(h =>
+                    String(h.text || '').toLowerCase().includes(filter) ||
+                    String(h.annotation || '').toLowerCase().includes(filter)
+                );
+                return titleMatch || urlMatch || highlightMatch;
+            })
+            .map(page => ({
+                ...page,
+                filteredHighlights: getFilteredHighlights(page, filter)
+            }));
+    }
+
     // Render current page highlights
     function renderCurrentPage(filter) {
         currentPageInfo.innerHTML = '';
@@ -399,12 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Filter highlights
-        const filtered = currentPageData.highlights.filter(h => {
-            if (!filter) return true;
-            const text = String(h.text || '').toLowerCase();
-            const annotation = String(h.annotation || '').toLowerCase();
-            return text.includes(filter) || annotation.includes(filter);
-        });
+        const filtered = getFilteredHighlights(currentPageData, filter);
 
         if (filtered.length === 0) {
             showEmptyState(currentHighlights, filter ? '没有匹配的高亮' : '当前页面暂无高亮');
@@ -422,16 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAllPages(filter) {
         allPagesList.innerHTML = '';
 
-        const filteredPages = allPagesData.filter(page => {
-            if (!filter) return true;
-            const titleMatch = page.title.toLowerCase().includes(filter);
-            const urlMatch = page.url.toLowerCase().includes(filter);
-            const highlightMatch = page.highlights.some(h =>
-                String(h.text || '').toLowerCase().includes(filter) ||
-                String(h.annotation || '').toLowerCase().includes(filter)
-            );
-            return titleMatch || urlMatch || highlightMatch;
-        });
+        const filteredPages = getVisibleAllPages(filter);
 
         if (filteredPages.length === 0) {
             showEmptyState(allPagesList, filter ? '没有匹配的结果' : '暂无高亮记录');
@@ -580,12 +595,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const header = document.createElement('div');
         header.className = 'page-group-header';
 
-        const filtered = filter
-            ? page.highlights.filter(h =>
-                String(h.text || '').toLowerCase().includes(filter) ||
-                String(h.annotation || '').toLowerCase().includes(filter)
-            )
-            : page.highlights;
+        const filtered = Array.isArray(page.filteredHighlights)
+            ? page.filteredHighlights
+            : getFilteredHighlights(page, filter);
 
         if (isSelectionMode) {
             const pageCheckbox = document.createElement('input');
@@ -921,10 +933,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Get total highlight count for current view
     function getTotalHighlightCount() {
+        const filter = searchInput.value.trim().toLowerCase();
         if (activeTab === 'current' && currentPageData) {
-            return currentPageData.highlights.length;
+            return getFilteredHighlights(currentPageData, filter).length;
         } else {
-            return allPagesData.reduce((sum, page) => sum + page.highlights.length, 0);
+            return getVisibleAllPages(filter).reduce((sum, page) => sum + page.filteredHighlights.length, 0);
         }
     }
 
@@ -973,16 +986,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSelectAll(selectAll) {
         selectedIds.clear();
         selectionMap.clear();
+        const filter = searchInput.value.trim().toLowerCase();
 
         if (selectAll) {
             if (activeTab === 'current' && currentPageData) {
-                currentPageData.highlights.forEach(h => {
+                getFilteredHighlights(currentPageData, filter).forEach(h => {
                     selectedIds.add(h.id);
                     selectionMap.set(h.id, currentPageData.key);
                 });
             } else {
-                allPagesData.forEach(page => {
-                    page.highlights.forEach(h => {
+                getVisibleAllPages(filter).forEach(page => {
+                    page.filteredHighlights.forEach(h => {
                         selectedIds.add(h.id);
                         selectionMap.set(h.id, page.key);
                     });
