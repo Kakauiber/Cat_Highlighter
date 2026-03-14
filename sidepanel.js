@@ -17,10 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const allPagesList = document.getElementById('all-pages-list');
-    // New Elements
-    const colorOptions = document.querySelectorAll('.color-option');
-    const siteToggle = document.getElementById('site-toggle');
-    const siteToggleLabel = document.getElementById('site-toggle-label');
     const manageBtn = document.getElementById('manage-btn');
     // Batch Selection Elements
     const selectModeBtn = document.getElementById('select-mode-btn');
@@ -32,77 +28,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchDeleteBtn = document.getElementById('batch-delete-btn');
     const batchCopyBtn = document.getElementById('batch-copy-btn');
     const batchExportBtn = document.getElementById('batch-export-btn');
+    // Accordion Section Elements
+    const highlightSection = document.getElementById('highlight-section');
+    const highlightSectionHeader = document.getElementById('highlight-section-header');
+    const highlightSectionSummary = document.getElementById('highlight-section-summary');
+    // Page Notes Elements
+    const noteSection = document.getElementById('note-section');
+    const noteSectionHeader = document.getElementById('note-section-header');
+    const noteSummary = document.getElementById('note-summary');
+    const noteTextarea = document.getElementById('note-textarea');
+    const noteSaveStatus = document.getElementById('note-save-status');
+    const noteUpdateTime = document.getElementById('note-update-time');
+    const noteWordCount = document.getElementById('note-word-count');
 
-    // --- 1. Color Selection Logic ---
-    let selectedColor = localStorage.getItem('selectedHighlightColor') || 'yellow';
-
-    // Initialize UI selection
-    colorOptions.forEach(option => {
-        if (option.dataset.color === selectedColor) option.classList.add('selected');
-        option.addEventListener('click', () => {
-            colorOptions.forEach(o => o.classList.remove('selected'));
-            option.classList.add('selected');
-            selectedColor = option.dataset.color;
-            localStorage.setItem('selectedHighlightColor', selectedColor);
-
-            // Send color change to active tab if needed, or just update state for next highlight
-            // For immediate effect on next highlight action in content script:
-            getActiveTab().then(tab => {
-                if (tab) chrome.tabs.sendMessage(tab.id, { command: 'updateColor', color: selectedColor }).catch(() => { });
-            });
-        });
-    });
-
-    // --- 2. Blacklist Toggle Logic ---
-    async function initToggle() {
-        const tab = await getActiveTab();
-        if (!tab || !tab.url.startsWith('http')) {
-            siteToggle.disabled = true;
-            siteToggleLabel.textContent = '无法在此页面使用';
-            return;
-        }
-
-        const url = new URL(tab.url);
-        const hostname = url.hostname;
-
-        // Load initial state
-        chrome.storage.local.get(['disabled_domains'], (res) => {
-            const disabled = res.disabled_domains || [];
-            const isEnabled = !disabled.includes(hostname);
-            siteToggle.checked = isEnabled;
-            updateToggleLabel(isEnabled);
-        });
-
-        // Handle change
-        siteToggle.addEventListener('change', () => {
-            const isChecked = siteToggle.checked;
-            updateToggleLabel(isChecked);
-
-            chrome.storage.local.get(['disabled_domains'], (res) => {
-                let disabled = res.disabled_domains || [];
-                if (isChecked) {
-                    // Enable: remove from disabled list
-                    disabled = disabled.filter(d => d !== hostname);
-                } else {
-                    // Disable: add to disabled list
-                    if (!disabled.includes(hostname)) disabled.push(hostname);
-                }
-                chrome.storage.local.set({ disabled_domains: disabled }, () => {
-                    chrome.tabs.reload(tab.id); // Reload tab to apply/remove changes
-                });
-            });
-        });
-    }
-
-    function updateToggleLabel(isEnabled) {
-        siteToggleLabel.textContent = isEnabled ? '启用' : '已停用';
-        siteToggleLabel.style.color = isEnabled ? '#2c3e50' : '#e74c3c';
-    }
-
-    // Initialize Toggle
-    initToggle();
-
-    // --- 3. Manage Button ---
+    // --- Manage Button ---
     manageBtn.addEventListener('click', () => {
         if (chrome.runtime.openOptionsPage) {
             chrome.runtime.openOptionsPage();
@@ -119,6 +58,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
+
+    // --- Page Notes State ---
+    let currentNoteRecord = null;   // Current page note data from storage
+    let currentNoteUrl = null;      // Full URL the note belongs to
+    let noteSaveTimer = null;       // Debounce timer for auto-save
+    let noteIsDirty = false;        // Whether textarea has unsaved changes
+    let isNoteSaving = false;       // Guard against concurrent saves
+    const supportsHoverInteractions = typeof window.matchMedia === 'function'
+        && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     // Tab switching
     tabBtns.forEach(btn => {
@@ -353,6 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Render
             renderCurrentView();
+
+            // Load current page note (independent from highlights)
+            if (tab && tab.url) {
+                loadCurrentPageNote(tab.url, tab.title || tab.url);
+            } else {
+                clearNoteUI();
+            }
         } catch (err) {
             console.error('Failed to load data:', err);
         }
@@ -363,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filter = searchInput.value.trim().toLowerCase();
 
         if (activeTab === 'current') {
-            renderCurrentPage(filter);
+            renderCurrentPage(); // no filter — search is only in all-highlights
         } else {
             renderAllPages(filter);
         }
@@ -418,10 +373,34 @@ document.addEventListener('DOMContentLoaded', () => {
         urlEl.textContent = currentPageData.url;
         currentPageInfo.appendChild(urlEl);
 
-        const countEl = document.createElement('div');
+        // Meta row: highlight count + note status on one line
+        const metaRow = document.createElement('div');
+        metaRow.className = 'page-meta-row';
+
+        const countEl = document.createElement('span');
         countEl.className = 'highlight-count';
         countEl.textContent = `${currentPageData.highlights.length} 条高亮`;
-        currentPageInfo.appendChild(countEl);
+        metaRow.appendChild(countEl);
+
+        const noteStatusLine = document.createElement('span');
+        noteStatusLine.className = 'note-status-line';
+        const noteIcon = document.createElement('span');
+        noteIcon.className = 'note-status-icon';
+        noteIcon.textContent = '📝';
+        noteStatusLine.appendChild(noteIcon);
+        const noteStatusText = document.createElement('span');
+        if (currentNoteRecord && currentNoteRecord.content) {
+            noteStatusText.textContent = `已记录 ${currentNoteRecord.wordCount || 0} 字`;
+        } else {
+            noteStatusText.textContent = '暂无笔记';
+        }
+        noteStatusLine.appendChild(noteStatusText);
+        metaRow.appendChild(noteStatusLine);
+
+        currentPageInfo.appendChild(metaRow);
+
+        // Update highlight section summary for collapsed state
+        highlightSectionSummary.textContent = `${currentPageData.highlights.length} 条`;
 
         if (!isSelectionMode) {
             currentPageInfo.appendChild(createPageActions(currentPageData, 'card'));
@@ -456,6 +435,14 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredPages.forEach(page => {
             const group = createPageGroup(page, filter);
             allPagesList.appendChild(group);
+        });
+    }
+
+    function hideVisibleHighlightActions(exceptItem = null) {
+        document.querySelectorAll('.highlight-item.actions-visible').forEach(item => {
+            if (item !== exceptItem) {
+                item.classList.remove('actions-visible');
+            }
         });
     }
 
@@ -518,6 +505,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Actions (only in normal mode)
         if (!isSelectionMode) {
+            item.tabIndex = 0;
+
             const actions = document.createElement('div');
             actions.className = 'highlight-actions';
 
@@ -562,15 +551,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             item.appendChild(actions);
 
-            // Click to scroll to highlight
-            item.addEventListener('click', async () => {
+            item.addEventListener('focusin', () => {
+                if (!supportsHoverInteractions) {
+                    hideVisibleHighlightActions(item);
+                    item.classList.add('actions-visible');
+                }
+            });
+
+            item.addEventListener('keydown', async (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') {
+                    return;
+                }
+
+                if (!supportsHoverInteractions && !item.classList.contains('actions-visible')) {
+                    e.preventDefault();
+                    hideVisibleHighlightActions(item);
+                    item.classList.add('actions-visible');
+                    return;
+                }
+
+                e.preventDefault();
+                item.click();
+            });
+
+            item.addEventListener('click', async (e) => {
+                // If clicked on an action button, it will stopPropagation — won't reach here.
+                if (!supportsHoverInteractions && !item.classList.contains('actions-visible')) {
+                    // First interaction without hover — show actions, don't scroll.
+                    hideVisibleHighlightActions(item);
+                    item.classList.add('actions-visible');
+                    return;
+                }
+
+                if (!supportsHoverInteractions) {
+                    hideVisibleHighlightActions();
+                }
+
                 const tab = await getActiveTab();
                 if (tab && page.url === tab.url) {
                     chrome.tabs.sendMessage(tab.id, { command: 'scrollToHighlight', id: h.id });
                 } else {
-                    // Open the page and scroll
                     chrome.tabs.create({ url: page.url }, (newTab) => {
-                        // Wait for page to load then scroll
                         setTimeout(() => {
                             chrome.tabs.sendMessage(newTab.id, { command: 'scrollToHighlight', id: h.id });
                         }, 2000);
@@ -856,6 +877,253 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    // =============================================
+    // === Page Notes Logic ===
+    // =============================================
+
+    /**
+     * Load the page note for the given URL and populate the UI.
+     */
+    async function loadCurrentPageNote(url, title) {
+        // Guard: never operate on undefined/empty URL
+        if (!url) {
+            clearNoteUI();
+            return;
+        }
+
+        currentNoteUrl = url;
+
+        try {
+            currentNoteRecord = await window.PageNotes.getPageNote(url);
+        } catch (err) {
+            console.error('[PageNotes] Failed to load note:', err);
+            currentNoteRecord = null;
+        }
+
+        // Populate textarea only if user isn't actively editing
+        if (document.activeElement !== noteTextarea) {
+            noteTextarea.value = (currentNoteRecord && currentNoteRecord.content) || '';
+        }
+
+        updateNoteSummary();
+        updateNoteWordCount();
+        updateNoteUpdateTime();
+        setSaveStatusUI('idle');
+        noteIsDirty = false;
+
+        // Sync the page info card note status (may have rendered before note loaded)
+        updatePageInfoNoteStatus();
+    }
+
+    /** Clear all note UI when there's no valid page. */
+    function clearNoteUI() {
+        currentNoteRecord = null;
+        currentNoteUrl = null;
+        noteTextarea.value = '';
+        noteSummary.textContent = '暂无笔记';
+        noteWordCount.textContent = '0 字';
+        noteUpdateTime.textContent = '';
+        setSaveStatusUI('idle');
+    }
+
+    /** Update the note status text inside the page info card. */
+    function updatePageInfoNoteStatus() {
+        const statusLine = currentPageInfo.querySelector('.note-status-line');
+        if (!statusLine) return;
+        // Find or ensure the text span (second child after icon)
+        let textSpan = statusLine.querySelector('span:not(.note-status-icon)');
+        if (!textSpan) {
+            textSpan = statusLine;
+        }
+        if (currentNoteRecord && currentNoteRecord.content) {
+            textSpan.textContent = `已记录 ${currentNoteRecord.wordCount || 0} 字`;
+        } else {
+            textSpan.textContent = '暂无笔记';
+        }
+    }
+
+    /** Update the collapsed summary text. */
+    function updateNoteSummary() {
+        if (currentNoteRecord && currentNoteRecord.content) {
+            const wc = currentNoteRecord.wordCount || window.PageNotes.countWords(currentNoteRecord.content);
+            noteSummary.textContent = `已记录 ${wc} 字`;
+        } else {
+            noteSummary.textContent = '暂无笔记';
+        }
+    }
+
+    /** Update the word count display. */
+    function updateNoteWordCount() {
+        const content = noteTextarea.value;
+        const wc = window.PageNotes.countWords(content);
+        noteWordCount.textContent = `${wc} 字`;
+    }
+
+    /** Update the last-updated time display. */
+    function updateNoteUpdateTime() {
+        if (!currentNoteRecord || !currentNoteRecord.updatedAt) {
+            noteUpdateTime.textContent = '';
+            return;
+        }
+        const diff = Date.now() - currentNoteRecord.updatedAt;
+        if (diff < 60000) {
+            noteUpdateTime.textContent = '最后更新：刚刚';
+        } else if (diff < 3600000) {
+            noteUpdateTime.textContent = `最后更新：${Math.floor(diff / 60000)} 分钟前`;
+        } else if (diff < 86400000) {
+            noteUpdateTime.textContent = `最后更新：${Math.floor(diff / 3600000)} 小时前`;
+        } else {
+            const d = new Date(currentNoteRecord.updatedAt);
+            noteUpdateTime.textContent = `最后更新：${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+    }
+
+    /** Set the save status indicator. */
+    function setSaveStatusUI(status) {
+        noteSaveStatus.className = 'note-save-status';
+        // Remove any existing retry link
+        const existingRetry = noteSaveStatus.parentElement && noteSaveStatus.parentElement.querySelector('.note-retry-link');
+        if (existingRetry) existingRetry.remove();
+
+        switch (status) {
+            case 'saving':
+                noteSaveStatus.textContent = '保存中...';
+                noteSaveStatus.classList.add('saving');
+                break;
+            case 'saved':
+                noteSaveStatus.textContent = '已保存';
+                noteSaveStatus.classList.add('saved');
+                break;
+            case 'error':
+                noteSaveStatus.textContent = '保存失败';
+                noteSaveStatus.classList.add('error');
+                // Insert retry link after the status text
+                const retryLink = document.createElement('button');
+                retryLink.className = 'note-retry-link';
+                retryLink.textContent = '重试保存';
+                retryLink.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    saveCurrentNote();
+                });
+                noteSaveStatus.insertAdjacentElement('afterend', retryLink);
+                break;
+            default:
+                noteSaveStatus.textContent = '';
+                break;
+        }
+    }
+
+    /** Perform the actual save. */
+    async function saveCurrentNote() {
+        if (!currentNoteUrl) return;
+        if (isNoteSaving) return;
+
+        const content = noteTextarea.value;
+        // Don't save if content is empty and there's no existing record
+        if (!content.trim() && !currentNoteRecord) {
+            noteIsDirty = false;
+            return;
+        }
+
+        isNoteSaving = true;
+        setSaveStatusUI('saving');
+
+        try {
+            // If content cleared and a record exists, delete instead of saving empty
+            if (!content.trim() && currentNoteRecord) {
+                await window.PageNotes.deletePageNote(currentNoteUrl);
+                currentNoteRecord = null;
+                noteIsDirty = false;
+                setSaveStatusUI('saved');
+                updateNoteSummary();
+                updateNoteUpdateTime();
+                updatePageInfoNoteStatus();
+                return;
+            }
+
+            const pageTitle = (currentPageData && currentPageData.title) || currentNoteUrl;
+            const draft = window.PageNotes.createNoteDraft(
+                currentNoteUrl, pageTitle, content, currentNoteRecord
+            );
+            await window.PageNotes.savePageNote(currentNoteUrl, draft);
+
+            currentNoteRecord = draft;
+            noteIsDirty = false;
+            setSaveStatusUI('saved');
+            updateNoteSummary();
+            updateNoteUpdateTime();
+
+            // Also update the page info card note status if visible
+            updatePageInfoNoteStatus();
+        } catch (err) {
+            console.error('[PageNotes] Save failed:', err);
+            setSaveStatusUI('error');
+        } finally {
+            isNoteSaving = false;
+        }
+    }
+
+    /** Schedule a debounced save. */
+    function scheduleNoteSave() {
+        if (noteSaveTimer) clearTimeout(noteSaveTimer);
+        noteSaveTimer = setTimeout(() => {
+            noteSaveTimer = null;
+            saveCurrentNote();
+        }, 600);
+    }
+
+    // --- Accordion: Single-expand toggle ---
+    highlightSectionHeader.addEventListener('click', () => {
+        const wasCollapsed = highlightSection.classList.contains('collapsed');
+        if (wasCollapsed) {
+            // Expand highlights, collapse notes
+            highlightSection.classList.remove('collapsed');
+            noteSection.classList.add('collapsed');
+        } else {
+            highlightSection.classList.add('collapsed');
+        }
+    });
+
+    noteSectionHeader.addEventListener('click', () => {
+        const wasCollapsed = noteSection.classList.contains('collapsed');
+        if (wasCollapsed) {
+            // Expand notes, collapse highlights
+            noteSection.classList.remove('collapsed');
+            highlightSection.classList.add('collapsed');
+        } else {
+            noteSection.classList.add('collapsed');
+        }
+    });
+
+    // --- Note Textarea: Input & Blur ---
+    noteTextarea.addEventListener('input', () => {
+        noteIsDirty = true;
+        updateNoteWordCount();
+        scheduleNoteSave();
+    });
+
+    noteTextarea.addEventListener('blur', () => {
+        if (noteIsDirty) {
+            if (noteSaveTimer) {
+                clearTimeout(noteSaveTimer);
+                noteSaveTimer = null;
+            }
+            saveCurrentNote();
+        }
+    });
+
+    // --- Cmd/Ctrl + S immediate save ---
+    noteTextarea.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+            e.preventDefault();
+            if (noteSaveTimer) {
+                clearTimeout(noteSaveTimer);
+                noteSaveTimer = null;
+            }
+            saveCurrentNote();
+        }
+    });
+
     // --- Batch Selection Mode Functions ---
 
     // Store selected highlights with their page keys for deletion
@@ -933,10 +1201,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Get total highlight count for current view
     function getTotalHighlightCount() {
-        const filter = searchInput.value.trim().toLowerCase();
         if (activeTab === 'current' && currentPageData) {
-            return getFilteredHighlights(currentPageData, filter).length;
+            // Current page: always use all highlights (search is not in this view)
+            return currentPageData.highlights.length;
         } else {
+            const filter = searchInput.value.trim().toLowerCase();
             return getVisibleAllPages(filter).reduce((sum, page) => sum + page.filteredHighlights.length, 0);
         }
     }
@@ -986,15 +1255,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSelectAll(selectAll) {
         selectedIds.clear();
         selectionMap.clear();
-        const filter = searchInput.value.trim().toLowerCase();
 
         if (selectAll) {
             if (activeTab === 'current' && currentPageData) {
-                getFilteredHighlights(currentPageData, filter).forEach(h => {
+                // Current page: select all highlights (no filter)
+                currentPageData.highlights.forEach(h => {
                     selectedIds.add(h.id);
                     selectionMap.set(h.id, currentPageData.key);
                 });
             } else {
+                const filter = searchInput.value.trim().toLowerCase();
                 getVisibleAllPages(filter).forEach(page => {
                     page.filteredHighlights.forEach(h => {
                         selectedIds.add(h.id);
@@ -1132,11 +1402,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let storageUpdateTimeout = null;
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') {
-            // Cancel any pending update
+            const changedKeys = Object.keys(changes);
+            const hasHighlightChanges = changedKeys.some(k => !k.startsWith('page_notes_'));
+            const hasNoteChanges = changedKeys.some(k => k.startsWith('page_notes_'));
+
+            // If only page_notes_ keys changed, skip full highlight reload
+            // but still refresh note state if the change wasn't from our own save
+            if (hasNoteChanges && !hasHighlightChanges) {
+                // Re-read note data if the changed key matches current page
+                if (currentNoteUrl && changedKeys.includes(window.PageNotes.getNoteStorageKey(currentNoteUrl))) {
+                    // Only reload if we're not the ones saving right now
+                    if (!isNoteSaving) {
+                        loadCurrentPageNote(currentNoteUrl, (currentPageData && currentPageData.title) || currentNoteUrl);
+                    }
+                }
+                return;
+            }
+
+            // Highlight data changed — reload everything
             if (storageUpdateTimeout) {
                 clearTimeout(storageUpdateTimeout);
             }
-            // Delay slightly to allow storage operations to complete
             storageUpdateTimeout = setTimeout(() => {
                 loadAllData();
             }, 100);
@@ -1154,6 +1440,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (changeInfo.status === 'complete' && tab.active) {
             console.log('[SidePanel] Tab updated, reloading data');
             loadAllData();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (supportsHoverInteractions) {
+            return;
+        }
+
+        if (!e.target.closest('.highlight-item')) {
+            hideVisibleHighlightActions();
         }
     });
 

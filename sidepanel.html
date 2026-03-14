@@ -12,31 +12,15 @@
     <div id="sidepanel-container">
         <header class="header">
             <h1 class="title">🐱 划线猫</h1>
-            <div class="search-box">
-                <input id="search-input" type="text" placeholder="搜索高亮内容..." />
+            <div class="header-actions">
+                <button id="select-mode-btn" class="header-btn" title="多选">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </button>
+                <button id="manage-btn" class="header-btn" title="管理页">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
             </div>
         </header>
-
-        <div class="toolbar">
-            <div class="toolbar-row">
-                <div class="colors">
-                    <div class="color-option" data-color="yellow" title="黄色"></div>
-                    <div class="color-option" data-color="mint" title="薄荷绿"></div>
-                    <div class="color-option" data-color="coral" title="珊瑚色"></div>
-                </div>
-                <div class="toggle-container">
-                    <label class="switch">
-                        <input type="checkbox" id="site-toggle" checked>
-                        <span class="slider round"></span>
-                    </label>
-                    <span id="site-toggle-label">启用</span>
-                </div>
-            </div>
-            <div class="toolbar-row" style="justify-content: flex-end; gap: 8px;">
-                <button id="select-mode-btn" class="secondary-btn">✅ 多选</button>
-                <button id="manage-btn" class="secondary-btn">⚙️ 管理</button>
-            </div>
-        </div>
 
         <!-- Batch selection header (hidden by default) -->
         <div id="batch-header" class="batch-header hidden">
@@ -54,10 +38,44 @@
 
         <div id="current-tab" class="tab-content active">
             <div id="current-page-info" class="page-info"></div>
-            <div id="current-highlights" class="highlights-list"></div>
+
+            <!-- 当前页高亮 section -->
+            <div id="highlight-section" class="accordion-section">
+                <div id="highlight-section-header" class="accordion-section-header">
+                    <span class="accordion-section-title">当前页高亮</span>
+                    <span id="highlight-section-summary" class="accordion-section-summary"></span>
+                    <span class="accordion-toggle">▶</span>
+                </div>
+                <div id="highlight-section-body" class="accordion-section-body">
+                    <div id="current-highlights" class="highlights-list"></div>
+                </div>
+            </div>
+
+            <!-- 当前页笔记 section -->
+            <div id="note-section" class="accordion-section collapsed">
+                <div id="note-section-header" class="accordion-section-header">
+                    <span class="accordion-section-title">当前页笔记</span>
+                    <span id="note-summary" class="accordion-section-summary">暂无笔记</span>
+                    <span class="accordion-toggle">▶</span>
+                </div>
+                <div id="note-section-body" class="accordion-section-body">
+                    <div class="note-status-bar">
+                        <span id="note-save-status" class="note-save-status"></span>
+                        <span id="note-update-time" class="note-update-time"></span>
+                    </div>
+                    <textarea id="note-textarea" class="note-textarea"
+                        placeholder="随手记下你的想法或待追问点"></textarea>
+                    <div class="note-footer">
+                        <span id="note-word-count" class="note-word-count">0 字</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="all-tab" class="tab-content">
+            <div class="all-tab-search">
+                <input id="search-input" type="text" placeholder="搜索高亮内容..." />
+            </div>
             <div id="all-pages-list" class="pages-list"></div>
         </div>
     </div>
