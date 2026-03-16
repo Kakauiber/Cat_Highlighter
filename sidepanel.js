@@ -10,13 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // DOM elements
-    const searchInput = document.getElementById('search-input');
     const tabBtns = document.querySelectorAll('.tab-btn');
     const currentTab = document.getElementById('current-tab');
-    const allTab = document.getElementById('all-tab');
+    const notesTab = document.getElementById('notes-tab');
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
-    const allPagesList = document.getElementById('all-pages-list');
     const manageBtn = document.getElementById('manage-btn');
     // Batch Selection Elements
     const selectModeBtn = document.getElementById('select-mode-btn');
@@ -27,14 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchActionBar = document.getElementById('batch-action-bar');
     const batchDeleteBtn = document.getElementById('batch-delete-btn');
     const batchCopyBtn = document.getElementById('batch-copy-btn');
-    const batchExportBtn = document.getElementById('batch-export-btn');
-    // Accordion Section Elements
-    const highlightSection = document.getElementById('highlight-section');
-    const highlightSectionHeader = document.getElementById('highlight-section-header');
     const highlightSectionSummary = document.getElementById('highlight-section-summary');
     // Page Notes Elements
     const noteSection = document.getElementById('note-section');
-    const noteSectionHeader = document.getElementById('note-section-header');
     const noteSummary = document.getElementById('note-summary');
     const noteTextarea = document.getElementById('note-textarea');
     const noteSaveStatus = document.getElementById('note-save-status');
@@ -54,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let allPagesData = [];
     let currentPageData = null;
     let activeTab = 'current';
-    const expandedPageKeys = new Set();
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
@@ -68,29 +60,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const supportsHoverInteractions = typeof window.matchMedia === 'function'
         && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-    // Tab switching
+    function syncTabChrome() {
+        currentTab.classList.toggle('active', activeTab === 'current');
+        notesTab.classList.toggle('active', activeTab === 'notes');
+        selectModeBtn.classList.toggle('hidden', activeTab !== 'current');
+    }
+
+    function switchTab(nextTab) {
+        if (nextTab === activeTab) return;
+        activeTab = nextTab;
+        tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === nextTab));
+
+        if (nextTab !== 'current' && isSelectionMode) {
+            exitSelectionMode(true);
+        }
+
+        syncTabChrome();
+        renderCurrentView();
+    }
+
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
-            activeTab = tab;
-            tabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            if (tab === 'current') {
-                currentTab.classList.add('active');
-                allTab.classList.remove('active');
-            } else {
-                currentTab.classList.remove('active');
-                allTab.classList.add('active');
-            }
-            updateBatchActionVisibility();
-            renderCurrentView();
+            switchTab(btn.dataset.tab);
         });
-    });
-
-    // Search functionality
-    searchInput.addEventListener('input', () => {
-        renderCurrentView();
     });
 
     // Get the active web tab. Side panel runs in an extension context, so
@@ -299,15 +291,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update sync status
             console.log('[SidePanel] Current page highlights:', currentPageData?.highlights?.length || 0);
 
-            // Render
-            renderCurrentView();
-
             // Load current page note (independent from highlights)
             if (tab && tab.url) {
                 loadCurrentPageNote(tab.url, tab.title || tab.url);
             } else {
                 clearNoteUI();
             }
+
+            // Render after both highlight and note state are refreshed.
+            renderCurrentView();
         } catch (err) {
             console.error('Failed to load data:', err);
         }
@@ -315,46 +307,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render based on active tab
     function renderCurrentView() {
-        const filter = searchInput.value.trim().toLowerCase();
-
-        if (activeTab === 'current') {
-            renderCurrentPage(); // no filter — search is only in all-highlights
-        } else {
-            renderAllPages(filter);
-        }
-    }
-
-    function getFilteredHighlights(page, filter) {
-        if (!page) return [];
-        if (!filter) return page.highlights;
-
-        return page.highlights.filter(h => {
-            const text = String(h.text || '').toLowerCase();
-            const annotation = String(h.annotation || '').toLowerCase();
-            return text.includes(filter) || annotation.includes(filter);
-        });
-    }
-
-    function getVisibleAllPages(filter) {
-        return allPagesData
-            .filter(page => {
-                if (!filter) return true;
-                const titleMatch = page.title.toLowerCase().includes(filter);
-                const urlMatch = page.url.toLowerCase().includes(filter);
-                const highlightMatch = page.highlights.some(h =>
-                    String(h.text || '').toLowerCase().includes(filter) ||
-                    String(h.annotation || '').toLowerCase().includes(filter)
-                );
-                return titleMatch || urlMatch || highlightMatch;
-            })
-            .map(page => ({
-                ...page,
-                filteredHighlights: getFilteredHighlights(page, filter)
-            }));
+        renderCurrentPage();
     }
 
     // Render current page highlights
-    function renderCurrentPage(filter) {
+    function renderCurrentPage() {
         currentPageInfo.innerHTML = '';
         currentHighlights.innerHTML = '';
 
@@ -406,35 +363,15 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPageInfo.appendChild(createPageActions(currentPageData, 'card'));
         }
 
-        // Filter highlights
-        const filtered = getFilteredHighlights(currentPageData, filter);
-
-        if (filtered.length === 0) {
-            showEmptyState(currentHighlights, filter ? '没有匹配的高亮' : '当前页面暂无高亮');
+        if (!currentPageData.highlights || currentPageData.highlights.length === 0) {
+            showEmptyState(currentHighlights, '当前页面暂无高亮');
             return;
         }
 
         // Render highlights
-        filtered.forEach(h => {
+        currentPageData.highlights.forEach(h => {
             const item = createHighlightItem(h, currentPageData);
             currentHighlights.appendChild(item);
-        });
-    }
-
-    // Render all pages
-    function renderAllPages(filter) {
-        allPagesList.innerHTML = '';
-
-        const filteredPages = getVisibleAllPages(filter);
-
-        if (filteredPages.length === 0) {
-            showEmptyState(allPagesList, filter ? '没有匹配的结果' : '暂无高亮记录');
-            return;
-        }
-
-        filteredPages.forEach(page => {
-            const group = createPageGroup(page, filter);
-            allPagesList.appendChild(group);
         });
     }
 
@@ -603,84 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return item;
     }
 
-    // Create page group element
-    function createPageGroup(page, filter) {
-        const group = document.createElement('div');
-        group.className = 'page-group';
-        group.dataset.pageKey = page.key;
-
-        if (expandedPageKeys.has(page.key)) {
-            group.classList.add('expanded');
-        }
-
-        const header = document.createElement('div');
-        header.className = 'page-group-header';
-
-        const filtered = Array.isArray(page.filteredHighlights)
-            ? page.filteredHighlights
-            : getFilteredHighlights(page, filter);
-
-        if (isSelectionMode) {
-            const pageCheckbox = document.createElement('input');
-            pageCheckbox.type = 'checkbox';
-            pageCheckbox.className = 'page-group-checkbox';
-
-            const selectedCount = filtered.filter(h => selectedIds.has(h.id)).length;
-            pageCheckbox.checked = filtered.length > 0 && selectedCount === filtered.length;
-            pageCheckbox.indeterminate = selectedCount > 0 && selectedCount < filtered.length;
-            pageCheckbox.disabled = filtered.length === 0;
-            pageCheckbox.addEventListener('click', (e) => {
-                e.stopPropagation();
-                setPageSelection(group, page, filtered, pageCheckbox.checked);
-            });
-
-            header.appendChild(pageCheckbox);
-        }
-
-        const title = document.createElement('div');
-        title.className = 'page-group-title';
-        title.textContent = page.title;
-        header.appendChild(title);
-
-        const count = document.createElement('span');
-        count.className = 'page-group-count';
-        count.textContent = page.highlights.length;
-        header.appendChild(count);
-
-        const expand = document.createElement('span');
-        expand.className = 'page-group-expand';
-        expand.textContent = '▶';
-        header.appendChild(expand);
-
-        header.addEventListener('click', () => {
-            group.classList.toggle('expanded');
-            if (group.classList.contains('expanded')) {
-                expandedPageKeys.add(page.key);
-            } else {
-                expandedPageKeys.delete(page.key);
-            }
-        });
-
-        group.appendChild(header);
-
-        // Highlights container
-        const highlightsContainer = document.createElement('div');
-        highlightsContainer.className = 'page-group-highlights';
-
-        filtered.forEach(h => {
-            const item = createHighlightItem(h, page);
-            highlightsContainer.appendChild(item);
-        });
-
-        group.appendChild(highlightsContainer);
-
-        if (!isSelectionMode) {
-            group.appendChild(createPageActions(page, 'group'));
-        }
-
-        return group;
-    }
-
     function createPageActions(page, variant = 'card') {
         const actions = document.createElement('div');
         actions.className = variant === 'group' ? 'page-group-actions' : 'page-card-actions';
@@ -812,62 +671,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="empty-text">${escapeHtml(message)}</div>
       </div>
     `;
-    }
-
-    function exportSelectedHighlights() {
-        if (activeTab !== 'all' || !isSelectionMode) {
-            alert('请先在“全部高亮”中选择要导出的内容');
-            return;
-        }
-
-        if (selectedIds.size === 0) {
-            alert('请先选择要导出的高亮');
-            return;
-        }
-
-        const pages = allPagesData
-            .map(page => ({
-                ...page,
-                highlights: page.highlights.filter(h => selectedIds.has(h.id))
-            }))
-            .filter(page => page.highlights.length > 0);
-
-        if (pages.length === 0) {
-            alert('没有可导出的高亮');
-            return;
-        }
-
-        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const content = exportToMarkdown(pages);
-        downloadFile(content, `catlines_selected_${dateStr}.md`, 'text/markdown;charset=utf-8');
-    }
-
-    function exportToMarkdown(pages) {
-        let md = '';
-        pages.forEach((page, index) => {
-            md += `## ${page.title}\n`;
-            md += `链接：${page.url}\n\n`;
-            page.highlights.forEach(h => {
-                const ann = h.annotation ? `，批注：${h.annotation}` : '';
-                const text = String(h.text).replace(/\r?\n/g, ' ');
-                md += `- [ ] ${text}（颜色：${h.color}${ann}）\n`;
-            });
-            if (index < pages.length - 1) md += '\n';
-        });
-        return md;
-    }
-
-    // Download file helper
-    function downloadFile(content, filename, type) {
-        const blob = new Blob([content], { type });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     }
 
     // Escape HTML
@@ -1072,29 +875,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
     }
 
-    // --- Accordion: Single-expand toggle ---
-    highlightSectionHeader.addEventListener('click', () => {
-        const wasCollapsed = highlightSection.classList.contains('collapsed');
-        if (wasCollapsed) {
-            // Expand highlights, collapse notes
-            highlightSection.classList.remove('collapsed');
-            noteSection.classList.add('collapsed');
-        } else {
-            highlightSection.classList.add('collapsed');
-        }
-    });
-
-    noteSectionHeader.addEventListener('click', () => {
-        const wasCollapsed = noteSection.classList.contains('collapsed');
-        if (wasCollapsed) {
-            // Expand notes, collapse highlights
-            noteSection.classList.remove('collapsed');
-            highlightSection.classList.add('collapsed');
-        } else {
-            noteSection.classList.add('collapsed');
-        }
-    });
-
     // --- Note Textarea: Input & Blur ---
     noteTextarea.addEventListener('input', () => {
         noteIsDirty = true;
@@ -1139,7 +919,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectionMap.delete(id);
         }
         updateSelectCount();
-        updatePageGroupSelectionStates();
     }
 
     function setPageSelection(groupEl, page, highlights, isSelected) {
@@ -1165,26 +944,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateSelectCount();
-        updatePageGroupSelectionStates();
-    }
-
-    function updatePageGroupSelectionStates() {
-        if (!isSelectionMode || activeTab !== 'all') {
-            return;
-        }
-
-        document.querySelectorAll('.page-group').forEach(group => {
-            const pageCheckbox = group.querySelector('.page-group-checkbox');
-            if (!pageCheckbox) return;
-
-            const itemCheckboxes = Array.from(group.querySelectorAll('.item-checkbox'));
-            const checkedCount = itemCheckboxes.filter(checkbox => checkbox.checked).length;
-            const totalCount = itemCheckboxes.length;
-
-            pageCheckbox.checked = totalCount > 0 && checkedCount === totalCount;
-            pageCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
-            pageCheckbox.disabled = totalCount === 0;
-        });
     }
 
     // Update the select count display
@@ -1201,13 +960,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Get total highlight count for current view
     function getTotalHighlightCount() {
-        if (activeTab === 'current' && currentPageData) {
-            // Current page: always use all highlights (search is not in this view)
-            return currentPageData.highlights.length;
-        } else {
-            const filter = searchInput.value.trim().toLowerCase();
-            return getVisibleAllPages(filter).reduce((sum, page) => sum + page.filteredHighlights.length, 0);
-        }
+        return currentPageData ? currentPageData.highlights.length : 0;
     }
 
     // Enter selection mode
@@ -1227,7 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Exit selection mode
-    function exitSelectionMode() {
+    function exitSelectionMode(skipRender = false) {
         isSelectionMode = false;
         selectedIds.clear();
         selectionMap.clear();
@@ -1240,15 +993,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectAllCheckbox.checked = false;
         updateBatchActionVisibility();
 
-        renderCurrentView();
+        if (!skipRender) {
+            renderCurrentView();
+        }
     }
 
     function updateBatchActionVisibility() {
-        if (!batchExportBtn) return;
-
-        const shouldShowExport = isSelectionMode && activeTab === 'all';
-        batchExportBtn.classList.toggle('hidden', !shouldShowExport);
-        batchExportBtn.disabled = !shouldShowExport || selectedIds.size === 0;
+        batchCopyBtn.disabled = selectedIds.size === 0;
+        batchDeleteBtn.disabled = selectedIds.size === 0;
     }
 
     // Select/deselect all
@@ -1256,22 +1008,11 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedIds.clear();
         selectionMap.clear();
 
-        if (selectAll) {
-            if (activeTab === 'current' && currentPageData) {
-                // Current page: select all highlights (no filter)
-                currentPageData.highlights.forEach(h => {
-                    selectedIds.add(h.id);
-                    selectionMap.set(h.id, currentPageData.key);
-                });
-            } else {
-                const filter = searchInput.value.trim().toLowerCase();
-                getVisibleAllPages(filter).forEach(page => {
-                    page.filteredHighlights.forEach(h => {
-                        selectedIds.add(h.id);
-                        selectionMap.set(h.id, page.key);
-                    });
-                });
-            }
+        if (selectAll && currentPageData) {
+            currentPageData.highlights.forEach(h => {
+                selectedIds.add(h.id);
+                selectionMap.set(h.id, currentPageData.key);
+            });
         }
 
         updateSelectCount();
@@ -1328,19 +1069,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Collect texts in display order
         const texts = [];
 
-        if (activeTab === 'current' && currentPageData) {
+        if (currentPageData) {
             currentPageData.highlights.forEach(h => {
                 if (selectedIds.has(h.id)) {
                     texts.push(h.text);
                 }
-            });
-        } else {
-            allPagesData.forEach(page => {
-                page.highlights.forEach(h => {
-                    if (selectedIds.has(h.id)) {
-                        texts.push(h.text);
-                    }
-                });
             });
         }
 
@@ -1390,12 +1123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     batchCopyBtn.addEventListener('click', () => {
         mergeCopySelected();
     });
-
-    if (batchExportBtn) {
-        batchExportBtn.addEventListener('click', () => {
-            exportSelectedHighlights();
-        });
-    }
 
     // Listen for storage changes to update in real-time
     // Use debounce to ensure data is fully written before reloading
@@ -1454,6 +1181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial load
+    syncTabChrome();
     updateBatchActionVisibility();
     loadAllData();
 });

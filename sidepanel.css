@@ -109,29 +109,9 @@ body {
     display: block;
 }
 
-/* All-tab search bar */
-.all-tab-search {
-    margin-bottom: 10px;
-}
-
-.all-tab-search input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 13px;
-    outline: none;
-    background: #fff;
-    color: #333;
-    transition: border-color 0.2s;
-}
-
-.all-tab-search input:focus {
-    border-color: #667eea;
-}
-
-.all-tab-search input::placeholder {
-    color: #bbb;
+#notes-tab.active {
+    display: flex;
+    flex-direction: column;
 }
 
 /* Page Info */
@@ -594,62 +574,41 @@ body {
     padding-bottom: 88px;
 }
 
-/* --- Accordion Sections (Highlights & Notes) --- */
-.accordion-section {
+/* --- Current-page work panels --- */
+.workspace-panel,
+.note-workspace {
     background: #fff;
     border-radius: 8px;
-    margin-top: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 }
 
-.accordion-section-header {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s;
+.workspace-panel {
+    margin-top: 8px;
 }
 
-.accordion-section-header:hover {
-    background: #f8f8f8;
+.workspace-panel-header,
+.note-workspace-header {
+    padding: 8px 10px 6px;
 }
 
-.accordion-section-title {
+.workspace-panel-title,
+.note-workspace-title {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: #333;
 }
 
-.accordion-section-summary {
-    flex: 1;
-    text-align: right;
+.workspace-panel-summary,
+.note-workspace-summary {
     font-size: 11px;
-    color: #999;
-    margin: 0 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: #8a8f9c;
 }
 
-.accordion-toggle {
-    font-size: 10px;
-    color: #999;
-    transition: transform 0.2s;
-    flex-shrink: 0;
-}
-
-.accordion-section:not(.collapsed) .accordion-toggle {
-    transform: rotate(90deg);
-}
-
-.accordion-section-body {
-    padding: 0 12px 12px;
-}
-
-.accordion-section.collapsed .accordion-section-body {
-    display: none;
+.note-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 /* --- Note Section Body --- */
@@ -657,8 +616,14 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-    min-height: 18px;
+    margin-top: 6px;
+    min-height: 16px;
+}
+
+.note-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .note-save-status {
@@ -701,8 +666,8 @@ body {
 
 .note-textarea {
     width: 100%;
-    min-height: 200px;
-    max-height: 60vh;
+    min-height: 320px;
+    flex: 1;
     padding: 10px 12px;
     border: 1px solid #e0e0e0;
     border-radius: 6px;
@@ -725,10 +690,12 @@ body {
     color: #bbb;
 }
 
-.note-footer {
+.note-workspace {
     display: flex;
-    justify-content: flex-end;
-    margin-top: 4px;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: 10px;
 }
 
 .note-word-count {
@@ -749,4 +716,3 @@ body {
     font-size: 11px;
     flex-shrink: 0;
 }
-

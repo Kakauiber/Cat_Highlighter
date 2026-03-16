@@ -1003,23 +1003,44 @@ function initExtension() {
     });
   }
 
+  function hasHighlightInDom(id) {
+    return !!(id && document.querySelector(`span[data-hl-id="${id}"]`));
+  }
+
+  function getRestoreText(item) {
+    if (!item) return '';
+
+    const primaryText = typeof item.text === 'string' ? item.text.trim() : '';
+    if (primaryText) {
+      return primaryText;
+    }
+
+    if (Array.isArray(item.segments) && item.segments.length > 0) {
+      return item.segments
+        .map(seg => String(seg || '').trim())
+        .filter(Boolean)
+        .join('');
+    }
+
+    return '';
+  }
+
   function applyHighlights(data) {
     if (!Array.isArray(data)) return;
     data.forEach(item => {
-      if (item.segments && Array.isArray(item.segments) && item.segments.length > 0) {
-        item.segments.forEach(segText => {
-          if (item.type === 'underline') {
-            findAndApplyUnderline(segText, item.color, item.id, item.annotation, item.xpath, item.context);
-          } else {
-            findAndApplyHighlight(segText, item.color, item.id, item.annotation, item.xpath, item.context);
-          }
-        });
+      if (!item || !item.id || hasHighlightInDom(item.id)) {
+        return;
+      }
+
+      const restoreText = getRestoreText(item);
+      if (!restoreText) {
+        return;
+      }
+
+      if (item.type === 'underline') {
+        findAndApplyUnderline(restoreText, item.color, item.id, item.annotation, item.xpath, item.context);
       } else {
-        if (item.type === 'underline') {
-          findAndApplyUnderline(item.text, item.color, item.id, item.annotation, item.xpath, item.context);
-        } else {
-          findAndApplyHighlight(item.text, item.color, item.id, item.annotation, item.xpath, item.context);
-        }
+        findAndApplyHighlight(restoreText, item.color, item.id, item.annotation, item.xpath, item.context);
       }
     });
   }
