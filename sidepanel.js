@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteSaveTimer = null;       // Debounce timer for auto-save
     let noteIsDirty = false;        // Whether textarea has unsaved changes
     let isNoteSaving = false;       // Guard against concurrent saves
+    let noteLoadRequestToken = 0;   // Prevent stale async note loads from overwriting newer pages
     const supportsHoverInteractions = typeof window.matchMedia === 'function'
         && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
@@ -293,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Load current page note (independent from highlights)
             if (tab && tab.url) {
-                loadCurrentPageNote(tab.url, tab.title || tab.url);
+                await loadCurrentPageNote(tab.url, tab.title || tab.url);
             } else {
                 clearNoteUI();
             }
@@ -694,13 +695,30 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (currentNoteUrl && currentNoteUrl !== url) {
+            await flushPendingNoteSave();
+        }
+
+        const requestToken = ++noteLoadRequestToken;
         currentNoteUrl = url;
+        currentNoteRecord = null;
+        noteIsDirty = false;
+        noteTextarea.value = '';
+        noteSummary.textContent = '暂无笔记';
+        noteWordCount.textContent = '0 字';
+        noteUpdateTime.textContent = '';
+        setSaveStatusUI('idle');
+        updatePageInfoNoteStatus();
 
         try {
             currentNoteRecord = await window.PageNotes.getPageNote(url);
         } catch (err) {
             console.error('[PageNotes] Failed to load note:', err);
             currentNoteRecord = null;
+        }
+
+        if (requestToken !== noteLoadRequestToken || currentNoteUrl !== url) {
+            return;
         }
 
         // Populate textarea only if user isn't actively editing
@@ -720,8 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Clear all note UI when there's no valid page. */
     function clearNoteUI() {
+        noteLoadRequestToken += 1;
+        if (noteSaveTimer) {
+            clearTimeout(noteSaveTimer);
+            noteSaveTimer = null;
+        }
         currentNoteRecord = null;
         currentNoteUrl = null;
+        noteIsDirty = false;
         noteTextarea.value = '';
         noteSummary.textContent = '暂无笔记';
         noteWordCount.textContent = '0 字';
@@ -816,6 +840,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function flushPendingNoteSave() {
+        if (noteSaveTimer) {
+            clearTimeout(noteSaveTimer);
+            noteSaveTimer = null;
+        }
+
+        if (noteIsDirty && currentNoteUrl && !isNoteSaving) {
+            await saveCurrentNote();
+        }
+    }
+
     /** Perform the actual save. */
     async function saveCurrentNote() {
         if (!currentNoteUrl) return;
@@ -905,9 +940,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Batch Selection Mode Functions ---
-
-    // Store selected highlights with their page keys for deletion
-    let selectionMap = new Map(); // id -> pageKey
 
     // Toggle selection of a single highlight
     function toggleSelection(id, pageKey, isSelected) {

@@ -4,15 +4,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>高亮管理</title>
+  <title>高亮与笔记管理</title>
   <link rel="stylesheet" href="options.css" />
 </head>
 
 <body>
   <div id="options-container">
     <header>
-      <h1>高亮管理</h1>
-      <input id="search-input" type="text" placeholder="搜索站点或高亮内容..." />
+      <h1>高亮与笔记管理</h1>
+      <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." />
       <div class="actions">
         <button id="select-mode-btn" class="select-mode-btn">✅ 多选</button>
         <select id="export-dropdown" class="export-dropdown">
@@ -21,6 +21,12 @@
         </select>
       </div>
     </header>
+    <div id="view-filters" class="view-filters" aria-label="页面筛选">
+      <button class="filter-chip active" data-filter="all">全部页面</button>
+      <button class="filter-chip" data-filter="with-notes">有笔记</button>
+      <button class="filter-chip" data-filter="notes-only">仅笔记</button>
+      <button class="filter-chip" data-filter="highlights-only">仅高亮</button>
+    </div>
     <!-- Batch selection header (hidden by default) -->
     <div id="batch-header" class="batch-header hidden">
       <label class="select-all-label">
