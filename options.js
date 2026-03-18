@@ -561,45 +561,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const content = exportToMarkdownFormat(pages);
-    downloadFile(content, `catlines_${dateStr}.md`, 'text/markdown;charset=utf-8');
-  }
-
-  function exportToMarkdownFormat(pages) {
-    let md = '';
-    pages.forEach((page, index) => {
-      md += `## ${page.title}\n`;
-      md += `链接：${page.url}\n`;
-
-      if (page.note && page.note.content) {
-        md += `笔记：\n${page.note.content}\n`;
-      }
-
-      if (page.highlights.length > 0) {
-        md += `高亮：\n`;
-        page.highlights.forEach(h => {
-          const ann = h.annotation ? `，批注：${h.annotation}` : '';
-          const text = String(h.text || '').replace(/\r?\n/g, ' ');
-          md += `- [ ] ${text}（颜色：${h.color}${ann}）\n`;
-        });
-      }
-
-      if (index < pages.length - 1) md += '\n';
-    });
-    return md;
-  }
-
-  function downloadFile(content, filename, type) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const bundle = window.HighlightExport.buildExportBundle(pages, { source: 'options' });
+    const ok = window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
+    if (!ok) {
+      alert('没有可导出的内容');
+    }
   }
 
   searchInput.addEventListener('input', () => {
@@ -609,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportDropdown) {
     exportDropdown.addEventListener('change', (e) => {
       if (e.target.value === 'markdown') {
-        exportPages(getVisiblePages());
+        exportPages(pagesData);
         e.target.value = '';
       }
     });
