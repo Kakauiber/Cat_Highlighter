@@ -349,26 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
       urlSpan.className = 'page-url';
       urlSpan.textContent = page.url;
       infoDiv.appendChild(urlSpan);
-
-      const metaRow = document.createElement('div');
-      metaRow.className = 'page-meta';
-
-      const highlightMeta = document.createElement('span');
-      highlightMeta.className = 'page-meta-chip highlight-meta';
-      highlightMeta.textContent = `${page.highlights.length} 条高亮`;
-      metaRow.appendChild(highlightMeta);
-
-      const noteMeta = document.createElement('span');
-      noteMeta.className = 'page-meta-chip note-meta-chip';
-      if (page.note && page.note.content) {
-        noteMeta.textContent = `已记录 ${getNoteWordCount(page)} 字`;
-        noteMeta.classList.add('has-note');
-      } else {
-        noteMeta.textContent = '暂无笔记';
-      }
-      metaRow.appendChild(noteMeta);
-
-      infoDiv.appendChild(metaRow);
       summaryMain.appendChild(infoDiv);
       summary.appendChild(summaryMain);
 
@@ -380,12 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
       countSpan.textContent = `${page.highlights.length} 条高亮`;
       statWrap.appendChild(countSpan);
 
+      const noteCount = document.createElement('span');
+      noteCount.className = 'count note-count';
       if (page.note && page.note.content) {
-        const noteCount = document.createElement('span');
-        noteCount.className = 'count note-count';
-        noteCount.textContent = `${getNoteWordCount(page)} 字笔记`;
-        statWrap.appendChild(noteCount);
+        noteCount.textContent = `已记录 ${getNoteWordCount(page)} 字`;
+        noteCount.classList.add('has-note');
+      } else {
+        noteCount.textContent = '暂无笔记';
       }
+      statWrap.appendChild(noteCount);
 
       summary.appendChild(statWrap);
       details.appendChild(summary);
@@ -575,14 +558,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
-  function exportPages(pages) {
+  function exportPages(pages, format) {
     if (!pages || pages.length === 0) {
       alert('没有可导出的内容');
       return;
     }
 
     const bundle = window.HighlightExport.buildExportBundle(pages, { source: 'options' });
-    const ok = window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
+    const targetFormat = format || 'markdown';
+    const ok = targetFormat === 'html'
+      ? window.HighlightExport.downloadBundleAsHtml(bundle, 'catlines')
+      : window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
     if (!ok) {
       alert('没有可导出的内容');
     }
@@ -594,8 +580,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (exportDropdown) {
     exportDropdown.addEventListener('change', (e) => {
-      if (e.target.value === 'markdown') {
-        exportPages(pagesData);
+      if (e.target.value === 'markdown' || e.target.value === 'html') {
+        exportPages(pagesData, e.target.value);
         e.target.value = '';
       }
     });

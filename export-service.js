@@ -5,6 +5,7 @@
   'use strict';
 
   const TARGET_FEATURE_MAP = {
+    html: 'export.markdown',
     markdown: 'export.markdown',
     mowen: 'export.mowen',
     notion: 'export.notion',
@@ -58,6 +59,27 @@
       lines.push(`  批注：${item.annotation}`);
     }
     return lines;
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function normalizeHtmlDisplayText(value) {
+    return String(value || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function formatMultilineHtml(value) {
+    return escapeHtml(normalizeHtmlDisplayText(value)).replace(/\n/g, '<br>');
   }
 
   function buildHighlightExportItem(item) {
@@ -133,6 +155,107 @@
     return bundle.pages.map(renderPageMarkdown).join('\n\n');
   }
 
+  function renderHighlightHtml(item) {
+    const typeClass = item.type === 'underline' ? 'type-underline' : 'type-highlight';
+    const colorClass = `color-${item.color}`;
+    const parts = [
+      `<div class="highlight-item ${typeClass} ${colorClass}">`,
+      `  <span class="highlight-label">${escapeHtml(getHighlightStyleLabel(item).replace(/^\[|\]$/g, ''))}</span>`,
+      `  <div class="highlight-text">${formatMultilineHtml(item.text)}</div>`
+    ];
+
+    if (item.annotation) {
+      parts.push(`  <div class="highlight-annotation">批注：${formatMultilineHtml(item.annotation)}</div>`);
+    }
+
+    parts.push('</div>');
+    return parts.join('\n');
+  }
+
+  function renderPageHtml(page) {
+    const parts = [
+      '<section class="page-block">',
+      `  <h2>${escapeHtml(page.title || page.url || '未命名页面')}</h2>`
+    ];
+
+    if (page.url) {
+      parts.push(`  <p class="page-link"><a href="${escapeHtml(page.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(page.url)}</a></p>`);
+    }
+
+    if (page.note) {
+      parts.push('  <section class="page-section">');
+      parts.push('    <h3>页面笔记</h3>');
+      parts.push(`    <div class="page-note">${formatMultilineHtml(page.note)}</div>`);
+      parts.push('  </section>');
+    }
+
+    if (page.highlights.length > 0) {
+      parts.push('  <section class="page-section">');
+      parts.push('    <h3>标注</h3>');
+      parts.push('    <div class="highlights-list">');
+      page.highlights.forEach(item => {
+        parts.push(renderHighlightHtml(item));
+      });
+      parts.push('    </div>');
+      parts.push('  </section>');
+    }
+
+    parts.push('</section>');
+    return parts.join('\n');
+  }
+
+  function exportBundleToHtml(bundle) {
+    if (!bundle || !Array.isArray(bundle.pages) || bundle.pages.length === 0) {
+      return '';
+    }
+
+    const pageHtml = bundle.pages.map(renderPageHtml).join('\n\n');
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="zh-CN">',
+      '<head>',
+      '  <meta charset="utf-8">',
+      '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+      '  <title>划线猫导出</title>',
+      '  <style>',
+      '    :root { color-scheme: light; }',
+      '    body { margin: 0; padding: 32px; font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2937; background: #f8fafc; }',
+      '    .export-shell { max-width: 920px; margin: 0 auto; }',
+      '    .export-header { margin-bottom: 24px; }',
+      '    .export-header h1 { margin: 0 0 8px; font-size: 28px; }',
+      '    .export-meta { color: #6b7280; font-size: 14px; }',
+      '    .page-block { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 18px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05); }',
+      '    .page-block h2 { margin: 0 0 8px; font-size: 24px; }',
+      '    .page-link { margin: 0 0 18px; word-break: break-all; }',
+      '    .page-link a { color: #4f46e5; text-decoration: none; }',
+      '    .page-link a:hover { text-decoration: underline; }',
+      '    .page-section { margin-top: 16px; }',
+      '    .page-section h3 { margin: 0 0 10px; font-size: 18px; }',
+      '    .page-note { padding: 12px 14px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 14px; white-space: normal; }',
+      '    .highlights-list { display: grid; gap: 10px; }',
+      '    .highlight-item { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 14px; background: #fff; }',
+      '    .highlight-label { display: inline-block; margin-bottom: 6px; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #374151; background: #eef2ff; }',
+      '    .highlight-text { font-size: 15px; line-height: 1.55; }',
+      '    .highlight-annotation { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #d1d5db; color: #4b5563; font-size: 14px; }',
+      '    .color-yellow .highlight-label { background: #fff6cc; color: #8a6700; }',
+      '    .color-blue .highlight-label { background: #e0f0ff; color: #155e9a; }',
+      '    .color-red .highlight-label { background: #ffe1e1; color: #a33a3a; }',
+      '    .type-underline .highlight-text { text-decoration: underline 2px solid #1f2937; text-underline-offset: 3px; }',
+      '  </style>',
+      '</head>',
+      '<body>',
+      '  <div class="export-shell">',
+      '    <header class="export-header">',
+      '      <h1>划线猫导出</h1>',
+      `      <div class="export-meta">导出页面数：${bundle.pageCount || 0} · 导出时间：${escapeHtml(new Date(bundle.exportedAt || Date.now()).toLocaleString('zh-CN'))}</div>`,
+      '    </header>',
+      pageHtml,
+      '  </div>',
+      '</body>',
+      '</html>'
+    ].join('\n');
+  }
+
   function formatDateStamp(timestamp) {
     const date = new Date(timestamp || Date.now());
     const year = String(date.getFullYear());
@@ -166,6 +289,19 @@
     return true;
   }
 
+  function downloadBundleAsHtml(bundle, filenamePrefix) {
+    const content = exportBundleToHtml(bundle);
+    if (!content) return false;
+
+    const stamp = formatDateStamp(bundle && bundle.exportedAt);
+    downloadTextFile(
+      content,
+      `${filenamePrefix || 'catlines'}_${stamp}.html`,
+      'text/html;charset=utf-8'
+    );
+    return true;
+  }
+
   function getExportTargetState(target) {
     const featureName = TARGET_FEATURE_MAP[target] || '';
     if (!window.FeatureGate || typeof window.FeatureGate.getFeatureState !== 'function') {
@@ -194,7 +330,9 @@
   window.HighlightExport.buildPageExportItem = buildPageExportItem;
   window.HighlightExport.buildExportBundle = buildExportBundle;
   window.HighlightExport.exportBundleToMarkdown = exportBundleToMarkdown;
+  window.HighlightExport.exportBundleToHtml = exportBundleToHtml;
   window.HighlightExport.downloadBundleAsMarkdown = downloadBundleAsMarkdown;
+  window.HighlightExport.downloadBundleAsHtml = downloadBundleAsHtml;
   window.HighlightExport.getExportTargetState = getExportTargetState;
   window.HighlightExport.normalizeHighlightColor = normalizeHighlightColor;
   window.HighlightExport.getHighlightStyleLabel = getHighlightStyleLabel;
