@@ -17,11 +17,55 @@
     return value.replace(/\r\n/g, '\n').trim();
   }
 
+  function normalizeHighlightType(type) {
+    return type === 'underline' ? 'underline' : 'highlight';
+  }
+
+  function normalizeHighlightColor(color) {
+    switch (color) {
+      case 'yellow':
+        return 'yellow';
+      case 'mint':
+      case 'blue':
+        return 'blue';
+      case 'coral':
+      case 'red':
+        return 'red';
+      default:
+        return 'yellow';
+    }
+  }
+
+  function getHighlightStyleLabel(item) {
+    if (item.type === 'underline') {
+      return '[划线]';
+    }
+
+    switch (item.color) {
+      case 'blue':
+        return '[高亮/蓝]';
+      case 'red':
+        return '[高亮/红]';
+      case 'yellow':
+      default:
+        return '[高亮/黄]';
+    }
+  }
+
+  function renderHighlightMarkdownLines(item) {
+    const lines = [`- ${getHighlightStyleLabel(item)} ${item.text}`];
+    if (item.annotation) {
+      lines.push(`  批注：${item.annotation}`);
+    }
+    return lines;
+  }
+
   function buildHighlightExportItem(item) {
     return {
       id: item && item.id ? item.id : '',
       text: normalizeText(item && item.text),
-      color: item && item.color ? item.color : 'yellow',
+      type: normalizeHighlightType(item && item.type),
+      color: normalizeHighlightColor(item && item.color),
       annotation: normalizeText(item && item.annotation),
       timestamp: item && item.timestamp ? item.timestamp : 0
     };
@@ -72,13 +116,9 @@
 
     if (page.highlights.length > 0) {
       lines.push('');
-      lines.push('### 高亮');
+      lines.push('### 标注');
       page.highlights.forEach(item => {
-        const meta = [`颜色：${item.color}`];
-        if (item.annotation) {
-          meta.push(`批注：${item.annotation}`);
-        }
-        lines.push(`- ${item.text}（${meta.join('，')}）`);
+        lines.push(...renderHighlightMarkdownLines(item));
       });
     }
 
@@ -156,4 +196,7 @@
   window.HighlightExport.exportBundleToMarkdown = exportBundleToMarkdown;
   window.HighlightExport.downloadBundleAsMarkdown = downloadBundleAsMarkdown;
   window.HighlightExport.getExportTargetState = getExportTargetState;
+  window.HighlightExport.normalizeHighlightColor = normalizeHighlightColor;
+  window.HighlightExport.getHighlightStyleLabel = getHighlightStyleLabel;
+  window.HighlightExport.renderHighlightMarkdownLines = renderHighlightMarkdownLines;
 })();

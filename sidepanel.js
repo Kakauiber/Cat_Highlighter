@@ -5,8 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Color mapping
     const colorMap = {
         yellow: '#FFEA8A',
-        mint: '#86EFAC',
-        coral: '#FDA4AF'
+        blue: '#7CC7FF',
+        red: '#FF8A8A',
+        mint: '#7CC7FF',
+        coral: '#FF8A8A'
     };
 
     // DOM elements
@@ -65,6 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTab.classList.toggle('active', activeTab === 'current');
         notesTab.classList.toggle('active', activeTab === 'notes');
         selectModeBtn.classList.toggle('hidden', activeTab !== 'current');
+    }
+
+    function formatHighlightForClipboard(highlight) {
+        if (window.HighlightExport && typeof window.HighlightExport.buildHighlightExportItem === 'function') {
+            const exportItem = window.HighlightExport.buildHighlightExportItem(highlight);
+            if (typeof window.HighlightExport.renderHighlightMarkdownLines === 'function') {
+                return window.HighlightExport.renderHighlightMarkdownLines(exportItem).join('\n');
+            }
+            return `${window.HighlightExport.getHighlightStyleLabel(exportItem)} ${exportItem.text}`;
+        }
+
+        const text = String((highlight && highlight.text) || '').trim();
+        if (!text) return '';
+        const annotation = String((highlight && highlight.annotation) || '').trim();
+        return annotation ? `${text}\n批注：${annotation}` : text;
     }
 
     function switchTab(nextTab) {
@@ -292,9 +309,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update sync status
             console.log('[SidePanel] Current page highlights:', currentPageData?.highlights?.length || 0);
 
-            // Load current page note (independent from highlights)
+            // Keep the current note UI stable while only highlight data changes
+            // on the same page. Dedicated note storage listeners handle note refreshes.
             if (tab && tab.url) {
-                await loadCurrentPageNote(tab.url, tab.title || tab.url);
+                if (currentNoteUrl !== tab.url || currentNoteRecord === null) {
+                    await loadCurrentPageNote(tab.url, tab.title || tab.url);
+                } else {
+                    updatePageInfoNoteStatus();
+                }
             } else {
                 clearNoteUI();
             }
@@ -455,7 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
             copyBtn.title = '复制';
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                navigator.clipboard.writeText(h.text).catch(console.warn);
+                navigator.clipboard.writeText(formatHighlightForClipboard(h)).catch(console.warn);
             });
             actions.appendChild(copyBtn);
 
@@ -621,7 +643,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function copyPageHighlights(page, triggerBtn) {
         const texts = page.highlights
-            .map(h => String(h.text || '').replace(/\r?\n/g, ' ').trim())
+            .map(formatHighlightForClipboard)
             .filter(Boolean);
 
         if (texts.length === 0) {
@@ -695,20 +717,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const isSameUrlReload = currentNoteUrl === url;
         if (currentNoteUrl && currentNoteUrl !== url) {
             await flushPendingNoteSave();
         }
 
         const requestToken = ++noteLoadRequestToken;
         currentNoteUrl = url;
-        currentNoteRecord = null;
-        noteIsDirty = false;
-        noteTextarea.value = '';
-        noteSummary.textContent = '暂无笔记';
-        noteWordCount.textContent = '0 字';
-        noteUpdateTime.textContent = '';
-        setSaveStatusUI('idle');
-        updatePageInfoNoteStatus();
+        if (!isSameUrlReload) {
+            currentNoteRecord = null;
+            noteIsDirty = false;
+            noteTextarea.value = '';
+            noteSummary.textContent = '暂无笔记';
+            noteWordCount.textContent = '0 字';
+            noteUpdateTime.textContent = '';
+            setSaveStatusUI('idle');
+            updatePageInfoNoteStatus();
+        }
 
         try {
             currentNoteRecord = await window.PageNotes.getPageNote(url);
@@ -1104,7 +1129,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPageData) {
             currentPageData.highlights.forEach(h => {
                 if (selectedIds.has(h.id)) {
-                    texts.push(h.text);
+                    const content = formatHighlightForClipboard(h);
+                    if (content) {
+                        texts.push(content);
+                    }
                 }
             });
         }

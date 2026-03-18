@@ -28,9 +28,12 @@ function initExtension() {
   // defined by UNDERLINE_COLOR.
   const AVAILABLE_COLORS = {
     yellow: { background: '#FFEA8A' }, // Warm Sun
-    mint: { background: '#86EFAC' }, // Soft Emerald
-    coral: { background: '#FDA4AF' }  // Rose Dust
+    blue: { background: '#7CC7FF' },   // Sky Blue
+    red: { background: '#FF8A8A' },    // Soft Coral Red
+    mint: { background: '#7CC7FF' },   // Legacy alias
+    coral: { background: '#FF8A8A' }   // Legacy alias
   };
+  const TOOLBAR_COLOR_ORDER = ['yellow', 'blue', 'red'];
   // Unified colour for underline markings
   const UNDERLINE_COLOR = '#666666';
 
@@ -81,6 +84,7 @@ function initExtension() {
   };
 
   let currentPageUrl = window.location.href;
+  let pinnedAnnotationId = null;
 
   function getCurrentPageUrl() {
     return window.location.href;
@@ -469,6 +473,27 @@ function initExtension() {
     } catch (e) { }
   }
 
+  function applyAnnotationToHighlightSpans(id, note) {
+    document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
+      if (note) {
+        span.setAttribute('data-annotation', note);
+      } else {
+        span.removeAttribute('data-annotation');
+      }
+
+      const color = span.getAttribute('data-hl-color');
+      if (span.getAttribute('data-hl-type') === 'underline') {
+        span.style.backgroundColor = 'transparent';
+      } else if (color && AVAILABLE_COLORS[color]) {
+        span.style.backgroundColor = AVAILABLE_COLORS[color].background;
+      }
+    });
+
+    if (!note && pinnedAnnotationId === id) {
+      hideAnnotationTooltip();
+    }
+  }
+
   /**
    * Copy text to clipboard using the Clipboard API when available.
    */
@@ -490,12 +515,14 @@ function initExtension() {
   /**
    * Show an annotation tooltip near a highlight span.
    */
-  function showAnnotationTooltip(span, note) {
+  function showAnnotationTooltip(span, note, options) {
+    const persistent = !!(options && options.persistent);
     hideAnnotationTooltip();
     const rect = span.getBoundingClientRect();
     const tooltip = document.createElement('div');
     tooltip.id = 'hl-annotation-tooltip';
     tooltip.textContent = note;
+    tooltip.dataset.persistent = persistent ? 'true' : 'false';
     tooltip.style.position = 'absolute';
     tooltip.style.maxWidth = '250px';
     tooltip.style.padding = '6px 8px';
@@ -508,19 +535,25 @@ function initExtension() {
     tooltip.style.top = `${window.scrollY + rect.top - 30}px`;
     tooltip.style.left = `${window.scrollX + rect.left}px`;
     document.body.appendChild(tooltip);
-    const timeout = setTimeout(hideAnnotationTooltip, 3000);
+    let timeout = null;
+    if (!persistent) {
+      timeout = setTimeout(() => hideAnnotationTooltip(false), 3000);
+    }
     const removeOnClick = (e) => {
-      if (!tooltip.contains(e.target)) {
+      if (!tooltip.contains(e.target) && !span.contains(e.target)) {
         hideAnnotationTooltip();
-        clearTimeout(timeout);
+        if (timeout) clearTimeout(timeout);
       }
     };
     setTimeout(() => document.addEventListener('click', removeOnClick, { once: true }), 0);
   }
 
-  function hideAnnotationTooltip() {
+  function hideAnnotationTooltip(resetPinned = true) {
     const existing = document.getElementById('hl-annotation-tooltip');
     if (existing) existing.remove();
+    if (resetPinned) {
+      pinnedAnnotationId = null;
+    }
   }
 
   /**
@@ -704,6 +737,20 @@ function initExtension() {
     const segments = [];
     if (!range) return segments;
     const common = range.commonAncestorContainer;
+    if (common && common.nodeType === Node.TEXT_NODE) {
+      const parent = common.parentElement;
+      const tag = parent ? parent.tagName : '';
+      if ((!parent || !parent.closest('span[data-hl-id]')) && tag !== 'SCRIPT' && tag !== 'STYLE') {
+        let start = 0;
+        let end = common.data.length;
+        if (common === range.startContainer) start = range.startOffset;
+        if (common === range.endContainer) end = range.endOffset;
+        if (start < end) {
+          segments.push({ node: common, start, end });
+        }
+      }
+      return segments;
+    }
     const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT, null);
     let node;
     while ((node = walker.nextNode())) {
@@ -741,11 +788,7 @@ function initExtension() {
       span.style.borderBottom = `2px solid ${UNDERLINE_COLOR}`;
       span.style.backgroundColor = 'transparent';
     } else {
-      if (annotation) {
-        span.style.backgroundColor = '#e0e0e0'; // Light gray for annotations
-      } else {
-        span.style.backgroundColor = AVAILABLE_COLORS[color].background;
-      }
+      span.style.backgroundColor = AVAILABLE_COLORS[color].background;
     }
     span.textContent = selected;
     const parent = node.parentNode;
@@ -891,8 +934,7 @@ function initExtension() {
     if (selectionInEditable()) {
       try {
         document.execCommand('styleWithCSS', false, true);
-        // Use gray for annotations
-        document.execCommand('hiliteColor', false, '#e0e0e0');
+        document.execCommand('hiliteColor', false, AVAILABLE_COLORS[color].background);
       } catch (e) { }
       const id = generateId();
       persistHighlight({ id, text, color, type: 'highlight', annotation });
@@ -922,6 +964,19 @@ function initExtension() {
     if (success) {
       persistHighlight({ id, text: trimmed, color, type: 'highlight' });
       return { id, text: trimmed, color, type: 'highlight' };
+    }
+    return null;
+  }
+
+  function highlightTextWithAnnotation(text, color, annotation) {
+    handleUrlChange();
+    const trimmed = (text || '').trim();
+    if (!trimmed) return null;
+    const id = generateId();
+    const success = findAndApplyHighlight(trimmed, color, id, annotation);
+    if (success) {
+      persistHighlight({ id, text: trimmed, color, type: 'highlight', annotation });
+      return { id, text: trimmed, color, type: 'highlight', annotation };
     }
     return null;
   }
@@ -1211,6 +1266,22 @@ function initExtension() {
     return true;
   }
 
+  function getHighlightIdsInRange(range) {
+    const ids = new Set();
+    if (!range) return ids;
+
+    document.querySelectorAll('span[data-hl-id]').forEach(span => {
+      try {
+        if (range.intersectsNode(span)) {
+          const id = span.getAttribute('data-hl-id');
+          if (id) ids.add(id);
+        }
+      } catch (e) { }
+    });
+
+    return ids;
+  }
+
   /**
    * Remove highlights that intersect the current selection.  Used by the
    * delete button in the toolbar.
@@ -1219,27 +1290,37 @@ function initExtension() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
     const range = sel.getRangeAt(0);
-    const ids = new Set();
-    document.querySelectorAll('span[data-hl-id]').forEach(span => {
-      try {
-        if (range.intersectsNode(span)) {
-          ids.add(span.getAttribute('data-hl-id'));
-        }
-      } catch (e) { }
-    });
-    removeHighlightsByIds(Array.from(ids));
+    removeHighlightsByIds(Array.from(getHighlightIdsInRange(range)));
   }
 
   /**
    * Attach events to a highlight span.  Clicking shows annotation tooltip.
    */
   function attachHighlightEvents(span) {
-    span.addEventListener('mouseenter', (e) => {
+    span.addEventListener('mouseenter', () => {
       const note = span.getAttribute('data-annotation');
-      if (note) showAnnotationTooltip(span, note);
+      const id = span.getAttribute('data-hl-id');
+      if (note && pinnedAnnotationId !== id) {
+        showAnnotationTooltip(span, note, { persistent: false });
+      }
     });
     span.addEventListener('mouseleave', () => {
-      hideAnnotationTooltip();
+      const id = span.getAttribute('data-hl-id');
+      if (pinnedAnnotationId !== id) {
+        hideAnnotationTooltip(false);
+      }
+    });
+    span.addEventListener('click', (e) => {
+      const note = span.getAttribute('data-annotation');
+      const id = span.getAttribute('data-hl-id');
+      if (!note || !id) return;
+      e.stopPropagation();
+      if (pinnedAnnotationId === id) {
+        hideAnnotationTooltip();
+        return;
+      }
+      pinnedAnnotationId = id;
+      showAnnotationTooltip(span, note, { persistent: true });
     });
   }
 
@@ -1253,15 +1334,25 @@ function initExtension() {
     toolbar.id = 'hl-cat-toolbar';
     toolbar.className = 'hl-cat-toolbar';
     // Colour options
-    Object.keys(AVAILABLE_COLORS).forEach(col => {
+    TOOLBAR_COLOR_ORDER.forEach(col => {
       const swatch = document.createElement('button');
       swatch.type = 'button';
       swatch.className = 'hl-color-option';
       swatch.dataset.color = col;
+      swatch.title = ({
+        yellow: '黄色高亮',
+        blue: '蓝色高亮',
+        red: '红色高亮'
+      })[col] || '高亮颜色';
+      swatch.setAttribute('aria-label', swatch.title);
       swatch.style.backgroundColor = AVAILABLE_COLORS[col].background;
       swatch.addEventListener('click', (e) => {
         e.stopPropagation();
         lastSelectedColor = col;
+        toolbar.dataset.activeColor = col;
+        toolbar.querySelectorAll('.hl-color-option').forEach(option => {
+          option.classList.toggle('active', option.dataset.color === col);
+        });
         setTimeout(() => {
           let result = null;
           if (lastSelection.range && rangeInEditable(lastSelection.range)) {
@@ -1282,6 +1373,7 @@ function initExtension() {
           clearSelection();
         }, 0);
       });
+      swatch.classList.toggle('active', col === lastSelectedColor);
       toolbar.appendChild(swatch);
     });
     // Underline button
@@ -1333,14 +1425,35 @@ function initExtension() {
       e.stopPropagation();
       // Prompt for annotation FIRST to avoid race conditions
       const note = prompt('添加批注:');
-      if (note) {
+      const trimmedNote = typeof note === 'string' ? note.trim() : '';
+      if (trimmedNote) {
         let hl = null;
-        if (lastSelection.range) {
+        const selectedHighlightIds = lastSelection.range
+          ? Array.from(getHighlightIdsInRange(lastSelection.range))
+          : [];
+
+        if (selectedHighlightIds.length > 0) {
+          selectedHighlightIds.forEach(id => {
+            updateAnnotation(id, trimmedNote);
+            applyAnnotationToHighlightSpans(id, trimmedNote);
+          });
+
+          const firstAnnotatedSpan = document.querySelector(
+            'span[data-hl-id="' + selectedHighlightIds[0] + '"][data-annotation]'
+          );
+          if (firstAnnotatedSpan) {
+            pinnedAnnotationId = selectedHighlightIds[0];
+            showAnnotationTooltip(firstAnnotatedSpan, trimmedNote, { persistent: true });
+          }
+        } else if (lastSelection.range && !rangeInEditable(lastSelection.range)) {
           const clone = lastSelection.range.cloneRange();
-          hl = applyRangeWithAnnotation(clone, lastSelectedColor, 'highlight', note);
+          hl = applyRangeWithAnnotation(clone, lastSelectedColor, 'highlight', trimmedNote);
         }
-        if (!hl) {
-          hl = highlightCurrentSelectionWithAnnotation(lastSelectedColor, note);
+        if (!hl && selectedHighlightIds.length === 0 && lastSelection.text) {
+          hl = highlightTextWithAnnotation(lastSelection.text, lastSelectedColor, trimmedNote);
+        }
+        if (!hl && selectedHighlightIds.length === 0) {
+          hl = highlightCurrentSelectionWithAnnotation(lastSelectedColor, trimmedNote);
         }
       }
       hideToolbar();
@@ -1474,6 +1587,10 @@ function initExtension() {
       toolbar = createToolbarElement();
       document.body.appendChild(toolbar);
     }
+    toolbar.dataset.activeColor = lastSelectedColor;
+    toolbar.querySelectorAll('.hl-color-option').forEach(option => {
+      option.classList.toggle('active', option.dataset.color === lastSelectedColor);
+    });
     toolbar.style.top = `${y}px`;
     toolbar.style.left = `${x}px`;
     toolbar.style.display = 'flex';
@@ -1605,20 +1722,7 @@ function initExtension() {
     } else if (message.command === 'updateAnnotation') {
       // Update annotation in DOM
       const { id, note } = message;
-      document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
-        if (note) {
-          span.setAttribute('data-annotation', note);
-          // Apply light gray background for annotations
-          span.style.backgroundColor = '#e0e0e0';
-        } else {
-          span.removeAttribute('data-annotation');
-          // Restore original color
-          const color = span.getAttribute('data-hl-color');
-          if (color && AVAILABLE_COLORS[color]) {
-            span.style.backgroundColor = AVAILABLE_COLORS[color].background;
-          }
-        }
-      });
+      applyAnnotationToHighlightSpans(id, note);
       sendResponse({ status: 'updated' });
     }
     return true;
@@ -1687,55 +1791,76 @@ function initExtension() {
   position: absolute;
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-  padding: 4px 6px;
-  padding-right: 22px;
-  gap: 6px;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16), 0 3px 10px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
+  padding: 8px 10px;
+  padding-right: 28px;
   z-index: 2147483647;
   cursor: move;
   user-select: none;
 }
 .hl-color-option {
+  position: relative;
   display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: 1px solid #cccccc;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.92);
   cursor: pointer;
   padding: 0;
   margin: 0;
   outline: none;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hl-color-option:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+.hl-color-option.active {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 0 0 0 4px rgba(255, 255, 255, 0.92);
 }
 .hl-tool-btn {
-  background: none;
-  border: none;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+  border: 1px solid rgba(148, 163, 184, 0.24);
   cursor: pointer;
-  padding: 2px;
-  width: 22px;
-  height: 22px;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .hl-tool-btn svg {
-  width: 16px;
-  height: 16px;
-  fill: #555;
+  width: 15px;
+  height: 15px;
+  fill: #475569;
 }
-.hl-tool-btn:hover svg { fill: #222; }
+.hl-tool-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(59, 130, 246, 0.28);
+  background: linear-gradient(180deg, #ffffff 0%, #eef5ff 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.12);
+}
+.hl-tool-btn:hover svg { fill: #1f2937; }
 .hl-close-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 16px;
-  height: 16px;
-  padding: 2px;
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid rgba(148, 163, 184, 0.34);
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
   z-index: 1;
 }
 .hl-close-btn svg {
@@ -1743,7 +1868,7 @@ function initExtension() {
   height: 10px;
 }
 .hl-close-btn:hover {
-  background: #f5f5f5;
+  background: #f8fafc;
 }
 #hl-annotation-tooltip {
   position: absolute;

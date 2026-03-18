@@ -27,8 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const colorMap = {
     yellow: '#FFEA8A',
-    mint: '#86EFAC',
-    coral: '#FDA4AF'
+    blue: '#7CC7FF',
+    red: '#FF8A8A',
+    mint: '#7CC7FF',
+    coral: '#FF8A8A'
   };
 
   let isSelectionMode = false;
@@ -82,6 +84,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!keyword) return true;
       return getPageSearchText(page).includes(keyword);
     });
+  }
+
+  function formatHighlightForClipboard(highlight) {
+    if (window.HighlightExport && typeof window.HighlightExport.buildHighlightExportItem === 'function') {
+      const exportItem = window.HighlightExport.buildHighlightExportItem(highlight);
+      if (typeof window.HighlightExport.renderHighlightMarkdownLines === 'function') {
+        return window.HighlightExport.renderHighlightMarkdownLines(exportItem).join('\n');
+      }
+      return `${window.HighlightExport.getHighlightStyleLabel(exportItem)} ${exportItem.text}`;
+    }
+
+    const text = String((highlight && highlight.text) || '').trim();
+    if (!text) return '';
+    const annotation = String((highlight && highlight.annotation) || '').trim();
+    return annotation ? `${text}\n批注：${annotation}` : text;
   }
 
   function updateFilterChips() {
@@ -442,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
             copyBtn.textContent = '复制';
             copyBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              navigator.clipboard.writeText(h.text).catch(err => {
+              navigator.clipboard.writeText(formatHighlightForClipboard(h)).catch(err => {
                 console.warn('复制失败', err);
               });
             });
@@ -484,7 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
           copyPageBtn.textContent = '复制高亮';
           copyPageBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const texts = page.highlights.map(h => String(h.text || '').replace(/\r?\n/g, ' ').trim()).join('\n');
+            const texts = page.highlights
+              .map(formatHighlightForClipboard)
+              .filter(Boolean)
+              .join('\n\n');
             if (texts) {
               navigator.clipboard.writeText(texts).catch(err => console.warn('复制失败', err));
             }
@@ -766,7 +786,10 @@ document.addEventListener('DOMContentLoaded', () => {
     pagesData.forEach(page => {
       page.highlights.forEach(h => {
         if (selectedIds.has(h.id)) {
-          texts.push(h.text);
+          const content = formatHighlightForClipboard(h);
+          if (content) {
+            texts.push(content);
+          }
         }
       });
     });
