@@ -189,6 +189,47 @@ body {
     cursor: not-allowed;
 }
 
+.page-export-select {
+    border: 1px solid #e4e6eb;
+    background: #f8f9fb;
+    color: #556070;
+    border-radius: 6px;
+    padding: 5px 28px 5px 10px;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #7a8493 50%),
+        linear-gradient(135deg, #7a8493 50%, transparent 50%);
+    background-position:
+        calc(100% - 12px) calc(50% - 1px),
+        calc(100% - 7px) calc(50% - 1px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+.page-export-select:hover:not(:disabled),
+.page-export-select:focus-visible {
+    background-color: #eef2ff;
+    border-color: #cfd8ff;
+    color: #4957c6;
+    outline: none;
+}
+
+.page-export-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-export-select.export-success {
+    background-color: #eef8f1;
+    border-color: #cce8d4;
+    color: #2d7a4b;
+}
+
 /* Highlights List */
 .highlights-list {
     display: flex;

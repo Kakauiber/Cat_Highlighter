@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteLoadRequestToken = 0;   // Prevent stale async note loads from overwriting newer pages
     const supportsHoverInteractions = typeof window.matchMedia === 'function'
         && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    const MOWEN_API_KEY_KEY = 'mowen_api_key';
+    const MOWEN_TAGS_KEY = 'mowen_default_tags';
+    const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
 
     function syncTabChrome() {
         currentTab.classList.toggle('active', activeTab === 'current');
@@ -251,10 +254,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' });
             const highlights = Array.isArray(response?.highlights) ? response.highlights : [];
+            const title = getBestPageTitle(
+                [response?.pageTitle].concat(highlights.map(item => item && item.pageTitle)),
+                tab.title || tab.url
+            );
             return {
                 key: prefix + tab.url,
                 url: tab.url,
-                title: tab.title || tab.url,
+                title,
                 highlights
             };
         } catch (err) {
@@ -589,7 +596,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         actions.appendChild(deleteBtn);
 
+        const exportSelect = document.createElement('select');
+        exportSelect.className = 'page-export-select';
+        exportSelect.disabled = page.highlights.length === 0 && !(page.note && page.note.content);
+        exportSelect.innerHTML = `
+            <option value="">导出本页</option>
+            <option value="markdown">Markdown</option>
+            <option value="html">HTML</option>
+            <option value="mowen">墨问</option>
+        `;
+        exportSelect.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        exportSelect.addEventListener('change', (e) => {
+            e.stopPropagation();
+            if (!e.target.value) return;
+            exportCurrentPage(page, e.target.value, exportSelect);
+            e.target.value = '';
+        });
+        actions.appendChild(exportSelect);
+
         return actions;
+    }
+
+    async function getMowenSettings() {
+        const result = await chrome.storage.local.get([MOWEN_API_KEY_KEY, MOWEN_TAGS_KEY, MOWEN_TESTED_KEY]);
+        return {
+            apiKey: String(result[MOWEN_API_KEY_KEY] || '').trim(),
+            tags: String(result[MOWEN_TAGS_KEY] || '').trim(),
+            lastTestedKey: String(result[MOWEN_TESTED_KEY] || '').trim()
+        };
+    }
+
+    function flashExportSuccess(triggerControl) {
+        if (!triggerControl) return;
+        const originalValue = triggerControl.value;
+        const originalDisabled = triggerControl.disabled;
+        triggerControl.disabled = true;
+        triggerControl.classList.add('export-success');
+        setTimeout(() => {
+            triggerControl.disabled = originalDisabled;
+            triggerControl.classList.remove('export-success');
+            triggerControl.value = originalValue;
+        }, 1200);
+    }
+
+    async function exportCurrentPage(page, format, triggerControl) {
+        if (!page || (page.highlights.length === 0 && !(page.note && page.note.content))) {
+            alert('当前页面没有可导出的内容');
+            return;
+        }
+
+        if (!window.HighlightExport || typeof window.HighlightExport.buildExportBundle !== 'function') {
+            alert('导出功能暂不可用');
+            return;
+        }
+
+        const bundle = window.HighlightExport.buildExportBundle([page], { source: 'sidepanel' });
+        const targetFormat = format || 'markdown';
+        let ok = false;
+
+        if (targetFormat === 'mowen') {
+            if (!window.HighlightMowenExporter || typeof window.HighlightMowenExporter.exportBundleToMowen !== 'function') {
+                alert('墨问导出当前不可用');
+                return;
+            }
+
+            const settings = await getMowenSettings();
+            if (!settings.apiKey) {
+                alert('请先在管理页配置墨问 API Key。');
+                return;
+            }
+
+            if (settings.lastTestedKey !== settings.apiKey) {
+                alert('请先在管理页完成一次墨问测试导出，再执行当前页导出。');
+                return;
+            }
+
+            if (triggerControl) {
+                triggerControl.disabled = true;
+            }
+
+            try {
+                const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, {
+                    apiKey: settings.apiKey,
+                    tags: settings.tags
+                });
+                if (!result || !result.ok) {
+                    alert((result && result.message) || '导出到墨问失败，请检查 API Key、配额或网络状态。');
+                    return;
+                }
+                alert(`已生成墨问笔记${result.noteId ? `（${result.noteId}）` : ''}。`);
+                ok = true;
+            } catch (err) {
+                console.error('[SidePanel] Export to Mowen failed:', err);
+                alert('导出到墨问失败，请检查网络、配额或 API Key。');
+                return;
+            } finally {
+                if (triggerControl) {
+                    triggerControl.disabled = false;
+                }
+            }
+        } else {
+            ok = targetFormat === 'html'
+                ? window.HighlightExport.downloadBundleAsHtml(bundle, 'catlines')
+                : window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
+        }
+
+        if (!ok) {
+            alert('当前页面没有可导出的内容');
+            return;
+        }
+
+        flashExportSuccess(triggerControl);
     }
 
     // Delete highlight
@@ -703,6 +822,52 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML;
     }
 
+    function normalizePageTitle(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function isUrlLikeTitle(value) {
+        return /^https?:\/\//i.test(normalizePageTitle(value));
+    }
+
+    function isGenericAssistantTitle(value) {
+        const normalized = normalizePageTitle(value).toLowerCase();
+        return [
+            'google gemini',
+            'gemini',
+            '对话',
+            '新对话',
+            'chat',
+            'new chat',
+            'chatgpt',
+            'kimi',
+            'deepseek',
+            'claude',
+            'perplexity',
+            'google ai studio'
+        ].includes(normalized);
+    }
+
+    function shouldPreferTitle(nextTitle, currentTitle) {
+        const next = normalizePageTitle(nextTitle);
+        const current = normalizePageTitle(currentTitle);
+
+        if (!next || next === current) return false;
+        if (!current || isUrlLikeTitle(current)) return true;
+        if (isGenericAssistantTitle(current) && !isGenericAssistantTitle(next)) return true;
+        return false;
+    }
+
+    function getBestPageTitle(candidates, fallback) {
+        let best = normalizePageTitle(fallback);
+        (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
+            if (shouldPreferTitle(candidate, best)) {
+                best = normalizePageTitle(candidate);
+            }
+        });
+        return best || normalizePageTitle(fallback);
+    }
+
     // =============================================
     // === Page Notes Logic ===
     // =============================================
@@ -756,6 +921,14 @@ document.addEventListener('DOMContentLoaded', () => {
         updateNoteUpdateTime();
         setSaveStatusUI('idle');
         noteIsDirty = false;
+
+        if (currentPageData && currentPageData.url === url && currentNoteRecord && shouldPreferTitle(currentNoteRecord.pageTitle, currentPageData.title)) {
+            currentPageData.title = normalizePageTitle(currentNoteRecord.pageTitle);
+            const titleEl = currentPageInfo.querySelector('.page-title');
+            if (titleEl) {
+                titleEl.textContent = currentPageData.title;
+            }
+        }
 
         // Sync the page info card note status (may have rendered before note loaded)
         updatePageInfoNoteStatus();

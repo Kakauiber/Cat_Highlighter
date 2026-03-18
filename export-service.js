@@ -18,6 +18,14 @@
     return value.replace(/\r\n/g, '\n').trim();
   }
 
+  function normalizeMarkdownDisplayText(value) {
+    return String(value || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+  }
+
   function normalizeHighlightType(type) {
     return type === 'underline' ? 'underline' : 'highlight';
   }
@@ -54,9 +62,10 @@
   }
 
   function renderHighlightMarkdownLines(item) {
-    const lines = [`- ${getHighlightStyleLabel(item)} ${item.text}`];
+    const text = normalizeMarkdownDisplayText(item.text);
+    const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
     if (item.annotation) {
-      lines.push(`  批注：${item.annotation}`);
+      lines.push(`  批注：${normalizeMarkdownDisplayText(item.annotation)}`);
     }
     return lines;
   }
@@ -133,7 +142,7 @@
     if (page.note) {
       lines.push('');
       lines.push('### 页面笔记');
-      lines.push(page.note);
+      lines.push(normalizeMarkdownDisplayText(page.note));
     }
 
     if (page.highlights.length > 0) {

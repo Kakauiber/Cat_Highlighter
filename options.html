@@ -28,6 +28,42 @@
       <button class="filter-chip" data-filter="notes-only">仅笔记</button>
       <button class="filter-chip" data-filter="highlights-only">仅高亮</button>
     </div>
+    <details id="mowen-panel" class="mowen-panel" aria-label="墨问导出设置">
+      <summary class="mowen-summary">
+        <div class="mowen-summary-main">
+          <div class="mowen-summary-title">生成墨问笔记</div>
+          <div id="mowen-summary-meta" class="mowen-summary-meta">未配置 API Key</div>
+        </div>
+        <div class="mowen-summary-actions">
+          <button id="mowen-quick-export-btn" class="mowen-quick-export-btn" type="button">导出全部到墨问</button>
+          <span class="mowen-summary-chevron" aria-hidden="true"></span>
+        </div>
+      </summary>
+      <div class="mowen-panel-body">
+        <div class="mowen-panel-head">
+          <div>
+            <h2>墨问导出设置</h2>
+            <p>使用 API 创建私密笔记。首次先完成测试，之后可直接在折叠栏导出全部。</p>
+          </div>
+        </div>
+        <div class="mowen-form">
+          <label class="mowen-field">
+            <span>API Key</span>
+            <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
+          </label>
+          <label class="mowen-field">
+            <span>默认标签</span>
+            <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
+          </label>
+        </div>
+        <div class="mowen-actions">
+          <button id="mowen-save-btn" type="button">保存设置</button>
+          <button id="mowen-test-btn" type="button">测试导出</button>
+          <button id="mowen-export-btn" type="button">导出全部到墨问</button>
+        </div>
+        <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
+      </div>
+    </details>
     <!-- Batch selection header (hidden by default) -->
     <div id="batch-header" class="batch-header hidden">
       <label class="select-all-label">

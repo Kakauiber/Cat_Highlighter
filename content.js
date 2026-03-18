@@ -85,6 +85,7 @@ function initExtension() {
 
   let currentPageUrl = window.location.href;
   let pinnedAnnotationId = null;
+  const NOTE_PREFIX = 'page_notes_';
 
   function getCurrentPageUrl() {
     return window.location.href;
@@ -92,6 +93,233 @@ function initExtension() {
 
   function getStorageKey(url = getCurrentPageUrl()) {
     return 'page_highlights_' + url;
+  }
+
+  function getNoteStorageKey(url = getCurrentPageUrl()) {
+    return NOTE_PREFIX + url;
+  }
+
+  function normalizeTitleCandidate(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function isUrlLikeTitle(value) {
+    return /^https?:\/\//i.test(String(value || '').trim());
+  }
+
+  function isGenericSiteTitle(value) {
+    const normalized = normalizeTitleCandidate(value).toLowerCase();
+    return [
+      'google gemini',
+      'gemini',
+      '对话',
+      '新对话',
+      'chat',
+      'new chat',
+      'chatgpt',
+      'kimi',
+      'deepseek',
+      'claude',
+      'perplexity',
+      'google ai studio'
+    ].includes(normalized);
+  }
+
+  function collectTitleFromMatchingLinks() {
+    const path = window.location.pathname || '';
+    const conversationId = path.split('/').filter(Boolean).pop();
+    if (!conversationId) return '';
+
+    const matches = [];
+    document.querySelectorAll(
+      'nav a[href], aside a[href], nav button, aside button, nav [aria-current="page"], aside [aria-current="page"], [role="navigation"] a[href], [role="navigation"] button'
+    ).forEach(node => {
+      const directHref = typeof node.getAttribute === 'function' ? (node.getAttribute('href') || '') : '';
+      const nestedLink = typeof node.querySelector === 'function' ? node.querySelector('a[href]') : null;
+      const href = directHref || (nestedLink && nestedLink.getAttribute('href')) || '';
+      const ariaCurrent = typeof node.getAttribute === 'function' ? node.getAttribute('aria-current') : '';
+      const text = normalizeTitleCandidate(
+        typeof node.getAttribute === 'function'
+          ? (node.getAttribute('aria-label') || node.textContent || '')
+          : (node.textContent || '')
+      );
+
+      if (!text || text.length < 2 || isUrlLikeTitle(text) || isGenericSiteTitle(text)) {
+        return;
+      }
+
+      if ((href && href.includes(conversationId)) || ariaCurrent === 'page') {
+        matches.push(text);
+      }
+    });
+
+    matches.sort((a, b) => b.length - a.length);
+    return matches[0] || '';
+  }
+
+  function collectTitleFromSidebarCandidates() {
+    const matches = [];
+    document.querySelectorAll(
+      'nav a[href], aside a[href], nav button, aside button, [role="navigation"] a[href], [role="navigation"] button'
+    ).forEach(node => {
+      const text = normalizeTitleCandidate(
+        typeof node.getAttribute === 'function'
+          ? (node.getAttribute('aria-label') || node.textContent || '')
+          : (node.textContent || '')
+      );
+
+      if (!text || text.length < 4 || isUrlLikeTitle(text) || isGenericSiteTitle(text)) {
+        return;
+      }
+
+      matches.push(text);
+    });
+
+    matches.sort((a, b) => b.length - a.length);
+    return matches[0] || '';
+  }
+
+  function collectTitleFromSelectors(selectors) {
+    for (const selector of selectors) {
+      const node = document.querySelector(selector);
+      const text = normalizeTitleCandidate(node && node.textContent);
+      if (!text || text.length < 2 || isUrlLikeTitle(text) || isGenericSiteTitle(text)) {
+        continue;
+      }
+      return text;
+    }
+    return '';
+  }
+
+  function getPreferredPageTitle() {
+    const host = window.location.hostname;
+    const domainSpecificSelectors = [];
+
+    if (host.includes('gemini.google.com')) {
+      domainSpecificSelectors.push(
+        'nav [aria-current="page"]',
+        'aside [aria-current="page"]',
+        'main h1',
+        'main h2'
+      );
+    } else if (host.includes('chatgpt.com')) {
+      domainSpecificSelectors.push(
+        'nav [aria-current="page"]',
+        'main h1',
+        'main h2'
+      );
+    } else if (host.includes('kimi.com') || host.includes('moonshot.cn')) {
+      domainSpecificSelectors.push(
+        'nav [aria-current="page"]',
+        'aside [aria-current="page"]',
+        'main h1',
+        'main h2'
+      );
+    } else if (host.includes('deepseek.com')) {
+      domainSpecificSelectors.push(
+        'nav [aria-current="page"]',
+        'aside [aria-current="page"]',
+        'main h1',
+        'main h2'
+      );
+    }
+
+    const genericSelectors = [
+      '[data-testid="conversation-title"]',
+      '[data-test-id="conversation-title"]',
+      'main h1',
+      'main h2',
+      'article h1',
+      '[aria-current="page"]'
+    ];
+
+    const matchedLinkTitle = collectTitleFromMatchingLinks();
+    if (matchedLinkTitle) return matchedLinkTitle;
+
+    const selectorTitle = collectTitleFromSelectors(domainSpecificSelectors.concat(genericSelectors));
+    if (selectorTitle) return selectorTitle;
+
+    const sidebarTitle = collectTitleFromSidebarCandidates();
+    if (sidebarTitle) return sidebarTitle;
+
+    const metaTitle = normalizeTitleCandidate(
+      document.querySelector('meta[property="og:title"]') &&
+      document.querySelector('meta[property="og:title"]').getAttribute('content')
+    );
+    if (metaTitle && !isUrlLikeTitle(metaTitle)) {
+      return metaTitle;
+    }
+
+    const documentTitle = normalizeTitleCandidate(document.title);
+    if (documentTitle) {
+      return documentTitle;
+    }
+
+    return getCurrentPageUrl();
+  }
+
+  function shouldUpgradePageTitle(currentTitle, nextTitle) {
+    const current = normalizeTitleCandidate(currentTitle);
+    const next = normalizeTitleCandidate(nextTitle);
+
+    if (!next || current === next) return false;
+    if (!current || isUrlLikeTitle(current)) return true;
+
+    const currentGeneric = isGenericSiteTitle(current);
+    const nextGeneric = isGenericSiteTitle(next);
+    if (currentGeneric && !nextGeneric) return true;
+
+    return false;
+  }
+
+  function syncCurrentPageTitleMetadata(callback) {
+    const currentUrl = getCurrentPageUrl();
+    const preferredTitle = getPreferredPageTitle();
+    const storageKey = getStorageKey(currentUrl);
+    const noteKey = getNoteStorageKey(currentUrl);
+
+    chrome.storage.local.get([storageKey, noteKey], (result) => {
+      const updates = {};
+      let changed = false;
+
+      const highlights = Array.isArray(result[storageKey]) ? result[storageKey] : [];
+      if (highlights.length > 0) {
+        const nextHighlights = highlights.map(item => {
+          if (shouldUpgradePageTitle(item.pageTitle, preferredTitle)) {
+            changed = true;
+            return {
+              ...item,
+              pageTitle: preferredTitle,
+              pageUrl: currentUrl
+            };
+          }
+          return item;
+        });
+
+        if (changed) {
+          updates[storageKey] = nextHighlights;
+        }
+      }
+
+      const noteRecord = result[noteKey];
+      if (noteRecord && typeof noteRecord === 'object' && shouldUpgradePageTitle(noteRecord.pageTitle, preferredTitle)) {
+        updates[noteKey] = {
+          ...noteRecord,
+          pageTitle: preferredTitle,
+          pageUrl: currentUrl
+        };
+        changed = true;
+      }
+
+      if (changed) {
+        chrome.storage.local.set(updates, () => callback(preferredTitle));
+        return;
+      }
+
+      callback(preferredTitle);
+    });
   }
 
   function unwrapRenderedHighlights() {
@@ -131,7 +359,7 @@ function initExtension() {
 
     // Save the page title if not already present
     if (!hlObj.pageTitle) {
-      hlObj.pageTitle = document.title || getCurrentPageUrl();
+      hlObj.pageTitle = getPreferredPageTitle();
     }
     hlObj.pageUrl = getCurrentPageUrl();
     // Add timestamp for sync ordering
@@ -226,7 +454,7 @@ function initExtension() {
           type: span.getAttribute('data-hl-type') || 'highlight',
           annotation: span.getAttribute('data-annotation') || '',
           segments: [],
-          pageTitle: document.title || getCurrentPageUrl(),
+          pageTitle: getPreferredPageTitle(),
           pageUrl: getCurrentPageUrl(),
           timestamp: Date.now()
         };
@@ -324,7 +552,7 @@ function initExtension() {
               if (!existingIds.has(item.id)) {
                 currentArr.push({
                   ...item,
-                  pageTitle: item.pageTitle || document.title || currentUrl,
+                  pageTitle: item.pageTitle || getPreferredPageTitle() || currentUrl,
                   pageUrl: currentUrl
                 });
                 existingIds.add(item.id);
@@ -1673,22 +1901,24 @@ function initExtension() {
     } else if (message.command === 'getHighlights') {
       handleUrlChange();
       const storageKey = getStorageKey();
-      chrome.storage.local.get([storageKey], (result) => {
-        let data = Array.isArray(result[storageKey]) ? result[storageKey] : [];
-        if (data.length === 0) {
-          recoverCurrentPageHighlightsFromSync((recovered) => {
-            let nextData = Array.isArray(recovered) ? recovered : [];
-            if (nextData.length === 0) {
-              nextData = collectHighlightsFromDom();
-              if (nextData.length > 0) {
-                syncDomHighlightsToStorage();
+      syncCurrentPageTitleMetadata(() => {
+        chrome.storage.local.get([storageKey], (result) => {
+          let data = Array.isArray(result[storageKey]) ? result[storageKey] : [];
+          if (data.length === 0) {
+            recoverCurrentPageHighlightsFromSync((recovered) => {
+              let nextData = Array.isArray(recovered) ? recovered : [];
+              if (nextData.length === 0) {
+                nextData = collectHighlightsFromDom();
+                if (nextData.length > 0) {
+                  syncDomHighlightsToStorage();
+                }
               }
-            }
-            sendResponse({ highlights: nextData });
-          });
-          return;
-        }
-        sendResponse({ highlights: data });
+              sendResponse({ highlights: nextData, pageTitle: getPreferredPageTitle() });
+            });
+            return;
+          }
+          sendResponse({ highlights: data, pageTitle: getPreferredPageTitle() });
+        });
       });
       return true; // Keep channel open for async response
     } else if (message.command === 'clearHighlights') {

@@ -20,6 +20,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const batchCopyBtn = document.getElementById('batch-copy-btn');
   const exportDropdown = document.getElementById('export-dropdown');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
+  const mowenPanel = document.getElementById('mowen-panel');
+  const mowenSummaryMeta = document.getElementById('mowen-summary-meta');
+  const mowenApiKeyInput = document.getElementById('mowen-api-key');
+  const mowenTagsInput = document.getElementById('mowen-tags');
+  const mowenSaveBtn = document.getElementById('mowen-save-btn');
+  const mowenTestBtn = document.getElementById('mowen-test-btn');
+  const mowenExportBtn = document.getElementById('mowen-export-btn');
+  const mowenQuickExportBtn = document.getElementById('mowen-quick-export-btn');
+  const mowenStatus = document.getElementById('mowen-status');
+
+  const MOWEN_API_KEY_KEY = 'mowen_api_key';
+  const MOWEN_TAGS_KEY = 'mowen_default_tags';
+  const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
 
   // Cache of page data: { key, url, title, highlights: [...], note: record|null }
   let pagesData = [];
@@ -37,6 +50,188 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedIds = new Set();
   let selectionMap = new Map(); // id -> pageKey
   let activeFilter = 'all';
+  let mowenIsBusy = false;
+
+  function getMowenApiKey() {
+    return String(mowenApiKeyInput && mowenApiKeyInput.value || '').trim();
+  }
+
+  function getMowenTagsInput() {
+    return String(mowenTagsInput && mowenTagsInput.value || '').trim();
+  }
+
+  function setMowenStatus(message, tone) {
+    if (!mowenStatus) return;
+    mowenStatus.textContent = message || '';
+    mowenStatus.classList.remove('is-success', 'is-error');
+    if (tone === 'success') {
+      mowenStatus.classList.add('is-success');
+    } else if (tone === 'error') {
+      mowenStatus.classList.add('is-error');
+    }
+  }
+
+  function updateMowenSummary(settings) {
+    if (!mowenSummaryMeta) return;
+
+    const apiKey = String(settings && settings.apiKey || '').trim();
+    const tags = String(settings && settings.tags || '').trim();
+    const lastTestedKey = String(settings && settings.lastTestedKey || '').trim();
+    const testedForCurrentKey = apiKey && lastTestedKey === apiKey;
+
+    const parts = [];
+    parts.push(apiKey ? '已配置 API Key' : '未配置 API Key');
+    parts.push(testedForCurrentKey ? '测试已通过' : '需先测试');
+    if (tags) {
+      parts.push(`标签：${tags}`);
+    }
+
+    mowenSummaryMeta.textContent = parts.join(' · ');
+
+    if (mowenPanel && !apiKey && !mowenPanel.open) {
+      mowenPanel.open = true;
+    }
+  }
+
+  async function getMowenSettings() {
+    const result = await chrome.storage.local.get([
+      MOWEN_API_KEY_KEY,
+      MOWEN_TAGS_KEY,
+      MOWEN_TESTED_KEY
+    ]);
+    return {
+      apiKey: String(result[MOWEN_API_KEY_KEY] || ''),
+      tags: String(result[MOWEN_TAGS_KEY] || ''),
+      lastTestedKey: String(result[MOWEN_TESTED_KEY] || '')
+    };
+  }
+
+  function syncMowenActionState(lastTestedKey) {
+    const apiKey = getMowenApiKey();
+    const hasKey = !!apiKey;
+    const hasContent = pagesData.length > 0;
+    const testedForCurrentKey = hasKey && lastTestedKey === apiKey;
+
+    if (mowenSaveBtn) {
+      mowenSaveBtn.disabled = mowenIsBusy || !hasKey;
+    }
+    if (mowenTestBtn) {
+      mowenTestBtn.disabled = mowenIsBusy || !hasKey;
+    }
+    if (mowenExportBtn) {
+      mowenExportBtn.disabled = mowenIsBusy || !hasContent || !testedForCurrentKey;
+    }
+    if (mowenQuickExportBtn) {
+      mowenQuickExportBtn.disabled = mowenIsBusy || !hasContent || !testedForCurrentKey;
+    }
+  }
+
+  async function loadMowenSettings() {
+    const settings = await getMowenSettings();
+    if (mowenApiKeyInput) mowenApiKeyInput.value = settings.apiKey;
+    if (mowenTagsInput) mowenTagsInput.value = settings.tags;
+    updateMowenSummary(settings);
+    syncMowenActionState(settings.lastTestedKey);
+  }
+
+  async function saveMowenSettings() {
+    const apiKey = getMowenApiKey();
+    const tags = getMowenTagsInput();
+    const settings = await getMowenSettings();
+    const next = {
+      [MOWEN_API_KEY_KEY]: apiKey,
+      [MOWEN_TAGS_KEY]: tags
+    };
+
+    if (settings.lastTestedKey && settings.lastTestedKey !== apiKey) {
+      next[MOWEN_TESTED_KEY] = '';
+    }
+
+    await chrome.storage.local.set(next);
+    const nextTestedKey = apiKey === settings.lastTestedKey ? settings.lastTestedKey : '';
+    updateMowenSummary({ apiKey, tags, lastTestedKey: nextTestedKey });
+    syncMowenActionState(nextTestedKey);
+    setMowenStatus('设置已保存。若 API Key 有变化，请先重新测试导出。', 'success');
+  }
+
+  async function withMowenBusy(task) {
+    if (mowenIsBusy) return;
+    mowenIsBusy = true;
+    const settings = await getMowenSettings();
+    updateMowenSummary(settings);
+    syncMowenActionState(settings.lastTestedKey);
+    try {
+      await task();
+    } finally {
+      mowenIsBusy = false;
+      const latest = await getMowenSettings();
+      updateMowenSummary(latest);
+      syncMowenActionState(latest.lastTestedKey);
+    }
+  }
+
+  async function testMowenExport() {
+    const apiKey = getMowenApiKey();
+    const tags = getMowenTagsInput();
+    if (!apiKey) {
+      setMowenStatus('请先填写墨问 API Key。', 'error');
+      return;
+    }
+
+    await withMowenBusy(async () => {
+      setMowenStatus('正在测试导出到墨问...', '');
+      try {
+        const result = await window.HighlightMowenExporter.testMowenConnection(apiKey, { tags });
+        if (!result.ok) {
+          setMowenStatus(result.message || '测试导出失败，请检查 API Key 或网络状态。', 'error');
+          return;
+        }
+
+        await chrome.storage.local.set({ [MOWEN_TESTED_KEY]: apiKey });
+        updateMowenSummary({ apiKey, tags, lastTestedKey: apiKey });
+        setMowenStatus(`测试成功，已创建测试私密笔记${result.noteId ? `（${result.noteId}）` : ''}。`, 'success');
+      } catch (err) {
+        console.warn('墨问测试导出失败', err);
+        setMowenStatus('测试导出失败，请检查 API Key、配额或网络状态。', 'error');
+      }
+    });
+  }
+
+  async function exportAllToMowen() {
+    const apiKey = getMowenApiKey();
+    const tags = getMowenTagsInput();
+    if (!apiKey) {
+      setMowenStatus('请先填写墨问 API Key。', 'error');
+      return;
+    }
+    if (pagesData.length === 0) {
+      setMowenStatus('当前没有可导出的页面记录。', 'error');
+      return;
+    }
+
+    const settings = await getMowenSettings();
+    if (settings.lastTestedKey !== apiKey) {
+      setMowenStatus('请先完成一次测试导出，再执行正式导出。', 'error');
+      syncMowenActionState(settings.lastTestedKey);
+      return;
+    }
+
+    await withMowenBusy(async () => {
+      setMowenStatus('正在导出全部记录到墨问...', '');
+      try {
+        const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
+        const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, { apiKey, tags });
+        if (!result.ok) {
+          setMowenStatus(result.message || '导出到墨问失败。', 'error');
+          return;
+        }
+        setMowenStatus(`导出成功，已创建私密笔记${result.noteId ? `（${result.noteId}）` : ''}。`, 'success');
+      } catch (err) {
+        console.warn('导出到墨问失败', err);
+        setMowenStatus('导出到墨问失败，请检查网络、配额或 API Key。', 'error');
+      }
+    });
+  }
 
   function getPageLastUpdated(page) {
     const highlightTs = page.highlights.reduce((max, item) => Math.max(max, item.timestamp || 0), 0);
@@ -161,6 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       updateFilterChips();
       renderList();
+      getMowenSettings().then(settings => syncMowenActionState(settings.lastTestedKey));
+      getMowenSettings().then(settings => updateMowenSummary(settings));
     });
   }
 
@@ -606,9 +803,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  if (mowenSaveBtn) {
+    mowenSaveBtn.addEventListener('click', () => {
+      saveMowenSettings().catch(err => {
+        console.warn('保存墨问设置失败', err);
+        setMowenStatus('保存设置失败，请稍后重试。', 'error');
+      });
+    });
+  }
+
+  if (mowenTestBtn) {
+    mowenTestBtn.addEventListener('click', () => {
+      testMowenExport();
+    });
+  }
+
+  if (mowenExportBtn) {
+    mowenExportBtn.addEventListener('click', () => {
+      exportAllToMowen();
+    });
+  }
+
+  if (mowenQuickExportBtn) {
+    mowenQuickExportBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      exportAllToMowen();
+    });
+  }
+
+  if (mowenApiKeyInput) {
+    mowenApiKeyInput.addEventListener('input', async () => {
+      const settings = await getMowenSettings();
+      updateMowenSummary({
+        apiKey: getMowenApiKey(),
+        tags: getMowenTagsInput(),
+        lastTestedKey: settings.lastTestedKey
+      });
+      syncMowenActionState(settings.lastTestedKey);
+    });
+  }
+
+  if (mowenTagsInput) {
+    mowenTagsInput.addEventListener('input', async () => {
+      const settings = await getMowenSettings();
+      updateMowenSummary({
+        apiKey: getMowenApiKey(),
+        tags: getMowenTagsInput(),
+        lastTestedKey: settings.lastTestedKey
+      });
+    });
+  }
+
   loadData();
   warmOpenTabsHighlights();
   renderBlacklist();
+  loadMowenSettings().catch(err => {
+    console.warn('加载墨问设置失败', err);
+    setMowenStatus('加载墨问设置失败。', 'error');
+  });
 
   function toggleSelection(id, pageKey, isSelected) {
     if (isSelected) {
@@ -837,6 +1090,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (changedKeys.some(key => key === 'disabled_domains')) {
       renderBlacklist();
+    }
+
+    if (changedKeys.some(key =>
+      key === MOWEN_API_KEY_KEY || key === MOWEN_TAGS_KEY || key === MOWEN_TESTED_KEY
+    )) {
+      loadMowenSettings().catch(() => { });
     }
 
     const shouldReloadPages = changedKeys.some(key =>
