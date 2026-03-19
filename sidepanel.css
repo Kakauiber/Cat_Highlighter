@@ -420,6 +420,16 @@ body {
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.82);
 }
 
+.color-dot.is-underline {
+    width: 12px;
+    height: 0;
+    margin-top: 11px;
+    border-radius: 0;
+    background: transparent !important;
+    border-top: 2px solid #3f4b63;
+    box-shadow: none;
+}
+
 .highlight-content {
     flex: 1;
     min-width: 0;

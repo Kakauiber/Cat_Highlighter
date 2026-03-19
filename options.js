@@ -281,18 +281,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function formatHighlightForClipboard(highlight) {
-    if (window.HighlightExport && typeof window.HighlightExport.buildHighlightExportItem === 'function') {
-      const exportItem = window.HighlightExport.buildHighlightExportItem(highlight);
-      if (typeof window.HighlightExport.renderHighlightMarkdownLines === 'function') {
-        return window.HighlightExport.renderHighlightMarkdownLines(exportItem).join('\n');
-      }
-      return `${window.HighlightExport.getHighlightStyleLabel(exportItem)} ${exportItem.text}`;
-    }
+  function normalizeClipboardText(value) {
+    return String(value || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .trim();
+  }
 
-    const text = String((highlight && highlight.text) || '').trim();
+  function formatHighlightForClipboard(highlight) {
+    const text = normalizeClipboardText((highlight && highlight.text) || '');
     if (!text) return '';
-    const annotation = String((highlight && highlight.annotation) || '').trim();
+    const annotation = normalizeClipboardText((highlight && highlight.annotation) || '');
     return annotation ? `${text}\n批注：${annotation}` : text;
   }
 

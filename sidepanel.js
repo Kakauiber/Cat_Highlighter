@@ -90,19 +90,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function normalizeClipboardText(value) {
+        return String(value || '')
+            .replace(/\r\n/g, '\n')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n{2,}/g, '\n')
+            .trim();
+    }
+
     function formatHighlightForClipboard(highlight) {
-        if (window.HighlightExport && typeof window.HighlightExport.buildHighlightExportItem === 'function') {
-            const exportItem = window.HighlightExport.buildHighlightExportItem(highlight);
-            if (typeof window.HighlightExport.renderHighlightMarkdownLines === 'function') {
-                return window.HighlightExport.renderHighlightMarkdownLines(exportItem).join('\n');
-            }
-            return `${window.HighlightExport.getHighlightStyleLabel(exportItem)} ${exportItem.text}`;
+        const text = normalizeClipboardText((highlight && highlight.text) || '');
+        if (!text) return '';
+        const annotation = normalizeClipboardText((highlight && highlight.annotation) || '');
+        return annotation ? `${text}\n批注：${annotation}` : text;
+    }
+
+    function formatPageForClipboard(page) {
+        const exportPage = getCurrentPageExportSource(page);
+        if (!exportPage) return '';
+
+        const sections = [];
+        const note = exportPage.note && exportPage.note.content
+            ? normalizeClipboardText(exportPage.note.content)
+            : '';
+        const highlightTexts = exportPage.highlights
+            .map(formatHighlightForClipboard)
+            .filter(Boolean);
+
+        if (note) {
+            sections.push(`页面笔记\n${note}`);
         }
 
-        const text = String((highlight && highlight.text) || '').trim();
-        if (!text) return '';
-        const annotation = String((highlight && highlight.annotation) || '').trim();
-        return annotation ? `${text}\n批注：${annotation}` : text;
+        if (highlightTexts.length > 0) {
+            sections.push(`标注\n${highlightTexts.join('\n\n')}`);
+        }
+
+        return sections.join('\n\n').trim();
     }
 
     function switchTab(nextTab) {
@@ -488,7 +511,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dot = document.createElement('div');
         dot.className = 'color-dot';
-        dot.style.backgroundColor = colorMap[h.color] || '#ddd';
+        if (h.type === 'underline') {
+            dot.classList.add('is-underline');
+        } else {
+            dot.style.backgroundColor = colorMap[h.color] || '#ddd';
+        }
         item.appendChild(dot);
 
         const content = document.createElement('div');
@@ -611,6 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createPageActions(page, variant = 'card') {
         const actions = document.createElement('div');
         actions.className = variant === 'group' ? 'page-group-actions' : 'page-card-actions';
+        const exportPage = getCurrentPageExportSource(page);
 
         const copyBtn = document.createElement('button');
         copyBtn.className = 'page-meta-btn';
@@ -640,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const exportTrigger = document.createElement('button');
         exportTrigger.type = 'button';
         exportTrigger.className = 'page-meta-btn page-export-trigger';
-        exportTrigger.disabled = page.highlights.length === 0 && !(page.note && page.note.content);
+        exportTrigger.disabled = !exportPage || (exportPage.highlights.length === 0 && !(exportPage.note && exportPage.note.content));
         exportTrigger.innerHTML = `
             <span class="page-export-trigger-label">导出本页</span>
             <span class="page-export-trigger-chevron" aria-hidden="true"></span>
@@ -703,8 +731,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1200);
     }
 
+    function getCurrentPageExportSource(page) {
+        if (!page) return null;
+
+        const exportPage = {
+            ...page,
+            highlights: Array.isArray(page.highlights) ? page.highlights : [],
+            note: page.note || null
+        };
+
+        if (currentNoteUrl && page.url === currentNoteUrl && currentNoteRecord && currentNoteRecord.content) {
+            exportPage.note = currentNoteRecord;
+        }
+
+        return exportPage;
+    }
+
     async function exportCurrentPage(page, format, triggerControl) {
-        if (!page || (page.highlights.length === 0 && !(page.note && page.note.content))) {
+        const exportPage = getCurrentPageExportSource(page);
+        if (!exportPage || (exportPage.highlights.length === 0 && !(exportPage.note && exportPage.note.content))) {
             alert('当前页面没有可导出的内容');
             return;
         }
@@ -714,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const bundle = window.HighlightExport.buildExportBundle([page], { source: 'sidepanel' });
+        const bundle = window.HighlightExport.buildExportBundle([exportPage], { source: 'sidepanel' });
         const targetFormat = format || 'markdown';
         let ok = false;
 
@@ -823,17 +868,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function copyPageHighlights(page, triggerBtn) {
-        const texts = page.highlights
-            .map(formatHighlightForClipboard)
-            .filter(Boolean);
+        const text = formatPageForClipboard(page);
 
-        if (texts.length === 0) {
-            alert('当前页面没有可复制的高亮');
+        if (!text) {
+            alert('当前页面没有可复制的内容');
             return;
         }
 
         try {
-            await navigator.clipboard.writeText(texts.join('\n\n'));
+            await navigator.clipboard.writeText(text);
             if (triggerBtn) {
                 const originalText = triggerBtn.textContent;
                 triggerBtn.textContent = '已复制';
