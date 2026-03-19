@@ -11,7 +11,10 @@
 <body>
     <div id="sidepanel-container">
         <header class="header">
-            <h1 class="title">🐱 划线猫</h1>
+            <div class="brand-block">
+                <h1 class="title">划线猫</h1>
+                <div class="subtitle">标记重点与记录思考</div>
+            </div>
             <div class="header-actions">
                 <button id="select-mode-btn" class="header-btn" title="多选">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
@@ -32,8 +35,14 @@
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" data-tab="current">当前高亮</button>
-            <button class="tab-btn" data-tab="notes">页面笔记</button>
+            <button class="tab-btn active" data-tab="current">
+                <span class="tab-label">高亮</span>
+                <span id="current-tab-meta" class="tab-meta">暂无高亮</span>
+            </button>
+            <button class="tab-btn" data-tab="notes">
+                <span class="tab-label">笔记</span>
+                <span id="notes-tab-meta" class="tab-meta">暂未记录</span>
+            </button>
         </div>
 
         <div id="current-page-info" class="page-info"></div>

@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM elements
     const tabBtns = document.querySelectorAll('.tab-btn');
+    const currentTabMeta = document.getElementById('current-tab-meta');
+    const notesTabMeta = document.getElementById('notes-tab-meta');
     const currentTab = document.getElementById('current-tab');
     const notesTab = document.getElementById('notes-tab');
     const currentPageInfo = document.getElementById('current-page-info');
@@ -72,6 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
         selectModeBtn.classList.toggle('hidden', activeTab !== 'current');
     }
 
+    function updateTabMeta() {
+        if (currentTabMeta) {
+            const highlightCount = currentPageData && Array.isArray(currentPageData.highlights)
+                ? currentPageData.highlights.length
+                : 0;
+            currentTabMeta.textContent = highlightCount > 0 ? `${highlightCount} 条高亮` : '暂无高亮';
+        }
+
+        if (notesTabMeta) {
+            const noteWordTotal = currentNoteRecord && currentNoteRecord.content
+                ? (currentNoteRecord.wordCount || window.PageNotes.countWords(currentNoteRecord.content))
+                : 0;
+            notesTabMeta.textContent = noteWordTotal > 0 ? `${noteWordTotal} 字笔记` : '暂未记录';
+        }
+    }
+
     function formatHighlightForClipboard(highlight) {
         if (window.HighlightExport && typeof window.HighlightExport.buildHighlightExportItem === 'function') {
             const exportItem = window.HighlightExport.buildHighlightExportItem(highlight);
@@ -100,10 +118,28 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCurrentView();
     }
 
+    function closeOpenExportMenus(exceptMenu = null) {
+        document.querySelectorAll('.page-export-menu.open').forEach(menu => {
+            if (menu !== exceptMenu) {
+                menu.classList.remove('open');
+            }
+        });
+    }
+
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             switchTab(btn.dataset.tab);
         });
+    });
+
+    document.addEventListener('click', () => {
+        closeOpenExportMenus();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeOpenExportMenus();
+        }
     });
 
     // Get the active web tab. Side panel runs in an extension context, so
@@ -346,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentHighlights.innerHTML = '';
 
         if (!currentPageData) {
+            updateTabMeta();
             showEmptyState(currentHighlights, '无法获取当前页面信息');
             return;
         }
@@ -388,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update highlight section summary for collapsed state
         highlightSectionSummary.textContent = `${currentPageData.highlights.length} 条`;
+        updateTabMeta();
 
         if (!isSelectionMode) {
             currentPageInfo.appendChild(createPageActions(currentPageData, 'card'));
@@ -464,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (h.annotation) {
             const annotation = document.createElement('div');
             annotation.className = 'highlight-annotation';
-            annotation.textContent = '📝 ' + h.annotation;
+            annotation.textContent = h.annotation;
             content.appendChild(annotation);
         }
 
@@ -596,25 +634,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         actions.appendChild(deleteBtn);
 
-        const exportSelect = document.createElement('select');
-        exportSelect.className = 'page-export-select';
-        exportSelect.disabled = page.highlights.length === 0 && !(page.note && page.note.content);
-        exportSelect.innerHTML = `
-            <option value="">导出本页</option>
-            <option value="markdown">Markdown</option>
-            <option value="html">HTML</option>
-            <option value="mowen">墨问</option>
+        const exportMenu = document.createElement('div');
+        exportMenu.className = 'page-export-menu';
+
+        const exportTrigger = document.createElement('button');
+        exportTrigger.type = 'button';
+        exportTrigger.className = 'page-meta-btn page-export-trigger';
+        exportTrigger.disabled = page.highlights.length === 0 && !(page.note && page.note.content);
+        exportTrigger.innerHTML = `
+            <span class="page-export-trigger-label">导出本页</span>
+            <span class="page-export-trigger-chevron" aria-hidden="true"></span>
         `;
-        exportSelect.addEventListener('click', (e) => {
+        exportTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (exportTrigger.disabled) return;
+            const nextOpen = !exportMenu.classList.contains('open');
+            closeOpenExportMenus(nextOpen ? exportMenu : null);
+            exportMenu.classList.toggle('open', nextOpen);
+        });
+        exportMenu.appendChild(exportTrigger);
+
+        const exportDropdown = document.createElement('div');
+        exportDropdown.className = 'page-export-dropdown';
+        exportDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
         });
-        exportSelect.addEventListener('change', (e) => {
-            e.stopPropagation();
-            if (!e.target.value) return;
-            exportCurrentPage(page, e.target.value, exportSelect);
-            e.target.value = '';
+
+        [
+            { value: 'markdown', label: 'Markdown' },
+            { value: 'html', label: 'HTML' },
+            { value: 'mowen', label: '墨问' }
+        ].forEach(option => {
+            const optionBtn = document.createElement('button');
+            optionBtn.type = 'button';
+            optionBtn.className = 'page-export-option';
+            optionBtn.textContent = option.label;
+            optionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                exportMenu.classList.remove('open');
+                exportCurrentPage(page, option.value, exportTrigger);
+            });
+            exportDropdown.appendChild(optionBtn);
         });
-        actions.appendChild(exportSelect);
+
+        exportMenu.appendChild(exportDropdown);
+        actions.appendChild(exportMenu);
 
         return actions;
     }
@@ -630,14 +694,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function flashExportSuccess(triggerControl) {
         if (!triggerControl) return;
-        const originalValue = triggerControl.value;
         const originalDisabled = triggerControl.disabled;
         triggerControl.disabled = true;
         triggerControl.classList.add('export-success');
         setTimeout(() => {
             triggerControl.disabled = originalDisabled;
             triggerControl.classList.remove('export-success');
-            triggerControl.value = originalValue;
         }, 1200);
     }
 
@@ -898,6 +960,7 @@ document.addEventListener('DOMContentLoaded', () => {
             noteUpdateTime.textContent = '';
             setSaveStatusUI('idle');
             updatePageInfoNoteStatus();
+            updateTabMeta();
         }
 
         try {
@@ -932,6 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sync the page info card note status (may have rendered before note loaded)
         updatePageInfoNoteStatus();
+        updateTabMeta();
     }
 
     /** Clear all note UI when there's no valid page. */
@@ -949,6 +1013,7 @@ document.addEventListener('DOMContentLoaded', () => {
         noteWordCount.textContent = '0 字';
         noteUpdateTime.textContent = '';
         setSaveStatusUI('idle');
+        updateTabMeta();
     }
 
     /** Update the note status text inside the page info card. */
@@ -975,6 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             noteSummary.textContent = '暂无笔记';
         }
+        updateTabMeta();
     }
 
     /** Update the word count display. */
