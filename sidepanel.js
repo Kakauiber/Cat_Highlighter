@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
+    const selectionMap = new Map();
 
     // --- Page Notes State ---
     let currentNoteRecord = null;   // Current page note data from storage
@@ -72,6 +73,24 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTab.classList.toggle('active', activeTab === 'current');
         notesTab.classList.toggle('active', activeTab === 'notes');
         selectModeBtn.classList.toggle('hidden', activeTab !== 'current');
+        syncSelectionModeUI();
+    }
+
+    function syncSelectionModeUI() {
+        const enabled = isSelectionMode && activeTab === 'current';
+        const sidepanelContainer = document.getElementById('sidepanel-container');
+
+        selectModeBtn.classList.toggle('active', enabled);
+        batchHeader.classList.toggle('hidden', !enabled);
+        batchActionBar.classList.toggle('hidden', !enabled);
+        sidepanelContainer.classList.toggle('selection-mode', enabled);
+
+        if (!enabled) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+
+        updateBatchActionVisibility();
     }
 
     function updateTabMeta() {
@@ -396,6 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render based on active tab
     function renderCurrentView() {
+        syncSelectionModeUI();
         renderCurrentPage();
     }
 
@@ -1308,12 +1328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedIds.clear();
         selectionMap.clear();
 
-        // Update UI
-        selectModeBtn.classList.add('active');
-        batchHeader.classList.remove('hidden');
-        batchActionBar.classList.remove('hidden');
-        document.getElementById('sidepanel-container').classList.add('selection-mode');
-
+        syncSelectionModeUI();
         updateSelectCount();
         renderCurrentView();
     }
@@ -1324,13 +1339,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedIds.clear();
         selectionMap.clear();
 
-        // Update UI
-        selectModeBtn.classList.remove('active');
-        batchHeader.classList.add('hidden');
-        batchActionBar.classList.add('hidden');
-        document.getElementById('sidepanel-container').classList.remove('selection-mode');
-        selectAllCheckbox.checked = false;
-        updateBatchActionVisibility();
+        syncSelectionModeUI();
 
         if (!skipRender) {
             renderCurrentView();

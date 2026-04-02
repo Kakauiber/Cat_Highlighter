@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const batchDeleteBtn = document.getElementById('batch-delete-btn');
   const batchCopyBtn = document.getElementById('batch-copy-btn');
   const exportDropdown = document.getElementById('export-dropdown');
+  const mowenConfigToggle = document.getElementById('mowen-config-toggle');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const mowenPanel = document.getElementById('mowen-panel');
   const mowenSummaryMeta = document.getElementById('mowen-summary-meta');
@@ -26,8 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const mowenTagsInput = document.getElementById('mowen-tags');
   const mowenSaveBtn = document.getElementById('mowen-save-btn');
   const mowenTestBtn = document.getElementById('mowen-test-btn');
-  const mowenExportBtn = document.getElementById('mowen-export-btn');
-  const mowenQuickExportBtn = document.getElementById('mowen-quick-export-btn');
   const mowenStatus = document.getElementById('mowen-status');
 
   const MOWEN_API_KEY_KEY = 'mowen_api_key';
@@ -60,6 +59,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(mowenTagsInput && mowenTagsInput.value || '').trim();
   }
 
+  function syncMowenToggleState() {
+    if (!mowenConfigToggle || !mowenPanel) return;
+    const expanded = !!mowenPanel.open;
+    mowenConfigToggle.classList.toggle('active', expanded);
+    mowenConfigToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function openMowenPanel() {
+    if (!mowenPanel) return;
+    mowenPanel.open = true;
+    syncMowenToggleState();
+  }
+
   function setMowenStatus(message, tone) {
     if (!mowenStatus) return;
     mowenStatus.textContent = message || '';
@@ -89,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mowenSummaryMeta.textContent = parts.join(' · ');
 
     if (mowenPanel && !apiKey && !mowenPanel.open) {
-      mowenPanel.open = true;
+      openMowenPanel();
     }
   }
 
@@ -109,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function syncMowenActionState(lastTestedKey) {
     const apiKey = getMowenApiKey();
     const hasKey = !!apiKey;
-    const hasContent = pagesData.length > 0;
     const testedForCurrentKey = hasKey && lastTestedKey === apiKey;
 
     if (mowenSaveBtn) {
@@ -117,12 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (mowenTestBtn) {
       mowenTestBtn.disabled = mowenIsBusy || !hasKey;
-    }
-    if (mowenExportBtn) {
-      mowenExportBtn.disabled = mowenIsBusy || !hasContent || !testedForCurrentKey;
-    }
-    if (mowenQuickExportBtn) {
-      mowenQuickExportBtn.disabled = mowenIsBusy || !hasContent || !testedForCurrentKey;
     }
   }
 
@@ -776,11 +781,52 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   if (exportDropdown) {
-    exportDropdown.addEventListener('change', (e) => {
-      if (e.target.value === 'markdown' || e.target.value === 'html') {
-        exportPages(pagesData, e.target.value);
+    exportDropdown.addEventListener('change', async (e) => {
+      const format = e.target.value;
+      if (!format) return;
+
+      if (format === 'markdown' || format === 'html') {
+        exportPages(pagesData, format);
+        e.target.value = '';
+        return;
+      }
+
+      if (format === 'mowen') {
+        const settings = await getMowenSettings();
+        const hasApiKey = !!String(settings.apiKey || '').trim();
+        const isTested = hasApiKey && settings.lastTestedKey === settings.apiKey;
+
+        if (!hasApiKey) {
+          openMowenPanel();
+          setMowenStatus('请先完成墨问配置，再执行导出。', 'error');
+          e.target.value = '';
+          return;
+        }
+
+        if (!isTested) {
+          openMowenPanel();
+          setMowenStatus('请先测试墨问导出，确认配置可用后再导出。', 'error');
+          e.target.value = '';
+          return;
+        }
+
+        exportAllToMowen();
         e.target.value = '';
       }
+    });
+  }
+
+  if (mowenConfigToggle) {
+    mowenConfigToggle.addEventListener('click', () => {
+      if (!mowenPanel) return;
+      mowenPanel.open = !mowenPanel.open;
+      syncMowenToggleState();
+    });
+  }
+
+  if (mowenPanel) {
+    mowenPanel.addEventListener('toggle', () => {
+      syncMowenToggleState();
     });
   }
 
@@ -818,20 +864,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (mowenExportBtn) {
-    mowenExportBtn.addEventListener('click', () => {
-      exportAllToMowen();
-    });
-  }
-
-  if (mowenQuickExportBtn) {
-    mowenQuickExportBtn.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      exportAllToMowen();
-    });
-  }
-
   if (mowenApiKeyInput) {
     mowenApiKeyInput.addEventListener('input', async () => {
       const settings = await getMowenSettings();
@@ -862,6 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('加载墨问设置失败', err);
     setMowenStatus('加载墨问设置失败。', 'error');
   });
+  syncMowenToggleState();
 
   function toggleSelection(id, pageKey, isSelected) {
     if (isSelected) {

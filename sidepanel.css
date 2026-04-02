@@ -46,8 +46,8 @@ body {
     flex-direction: column;
     min-height: 100vh;
     width: 100%;
-    padding: 8px;
-    gap: 8px;
+    padding: 10px;
+    gap: 12px;
 }
 
 /* Header */
@@ -123,13 +123,13 @@ body {
 .tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
+    gap: 6px;
     background: rgba(255, 251, 246, 0.76);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 4px;
+    border-radius: 12px;
+    padding: 5px;
     flex-shrink: 0;
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
     backdrop-filter: blur(14px);
 }
 
@@ -186,7 +186,7 @@ body {
     display: none;
     flex: 1;
     overflow-y: auto;
-    padding: 0 2px 2px;
+    padding: 2px 4px 8px;
 }
 
 .tab-content.active {
@@ -201,11 +201,11 @@ body {
 /* Page Info */
 .page-info {
     background: var(--surface);
-    border-radius: 16px;
-    padding: 12px 14px;
-    margin-bottom: 2px;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 6px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
     backdrop-filter: blur(14px);
     position: relative;
     z-index: 3;
@@ -244,7 +244,7 @@ body {
 .page-card-actions {
     display: flex;
     gap: 6px;
-    margin-top: 8px;
+    margin-top: 10px;
     flex-wrap: wrap;
 }
 
@@ -381,34 +381,35 @@ body {
 .highlights-list {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 0;
+    padding: 2px 0 4px;
 }
 
 .highlight-item {
     position: relative;
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 12px 12px 12px 14px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    background: transparent;
+    border-radius: 0;
+    padding: 13px 10px 13px 12px;
+    border: none;
     cursor: pointer;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    transition: background 0.18s ease, border-color 0.18s ease;
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    overflow: hidden;
+    overflow: visible;
+}
+
+.highlight-item + .highlight-item {
+    border-top: 1px solid rgba(121, 101, 92, 0.12);
 }
 
 .highlight-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 28px rgba(73, 56, 43, 0.09);
-    border-color: rgba(104, 126, 167, 0.18);
+    background: rgba(255, 255, 255, 0.34);
 }
 
 .highlight-item:focus-visible {
     outline: none;
-    border-color: rgba(104, 126, 167, 0.22);
-    box-shadow: var(--shadow-sm), 0 0 0 3px rgba(104, 126, 167, 0.08);
+    background: rgba(104, 126, 167, 0.08);
 }
 
 .color-dot {
@@ -435,7 +436,7 @@ body {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 6px;
 }
 
 .highlight-text {
@@ -451,10 +452,10 @@ body {
 .highlight-annotation {
     font-size: 11px;
     color: var(--text-secondary);
-    padding: 7px 9px;
-    background: linear-gradient(180deg, rgba(246, 239, 231, 0.92) 0%, rgba(241, 233, 224, 0.88) 100%);
-    border: 1px solid rgba(121, 101, 92, 0.08);
-    border-radius: 10px;
+    padding: 1px 0 1px 10px;
+    background: transparent;
+    border-left: 2px solid rgba(181, 139, 128, 0.44);
+    border-radius: 0;
     line-height: 1.5;
 }
 
@@ -469,19 +470,19 @@ body {
 /* Floating action bar — top-right corner */
 .highlight-actions {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 10px;
+    right: 6px;
     display: flex;
     gap: 3px;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-2px);
     transition: opacity 0.15s ease, transform 0.15s ease;
-    background: rgba(255, 250, 245, 0.94);
+    background: rgba(255, 250, 245, 0.9);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 3px;
-    box-shadow: 0 8px 20px rgba(59, 45, 37, 0.12);
+    box-shadow: 0 6px 16px rgba(59, 45, 37, 0.1);
 }
 
 /* Show on hover */
@@ -707,55 +708,82 @@ body {
 /* Batch Action Bar */
 .batch-action-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
     display: flex;
-    gap: 12px;
-    padding: 12px 16px;
-    background: #fff;
-    border-top: 1px solid #e0e0e0;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 250, 244, 0.86);
+    border: 1px solid rgba(121, 101, 92, 0.14);
+    border-radius: 22px;
+    box-shadow: 0 18px 34px rgba(71, 53, 43, 0.16), 0 4px 14px rgba(71, 53, 43, 0.08);
+    backdrop-filter: blur(18px);
     z-index: 100;
 }
 
 .batch-btn {
     flex: 1;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
+    min-height: 48px;
+    padding: 12px 16px;
+    border: 1px solid transparent;
+    border-radius: 16px;
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 10px 22px rgba(71, 53, 43, 0.08);
 }
 
 .batch-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
+    stroke-width: 2.1;
+}
+
+.batch-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.batch-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(104, 126, 167, 0.16), 0 12px 22px rgba(71, 53, 43, 0.1);
+}
+
+.batch-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.52;
+    transform: none;
+    box-shadow: none;
 }
 
 .batch-btn.danger {
-    background: #fee2e2;
-    color: #dc2626;
+    background: linear-gradient(180deg, rgba(255, 245, 245, 0.98) 0%, rgba(249, 226, 226, 0.96) 100%);
+    border-color: rgba(193, 84, 84, 0.16);
+    color: #c15454;
 }
 
-.batch-btn.danger:hover {
-    background: #fecaca;
+.batch-btn.danger:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(255, 238, 238, 1) 0%, rgba(246, 216, 216, 0.98) 100%);
+    border-color: rgba(193, 84, 84, 0.22);
+    box-shadow: 0 14px 24px rgba(193, 84, 84, 0.16);
 }
 
 .batch-btn.primary {
-    background: #667eea;
-    color: #fff;
+    background: linear-gradient(135deg, rgba(104, 126, 167, 0.96) 0%, rgba(119, 137, 206, 0.96) 100%);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #fffaf7;
 }
 
-.batch-btn.primary:hover {
-    background: #5a6fd6;
+.batch-btn.primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(93, 115, 158, 0.98) 0%, rgba(108, 128, 196, 0.98) 100%);
+    box-shadow: 0 16px 28px rgba(85, 107, 147, 0.22);
 }
 
 .batch-btn.secondary {
@@ -803,20 +831,21 @@ body {
 .workspace-panel,
 .note-workspace {
     background: var(--surface);
-    border-radius: 18px;
+    border-radius: 12px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
     overflow: hidden;
     backdrop-filter: blur(14px);
 }
 
 .workspace-panel {
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 .workspace-panel-header,
 .note-workspace-header {
-    padding: 8px 10px 6px;
+    padding: 12px 14px 8px;
+    border-bottom: 1px solid rgba(121, 101, 92, 0.08);
 }
 
 .workspace-panel-title,
@@ -927,7 +956,7 @@ body {
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    padding: 10px;
+    padding: 12px;
 }
 
 .note-word-count {

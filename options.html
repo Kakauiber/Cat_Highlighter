@@ -11,31 +11,27 @@
 <body>
   <div id="options-container">
     <header>
-      <h1>高亮与笔记管理</h1>
-      <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." />
-      <div class="actions">
-        <button id="select-mode-btn" class="select-mode-btn">✅ 多选</button>
-        <select id="export-dropdown" class="export-dropdown">
-          <option value="">📥 导出全部</option>
-          <option value="markdown">📄 Markdown 格式</option>
-          <option value="html">🌐 HTML 格式</option>
-        </select>
+      <div class="header-copy">
+        <h1>高亮与笔记管理</h1>
+        <p class="header-subtitle">整理页面记录、笔记与高亮内容</p>
       </div>
     </header>
-    <div id="view-filters" class="view-filters" aria-label="页面筛选">
-      <button class="filter-chip active" data-filter="all">全部页面</button>
-      <button class="filter-chip" data-filter="with-notes">有笔记</button>
-      <button class="filter-chip" data-filter="notes-only">仅笔记</button>
-      <button class="filter-chip" data-filter="highlights-only">仅高亮</button>
+    <div class="global-actions-bar">
+      <select id="export-dropdown" class="export-dropdown">
+        <option value="">📥 导出全部</option>
+        <option value="markdown">📄 Markdown 格式</option>
+        <option value="html">🌐 HTML 格式</option>
+        <option value="mowen">✍️ 导出到墨问</option>
+      </select>
+      <button id="mowen-config-toggle" class="mowen-config-btn" type="button" aria-expanded="false" aria-controls="mowen-panel">设置</button>
     </div>
     <details id="mowen-panel" class="mowen-panel" aria-label="墨问导出设置">
       <summary class="mowen-summary">
         <div class="mowen-summary-main">
-          <div class="mowen-summary-title">生成墨问笔记</div>
+          <div class="mowen-summary-title">墨问导出配置</div>
           <div id="mowen-summary-meta" class="mowen-summary-meta">未配置 API Key</div>
         </div>
         <div class="mowen-summary-actions">
-          <button id="mowen-quick-export-btn" class="mowen-quick-export-btn" type="button">导出全部到墨问</button>
           <span class="mowen-summary-chevron" aria-hidden="true"></span>
         </div>
       </summary>
@@ -43,7 +39,7 @@
         <div class="mowen-panel-head">
           <div>
             <h2>墨问导出设置</h2>
-            <p>使用 API 创建私密笔记。首次先完成测试，之后可直接在折叠栏导出全部。</p>
+            <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
           </div>
         </div>
         <div class="mowen-form">
@@ -59,11 +55,22 @@
         <div class="mowen-actions">
           <button id="mowen-save-btn" type="button">保存设置</button>
           <button id="mowen-test-btn" type="button">测试导出</button>
-          <button id="mowen-export-btn" type="button">导出全部到墨问</button>
         </div>
         <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
       </div>
     </details>
+    <div class="tool-strip content-tool-strip">
+      <div id="view-filters" class="view-filters" aria-label="页面筛选">
+        <button class="filter-chip active" data-filter="all">全部页面</button>
+        <button class="filter-chip" data-filter="with-notes">有笔记</button>
+      </div>
+      <div class="search-wrap tool-search-wrap">
+        <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." />
+      </div>
+      <div class="tool-meta">
+        <button id="select-mode-btn" class="select-mode-btn">✅ 多选</button>
+      </div>
+    </div>
     <!-- Batch selection header (hidden by default) -->
     <div id="batch-header" class="batch-header hidden">
       <label class="select-all-label">
