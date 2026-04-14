@@ -5,9 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Color mapping
     const colorMap = {
         yellow: '#FFEA8A',
-        blue: '#7CC7FF',
+        blue: '#B9DDF4',
         red: '#FF8A8A',
-        mint: '#7CC7FF',
+        mint: '#B9DDF4',
         coral: '#FF8A8A'
     };
 
@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let allPagesData = [];
     let currentPageData = null;
+    let currentPageTabId = null;
     let activeTab = 'current';
     // Batch selection state
     let isSelectionMode = false;
@@ -332,13 +333,15 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' });
             const highlights = Array.isArray(response?.highlights) ? response.highlights : [];
+            const resolvedUrl = response?.pageUrl || tab.url;
             const title = getBestPageTitle(
                 [response?.pageTitle].concat(highlights.map(item => item && item.pageTitle)),
-                tab.title || tab.url
+                tab.title || resolvedUrl
             );
             return {
-                key: prefix + tab.url,
-                url: tab.url,
+                tabId: tab.id,
+                key: response?.storageKey || (prefix + resolvedUrl),
+                url: resolvedUrl,
                 title,
                 highlights
             };
@@ -353,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading state
         try {
             currentPageData = null;
+            currentPageTabId = null;
             const prefix = 'page_highlights_';
             await reconcileStoredHighlights(prefix);
             allPagesData = await loadStoredPagesData(prefix);
@@ -362,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('[SidePanel] Active tab:', tab ? { id: tab.id, url: tab.url } : 'none');
 
             if (tab && tab.url) {
+                currentPageTabId = tab.id;
                 const reinjected = await ensureContentScript(tab);
                 if (reinjected) {
                     await new Promise(resolve => setTimeout(resolve, 150));
@@ -383,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!currentPageData) {
                     console.log('[SidePanel] No match found, creating empty entry');
                     currentPageData = {
+                        tabId: tab.id,
                         key: currentKey,
                         url: tab.url,
                         title: tab.title || tab.url,
@@ -413,6 +419,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function applyCurrentPageHighlightChange(change) {
+        if (!currentPageData || !change) return false;
+
+        const nextHighlights = Array.isArray(change.newValue) ? change.newValue : [];
+        const nextTitle = getBestPageTitle(
+            nextHighlights.map(item => item && item.pageTitle),
+            currentPageData.title || currentPageData.url
+        );
+
+        currentPageData = {
+            ...currentPageData,
+            title: nextTitle,
+            highlights: nextHighlights
+        };
+
+        if (activeTab === 'current') {
+            renderCurrentView();
+        } else {
+            updateTabMeta();
+        }
+
+        return true;
+    }
+
     // Render based on active tab
     function renderCurrentView() {
         syncSelectionModeUI();
@@ -423,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCurrentPage() {
         currentPageInfo.innerHTML = '';
         currentHighlights.innerHTML = '';
+        currentPageInfo.classList.remove('page-info-hidden', 'compact');
 
         if (!currentPageData) {
             updateTabMeta();
@@ -434,37 +465,6 @@ document.addEventListener('DOMContentLoaded', () => {
         titleEl.className = 'page-title';
         titleEl.textContent = currentPageData.title;
         currentPageInfo.appendChild(titleEl);
-
-        const urlEl = document.createElement('div');
-        urlEl.className = 'page-url';
-        urlEl.textContent = currentPageData.url;
-        currentPageInfo.appendChild(urlEl);
-
-        // Meta row: highlight count + note status on one line
-        const metaRow = document.createElement('div');
-        metaRow.className = 'page-meta-row';
-
-        const countEl = document.createElement('span');
-        countEl.className = 'highlight-count';
-        countEl.textContent = `${currentPageData.highlights.length} 条高亮`;
-        metaRow.appendChild(countEl);
-
-        const noteStatusLine = document.createElement('span');
-        noteStatusLine.className = 'note-status-line';
-        const noteIcon = document.createElement('span');
-        noteIcon.className = 'note-status-icon';
-        noteIcon.textContent = '📝';
-        noteStatusLine.appendChild(noteIcon);
-        const noteStatusText = document.createElement('span');
-        if (currentNoteRecord && currentNoteRecord.content) {
-            noteStatusText.textContent = `已记录 ${currentNoteRecord.wordCount || 0} 字`;
-        } else {
-            noteStatusText.textContent = '暂无笔记';
-        }
-        noteStatusLine.appendChild(noteStatusText);
-        metaRow.appendChild(noteStatusLine);
-
-        currentPageInfo.appendChild(metaRow);
 
         // Update highlight section summary for collapsed state
         highlightSectionSummary.textContent = `${currentPageData.highlights.length} 条`;
@@ -595,9 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.title = '删除';
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('删除此高亮吗？')) {
-                    deleteHighlight(page.key, h.id);
-                }
+                deleteHighlight(page.key, h.id);
             });
             actions.appendChild(deleteBtn);
 
@@ -1081,18 +1079,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Update the note status text inside the page info card. */
     function updatePageInfoNoteStatus() {
-        const statusLine = currentPageInfo.querySelector('.note-status-line');
-        if (!statusLine) return;
-        // Find or ensure the text span (second child after icon)
-        let textSpan = statusLine.querySelector('span:not(.note-status-icon)');
-        if (!textSpan) {
-            textSpan = statusLine;
-        }
-        if (currentNoteRecord && currentNoteRecord.content) {
-            textSpan.textContent = `已记录 ${currentNoteRecord.wordCount || 0} 字`;
-        } else {
-            textSpan.textContent = '暂无笔记';
-        }
+        updateTabMeta();
     }
 
     /** Update the collapsed summary text. */
@@ -1497,6 +1484,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            if (hasHighlightChanges && currentPageData && changes[currentPageData.key]) {
+                applyCurrentPageHighlightChange(changes[currentPageData.key]);
+                return;
+            }
+
             // Highlight data changed — reload everything
             if (storageUpdateTimeout) {
                 clearTimeout(storageUpdateTimeout);
@@ -1504,6 +1496,47 @@ document.addEventListener('DOMContentLoaded', () => {
             storageUpdateTimeout = setTimeout(() => {
                 loadAllData();
             }, 100);
+        }
+    });
+
+    chrome.runtime.onMessage.addListener((message, sender) => {
+        if (!message || message.command !== 'pageHighlightsChanged') {
+            return;
+        }
+
+        if (!currentPageData) {
+            return;
+        }
+
+        const senderTabId = sender && sender.tab && sender.tab.id;
+        const matchesCurrentPage =
+            (currentPageTabId && senderTabId && currentPageTabId === senderTabId) ||
+            (message.storageKey && currentPageData.key === message.storageKey) ||
+            (message.pageUrl && currentPageData.url === message.pageUrl);
+
+        if (!matchesCurrentPage) {
+            return;
+        }
+
+        const nextHighlights = Array.isArray(message.highlights) ? message.highlights : [];
+        const nextTitle = getBestPageTitle(
+            [message.pageTitle].concat(nextHighlights.map(item => item && item.pageTitle)),
+            currentPageData.title || currentPageData.url
+        );
+
+        currentPageData = {
+            ...currentPageData,
+            tabId: senderTabId || currentPageData.tabId,
+            key: message.storageKey || currentPageData.key,
+            url: message.pageUrl || currentPageData.url,
+            title: nextTitle,
+            highlights: nextHighlights
+        };
+
+        if (activeTab === 'current') {
+            renderCurrentView();
+        } else {
+            updateTabMeta();
         }
     });
 

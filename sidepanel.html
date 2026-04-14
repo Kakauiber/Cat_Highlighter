@@ -13,7 +13,6 @@
         <header class="header">
             <div class="brand-block">
                 <h1 class="title">划线猫</h1>
-                <div class="subtitle">标记重点与记录思考</div>
             </div>
             <div class="header-actions">
                 <button id="select-mode-btn" class="header-btn" title="多选">
@@ -34,6 +33,8 @@
             <button id="cancel-select-btn" class="cancel-btn">取消</button>
         </div>
 
+        <div id="current-page-info" class="page-info"></div>
+
         <div class="tabs">
             <button class="tab-btn active" data-tab="current">
                 <span class="tab-label">高亮</span>
@@ -44,8 +45,6 @@
                 <span id="notes-tab-meta" class="tab-meta">暂未记录</span>
             </button>
         </div>
-
-        <div id="current-page-info" class="page-info"></div>
 
         <div id="current-tab" class="tab-content active">
             <div class="workspace-panel">

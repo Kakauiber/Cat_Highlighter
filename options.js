@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const colorMap = {
     yellow: '#FFEA8A',
-    blue: '#7CC7FF',
+    blue: '#B9DDF4',
     red: '#FF8A8A',
-    mint: '#7CC7FF',
+    mint: '#B9DDF4',
     coral: '#FF8A8A'
   };
 

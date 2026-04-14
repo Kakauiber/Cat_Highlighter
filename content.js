@@ -7,17 +7,45 @@
 
 // Blacklist check: if current domain is disabled or globally disabled, do nothing
 const hostname = window.location.hostname;
+const EARLY_FRAME_DEBUG_ENABLED = /(^|\.)perplexity\.ai$/i.test(hostname) || /comet/i.test(hostname);
+
+function logEarlyFrameDebug(eventName, extra = {}) {
+  if (!EARLY_FRAME_DEBUG_ENABLED) return;
+  console.info('[Highlight Cat][FrameDebug][Early]', eventName, {
+    href: window.location.href,
+    hostname,
+    isTopWindow: (() => {
+      try {
+        return window.top === window;
+      } catch (err) {
+        return false;
+      }
+    })(),
+    ...extra
+  });
+}
+
+logEarlyFrameDebug('content-script-loaded');
+
 chrome.storage.local.get(['disabled_domains', 'global_disabled'], (res) => {
+  logEarlyFrameDebug('blacklist-check', {
+    globalDisabled: !!res.global_disabled,
+    disabledDomainsCount: Array.isArray(res.disabled_domains) ? res.disabled_domains.length : 0,
+    hostDisabled: Array.isArray(res.disabled_domains) ? res.disabled_domains.includes(hostname) : false
+  });
   if (res.global_disabled) {
     console.log('[Highlight Cat] Extension globally disabled');
+    logEarlyFrameDebug('blocked-by-global-disabled');
     return; // Stop execution
   }
   const disabled = res.disabled_domains || [];
   if (disabled.includes(hostname)) {
     console.log('[Highlight Cat] Extension disabled on this domain:', hostname);
+    logEarlyFrameDebug('blocked-by-disabled-domain');
     return; // Stop execution
   }
   // If not disabled, initialize the extension
+  logEarlyFrameDebug('init-extension');
   initExtension();
 });
 
@@ -28,14 +56,115 @@ function initExtension() {
   // defined by UNDERLINE_COLOR.
   const AVAILABLE_COLORS = {
     yellow: { background: '#FFEA8A' }, // Warm Sun
-    blue: { background: '#7CC7FF' },   // Sky Blue
+    blue: { background: 'rgba(169, 219, 247, 0.34)' }, // Soft Mist Blue
     red: { background: '#FF8A8A' },    // Soft Coral Red
-    mint: { background: '#7CC7FF' },   // Legacy alias
+    mint: { background: 'rgba(169, 219, 247, 0.34)' }, // Legacy alias
     coral: { background: '#FF8A8A' }   // Legacy alias
   };
   const TOOLBAR_COLOR_ORDER = ['yellow', 'blue', 'red'];
   // Unified colour for underline markings
   const UNDERLINE_COLOR = '#666666';
+  const FRAME_DEBUG_ENABLED = /(^|\.)perplexity\.ai$/i.test(window.location.hostname) || /comet/i.test(window.location.hostname);
+
+  function describeNode(node) {
+    if (!node) return 'null';
+    if (node.nodeType === Node.TEXT_NODE) {
+      const parent = node.parentElement;
+      return `#text(${parent ? parent.tagName.toLowerCase() : 'no-parent'})`;
+    }
+    if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      return node.host ? `shadow-root(${node.host.tagName.toLowerCase()})` : 'document-fragment';
+    }
+    if (node.nodeType === Node.DOCUMENT_NODE) {
+      return 'document';
+    }
+    return node.tagName ? node.tagName.toLowerCase() : String(node.nodeName || node);
+  }
+
+  function getSelectionDebugSnapshot() {
+    const sel = window.getSelection();
+    const snapshot = {
+      hasSelection: !!sel,
+      rangeCount: sel ? sel.rangeCount : 0,
+      isCollapsed: sel ? sel.isCollapsed : true,
+      textLength: 0,
+      textSample: '',
+      anchorNode: '',
+      focusNode: '',
+      commonAncestor: '',
+      rootNode: ''
+    };
+
+    if (!sel) return snapshot;
+
+    const text = sel.toString();
+    snapshot.textLength = text.length;
+    snapshot.textSample = text.slice(0, 120);
+    snapshot.anchorNode = describeNode(sel.anchorNode);
+    snapshot.focusNode = describeNode(sel.focusNode);
+
+    if (sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      snapshot.commonAncestor = describeNode(range.commonAncestorContainer);
+      const root = range.commonAncestorContainer && typeof range.commonAncestorContainer.getRootNode === 'function'
+        ? range.commonAncestorContainer.getRootNode()
+        : null;
+      snapshot.rootNode = describeNode(root);
+    }
+
+    return snapshot;
+  }
+
+  function getFrameDebugContext() {
+    let isTopWindow = false;
+    try {
+      isTopWindow = window.top === window;
+    } catch (err) {
+      isTopWindow = false;
+    }
+
+    let frameElementTag = '';
+    let frameElementSrc = '';
+    try {
+      frameElementTag = window.frameElement ? describeNode(window.frameElement) : '';
+      frameElementSrc = window.frameElement && typeof window.frameElement.getAttribute === 'function'
+        ? (window.frameElement.getAttribute('src') || '')
+        : '';
+    } catch (err) {
+      frameElementTag = 'inaccessible';
+    }
+
+    const iframeCandidates = [];
+    try {
+      document.querySelectorAll('iframe').forEach((iframe, index) => {
+        if (index >= 5) return;
+        iframeCandidates.push({
+          src: iframe.getAttribute('src') || '',
+          id: iframe.id || '',
+          className: iframe.className || ''
+        });
+      });
+    } catch (err) {
+      iframeCandidates.push({ error: String(err) });
+    }
+
+    return {
+      href: window.location.href,
+      isTopWindow,
+      frameElementTag,
+      frameElementSrc,
+      iframeCount: iframeCandidates.length,
+      iframeCandidates
+    };
+  }
+
+  function logFrameDebug(eventName, extra = {}) {
+    if (!FRAME_DEBUG_ENABLED) return;
+    console.info('[Highlight Cat][FrameDebug]', eventName, {
+      ...getFrameDebugContext(),
+      ...extra
+    });
+  }
 
   /**
    * Determine whether the current selection originates in a contenteditable
@@ -376,7 +505,9 @@ function initExtension() {
       chrome.storage && chrome.storage.local.get([storageKey], (result) => {
         const arr = Array.isArray(result[storageKey]) ? result[storageKey] : [];
         arr.push(hlObj);
-        chrome.storage.local.set({ [storageKey]: arr });
+        chrome.storage.local.set({ [storageKey]: arr }, () => {
+          notifyPageHighlightsChanged(storageKey, arr);
+        });
       });
     } catch (e) { }
 
@@ -384,6 +515,59 @@ function initExtension() {
     try {
       syncToCloud(hlObj);
     } catch (e) { }
+  }
+
+  function notifyPageHighlightsChanged(storageKey, highlights) {
+    try {
+      if (!chrome.runtime || !chrome.runtime.sendMessage) return;
+      const payload = {
+        command: 'pageHighlightsChanged',
+        pageUrl: getCurrentPageUrl(),
+        storageKey: storageKey || getStorageKey(),
+        pageTitle: getPreferredPageTitle(),
+        highlights: Array.isArray(highlights) ? highlights : []
+      };
+      const maybePromise = chrome.runtime.sendMessage(payload);
+      if (maybePromise && typeof maybePromise.catch === 'function') {
+        maybePromise.catch(() => {});
+      }
+    } catch (e) { }
+  }
+
+  function getCurrentPageHighlightsSnapshot() {
+    const domHighlights = collectHighlightsFromDom();
+    return Array.isArray(domHighlights) ? domHighlights : [];
+  }
+
+  function updateStoredHighlightRecords(mutator, callback) {
+    try {
+      chrome.storage && chrome.storage.local.get(null, (result) => {
+        const all = result && typeof result === 'object' ? result : {};
+        const updates = {};
+        let changed = false;
+
+        Object.keys(all).forEach(key => {
+          if (!key.startsWith('page_highlights_')) return;
+          const arr = Array.isArray(all[key]) ? all[key] : [];
+          const nextArr = mutator(arr, key);
+          if (nextArr && nextArr !== arr) {
+            updates[key] = nextArr;
+            changed = true;
+          }
+        });
+
+        if (!changed) {
+          if (typeof callback === 'function') callback(false);
+          return;
+        }
+
+        chrome.storage.local.set(updates, () => {
+          if (typeof callback === 'function') callback(true);
+        });
+      });
+    } catch (e) {
+      if (typeof callback === 'function') callback(false);
+    }
   }
 
   /**
@@ -506,6 +690,96 @@ function initExtension() {
     } catch (e) {
       console.warn('[Highlight Cat] Failed to inspect DOM highlights:', e);
     }
+  }
+
+  function reconcileDomHighlightsWithStorage(existingData, callback) {
+    const storageKey = getStorageKey();
+    const stored = Array.isArray(existingData) ? existingData : [];
+    const domHighlights = collectHighlightsFromDom();
+
+    if (domHighlights.length === 0) {
+      callback(stored);
+      return;
+    }
+
+    const merged = [...stored];
+    const indexById = new Map();
+    merged.forEach((item, index) => {
+      if (item && item.id) {
+        indexById.set(item.id, index);
+      }
+    });
+
+    let changed = false;
+
+    domHighlights.forEach(domItem => {
+      const existingIndex = indexById.get(domItem.id);
+      if (existingIndex === undefined) {
+        merged.push(domItem);
+        indexById.set(domItem.id, merged.length - 1);
+        changed = true;
+        return;
+      }
+
+      const existingItem = merged[existingIndex];
+      if (!existingItem || typeof existingItem !== 'object') {
+        merged[existingIndex] = domItem;
+        changed = true;
+        return;
+      }
+
+      const nextItem = { ...existingItem };
+      let itemChanged = false;
+
+      if ((!nextItem.text || nextItem.text !== domItem.text) && domItem.text) {
+        nextItem.text = domItem.text;
+        itemChanged = true;
+      }
+
+      if ((!Array.isArray(nextItem.segments) || nextItem.segments.length === 0) && Array.isArray(domItem.segments) && domItem.segments.length > 0) {
+        nextItem.segments = domItem.segments;
+        itemChanged = true;
+      }
+
+      if (!nextItem.annotation && domItem.annotation) {
+        nextItem.annotation = domItem.annotation;
+        itemChanged = true;
+      }
+
+      if ((!nextItem.hash || nextItem.hash !== domItem.hash) && domItem.hash) {
+        nextItem.hash = domItem.hash;
+        itemChanged = true;
+      }
+
+      if ((!nextItem.pageUrl || nextItem.pageUrl !== domItem.pageUrl) && domItem.pageUrl) {
+        nextItem.pageUrl = domItem.pageUrl;
+        itemChanged = true;
+      }
+
+      if (shouldUpgradePageTitle(nextItem.pageTitle, domItem.pageTitle)) {
+        nextItem.pageTitle = domItem.pageTitle;
+        itemChanged = true;
+      }
+
+      if (itemChanged) {
+        merged[existingIndex] = nextItem;
+        changed = true;
+      }
+    });
+
+    if (!changed) {
+      callback(merged);
+      return;
+    }
+
+    chrome.storage.local.set({ [storageKey]: merged }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn('[Highlight Cat] Failed to reconcile DOM highlights:', chrome.runtime.lastError.message);
+      } else {
+        console.log('[Highlight Cat] Reconciled DOM highlights with storage:', merged.length);
+      }
+      callback(merged);
+    });
   }
 
   function recoverCurrentPageHighlightsFromSync(callback) {
@@ -668,13 +942,12 @@ function initExtension() {
       if (overlay) overlay.remove();
     });
 
-    try {
-      chrome.storage && chrome.storage.local.get([storageKey], (result) => {
-        const arr = Array.isArray(result[storageKey]) ? result[storageKey] : [];
-        const filtered = arr.filter(item => !uniqueIds.includes(item.id));
-        chrome.storage.local.set({ [storageKey]: filtered });
-      });
-    } catch (e) { }
+    updateStoredHighlightRecords((arr) => {
+      const filtered = arr.filter(item => !uniqueIds.includes(item.id));
+      return filtered.length !== arr.length ? filtered : arr;
+    }, () => {
+      notifyPageHighlightsChanged(storageKey, getCurrentPageHighlightsSnapshot());
+    });
 
     removeIdsFromSyncIndex(uniqueIds);
   }
@@ -689,16 +962,18 @@ function initExtension() {
   function updateAnnotation(id, note) {
     const storageKey = getStorageKey();
 
-    try {
-      chrome.storage && chrome.storage.local.get([storageKey], (result) => {
-        const arr = Array.isArray(result[storageKey]) ? result[storageKey] : [];
-        const i = arr.findIndex(item => item.id === id);
-        if (i >= 0) {
-          arr[i].annotation = note;
-          chrome.storage.local.set({ [storageKey]: arr });
-        }
-      });
-    } catch (e) { }
+    updateStoredHighlightRecords((arr) => {
+      const i = arr.findIndex(item => item.id === id);
+      if (i < 0) return arr;
+      const nextArr = arr.slice();
+      nextArr[i] = {
+        ...nextArr[i],
+        annotation: note
+      };
+      return nextArr;
+    }, () => {
+      notifyPageHighlightsChanged(storageKey, getCurrentPageHighlightsSnapshot());
+    });
   }
 
   function applyAnnotationToHighlightSpans(id, note) {
@@ -1516,9 +1791,19 @@ function initExtension() {
    */
   function removeHighlightsInSelection() {
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
-    const range = sel.getRangeAt(0);
-    removeHighlightsByIds(Array.from(getHighlightIdsInRange(range)));
+    let range = null;
+
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      range = sel.getRangeAt(0);
+    } else if (lastSelection && lastSelection.range) {
+      range = lastSelection.range.cloneRange();
+    }
+
+    if (!range) return;
+
+    const ids = Array.from(getHighlightIdsInRange(range));
+    if (ids.length === 0) return;
+    removeHighlightsByIds(ids);
   }
 
   /**
@@ -1841,6 +2126,10 @@ function initExtension() {
     if (toolbar && toolbar.contains(e.target)) return;
 
     const sel = window.getSelection();
+    logFrameDebug('mouseup', {
+      target: describeNode(e.target),
+      selection: getSelectionDebugSnapshot()
+    });
     if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
       hideToolbar();
       return;
@@ -1867,6 +2156,9 @@ function initExtension() {
   // Update last selection on selectionchange and show toolbar for immediate feedback
   document.addEventListener('selectionchange', () => {
     const sel = window.getSelection();
+    logFrameDebug('selectionchange', {
+      selection: getSelectionDebugSnapshot()
+    });
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
       hideToolbar();
       return;
@@ -1888,10 +2180,14 @@ function initExtension() {
   // Message handler for interaction with popup
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.command === 'ping') {
+      logFrameDebug('message:ping');
       sendResponse({ ok: true });
       return;
     }
     if (message.command === 'highlight') {
+      logFrameDebug('message:highlight', {
+        selection: getSelectionDebugSnapshot()
+      });
       handleUrlChange();
       let result = highlightCurrentSelection(message.color);
       if (!result && lastSelection.range) {
@@ -1899,25 +2195,35 @@ function initExtension() {
       }
       sendResponse({ result });
     } else if (message.command === 'getHighlights') {
+      logFrameDebug('message:getHighlights');
       handleUrlChange();
       const storageKey = getStorageKey();
+      const currentPageUrl = getCurrentPageUrl();
       syncCurrentPageTitleMetadata(() => {
         chrome.storage.local.get([storageKey], (result) => {
           let data = Array.isArray(result[storageKey]) ? result[storageKey] : [];
           if (data.length === 0) {
             recoverCurrentPageHighlightsFromSync((recovered) => {
               let nextData = Array.isArray(recovered) ? recovered : [];
-              if (nextData.length === 0) {
-                nextData = collectHighlightsFromDom();
-                if (nextData.length > 0) {
-                  syncDomHighlightsToStorage();
-                }
-              }
-              sendResponse({ highlights: nextData, pageTitle: getPreferredPageTitle() });
+              reconcileDomHighlightsWithStorage(nextData, (reconciled) => {
+                sendResponse({
+                  highlights: reconciled,
+                  pageTitle: getPreferredPageTitle(),
+                  pageUrl: currentPageUrl,
+                  storageKey
+                });
+              });
             });
             return;
           }
-          sendResponse({ highlights: data, pageTitle: getPreferredPageTitle() });
+          reconcileDomHighlightsWithStorage(data, (reconciled) => {
+            sendResponse({
+              highlights: reconciled,
+              pageTitle: getPreferredPageTitle(),
+              pageUrl: currentPageUrl,
+              storageKey
+            });
+          });
         });
       });
       return true; // Keep channel open for async response
@@ -1999,6 +2305,7 @@ function initExtension() {
   };
 
   // Initial trigger
+  logFrameDebug('init');
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     restoreAllHighlights(); // Immediate attempt
     observeDOM();           // Start watching
