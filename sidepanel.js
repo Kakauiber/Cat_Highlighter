@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const batchDeleteBtn = document.getElementById('batch-delete-btn');
     const batchCopyBtn = document.getElementById('batch-copy-btn');
     const highlightSectionSummary = document.getElementById('highlight-section-summary');
+    const highlightSortSelect = document.getElementById('highlight-sort-select');
     // Page Notes Elements
     const noteSection = document.getElementById('note-section');
     const noteSummary = document.getElementById('note-summary');
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPageData = null;
     let currentPageTabId = null;
     let activeTab = 'current';
+    let currentHighlightSortOrder = 'asc';
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
@@ -373,14 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     allPagesData = await loadStoredPagesData(prefix);
                 }
 
-                const currentKey = prefix + tab.url;
-                console.log('[SidePanel] Looking for key:', currentKey);
-
                 currentPageData = await getCurrentPageDataFromTab(tab, prefix);
+                const resolvedCurrentUrl = (currentPageData && currentPageData.url) || tab.url;
+                const currentKey = (currentPageData && currentPageData.key) || (prefix + resolvedCurrentUrl);
+                console.log('[SidePanel] Looking for key:', currentKey);
                 console.log('[SidePanel] Tab data match:', currentPageData ? currentPageData.highlights.length : 'no response');
 
                 if ((!currentPageData || currentPageData.highlights.length === 0) && allPagesData.length > 0) {
-                    currentPageData = allPagesData.find(p => p.key === currentKey) || allPagesData.find(p => p.url === tab.url) || currentPageData;
+                    currentPageData = allPagesData.find(p => p.key === currentKey) || allPagesData.find(p => p.url === resolvedCurrentUrl) || currentPageData;
                     console.log('[SidePanel] Storage fallback:', currentPageData ? 'found' : 'not found');
                 }
 
@@ -390,8 +392,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentPageData = {
                         tabId: tab.id,
                         key: currentKey,
-                        url: tab.url,
-                        title: tab.title || tab.url,
+                        url: resolvedCurrentUrl,
+                        title: tab.title || resolvedCurrentUrl,
                         highlights: []
                     };
                 }
@@ -402,9 +404,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Keep the current note UI stable while only highlight data changes
             // on the same page. Dedicated note storage listeners handle note refreshes.
-            if (tab && tab.url) {
-                if (currentNoteUrl !== tab.url || currentNoteRecord === null) {
-                    await loadCurrentPageNote(tab.url, tab.title || tab.url);
+            const noteUrl = (currentPageData && currentPageData.url) || (tab && tab.url) || null;
+            const noteTitle = (currentPageData && currentPageData.title) || (tab && (tab.title || tab.url)) || noteUrl;
+            if (noteUrl) {
+                if (currentNoteUrl !== noteUrl || currentNoteRecord === null) {
+                    await loadCurrentPageNote(noteUrl, noteTitle);
                 } else {
                     updatePageInfoNoteStatus();
                 }
@@ -480,10 +484,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Render highlights
-        currentPageData.highlights.forEach(h => {
+        getSortedCurrentHighlights().forEach(h => {
             const item = createHighlightItem(h, currentPageData);
             currentHighlights.appendChild(item);
         });
+    }
+
+    function getSortedCurrentHighlights() {
+        if (!currentPageData || !Array.isArray(currentPageData.highlights)) {
+            return [];
+        }
+
+        return currentPageData.highlights
+            .map((highlight, index) => ({
+                highlight,
+                index,
+                sortValue: getHighlightSortValue(highlight, index)
+            }))
+            .sort((a, b) => {
+                if (a.sortValue === b.sortValue) {
+                    return currentHighlightSortOrder === 'desc'
+                        ? b.index - a.index
+                        : a.index - b.index;
+                }
+
+                return currentHighlightSortOrder === 'desc'
+                    ? b.sortValue - a.sortValue
+                    : a.sortValue - b.sortValue;
+            })
+            .map(item => item.highlight);
+    }
+
+    function getHighlightSortValue(highlight, fallbackIndex) {
+        if (highlight && typeof highlight.timestamp === 'number') {
+            return highlight.timestamp;
+        }
+        if (highlight && typeof highlight.createdAt === 'number') {
+            return highlight.createdAt;
+        }
+        if (highlight && typeof highlight.updatedAt === 'number') {
+            return highlight.updatedAt;
+        }
+        return fallbackIndex;
     }
 
     function hideVisibleHighlightActions(exceptItem = null) {
@@ -1405,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const texts = [];
 
         if (currentPageData) {
-            currentPageData.highlights.forEach(h => {
+            getSortedCurrentHighlights().forEach(h => {
                 if (selectedIds.has(h.id)) {
                     const content = formatHighlightForClipboard(h);
                     if (content) {
@@ -1460,6 +1502,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Batch copy button
     batchCopyBtn.addEventListener('click', () => {
         mergeCopySelected();
+    });
+
+    highlightSortSelect.addEventListener('change', () => {
+        currentHighlightSortOrder = highlightSortSelect.value === 'desc' ? 'desc' : 'asc';
+        if (activeTab === 'current') {
+            renderCurrentView();
+        }
     });
 
     // Listen for storage changes to update in real-time

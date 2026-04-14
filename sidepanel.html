@@ -50,7 +50,13 @@
             <div class="workspace-panel">
                 <div class="workspace-panel-header">
                     <span class="workspace-panel-title">当前页高亮</span>
-                    <span id="highlight-section-summary" class="workspace-panel-summary"></span>
+                    <div class="workspace-panel-meta">
+                        <span id="highlight-section-summary" class="workspace-panel-summary"></span>
+                        <select id="highlight-sort-select" class="highlight-sort-select" title="高亮排序">
+                            <option value="asc">正序</option>
+                            <option value="desc">倒序</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="current-highlights" class="highlights-list"></div>
             </div>

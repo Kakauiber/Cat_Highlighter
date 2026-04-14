@@ -833,6 +833,13 @@ body {
     margin-top: 0;
 }
 
+.workspace-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .workspace-panel-header,
 .note-workspace-header {
     padding: 11px 14px 8px;
@@ -850,6 +857,49 @@ body {
 .note-workspace-summary {
     font-size: 11px;
     color: var(--text-tertiary);
+}
+
+.workspace-panel-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.highlight-sort-select {
+    min-width: 68px;
+    height: 28px;
+    border: 1px solid rgba(121, 101, 92, 0.14);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 26px 0 10px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%),
+        linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+    background-position:
+        calc(100% - 13px) 11px,
+        calc(100% - 8px) 11px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.highlight-sort-select:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(104, 126, 167, 0.24);
+    color: var(--accent-strong);
+}
+
+.highlight-sort-select:focus-visible {
+    outline: none;
+    border-color: rgba(104, 126, 167, 0.34);
+    box-shadow: 0 0 0 3px rgba(104, 126, 167, 0.12);
 }
 
 .note-workspace-summary {
