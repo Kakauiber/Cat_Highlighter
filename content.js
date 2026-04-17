@@ -56,9 +56,9 @@ function initExtension() {
   // defined by UNDERLINE_COLOR.
   const AVAILABLE_COLORS = {
     yellow: { background: '#FFEA8A' }, // Warm Sun
-    blue: { background: 'rgba(169, 219, 247, 0.34)' }, // Soft Mist Blue
+    blue: { background: 'rgba(132, 194, 235, 0.62)' }, // Soft Mist Blue
     red: { background: '#FF8A8A' },    // Soft Coral Red
-    mint: { background: 'rgba(169, 219, 247, 0.34)' }, // Legacy alias
+    mint: { background: 'rgba(132, 194, 235, 0.62)' }, // Legacy alias
     coral: { background: '#FF8A8A' }   // Legacy alias
   };
   const TOOLBAR_COLOR_ORDER = ['yellow', 'blue', 'red'];
@@ -215,6 +215,7 @@ function initExtension() {
   let currentPageUrl = window.location.href;
   let pinnedAnnotationId = null;
   const NOTE_PREFIX = 'page_notes_';
+  let highlightStorageQueue = Promise.resolve();
 
   function getCurrentPageUrl() {
     return window.location.href;
@@ -226,6 +227,35 @@ function initExtension() {
 
   function getNoteStorageKey(url = getCurrentPageUrl()) {
     return NOTE_PREFIX + url;
+  }
+
+  function queueHighlightStorageMutation(storageKey, mutator, onComplete) {
+    highlightStorageQueue = highlightStorageQueue
+      .catch(() => {})
+      .then(() => new Promise(resolve => {
+        try {
+          chrome.storage && chrome.storage.local.get([storageKey], (result) => {
+            const current = Array.isArray(result[storageKey]) ? result[storageKey] : [];
+            const next = mutator(current.slice());
+
+            if (!Array.isArray(next)) {
+              if (typeof onComplete === 'function') onComplete(current);
+              resolve();
+              return;
+            }
+
+            chrome.storage.local.set({ [storageKey]: next }, () => {
+              if (typeof onComplete === 'function') onComplete(next);
+              resolve();
+            });
+          });
+        } catch (err) {
+          console.warn('[Highlight Cat] Failed to queue storage mutation:', err);
+          resolve();
+        }
+      }));
+
+    return highlightStorageQueue;
   }
 
   function normalizeTitleCandidate(value) {
@@ -502,12 +532,11 @@ function initExtension() {
 
     // Persist to chrome.storage.local
     try {
-      chrome.storage && chrome.storage.local.get([storageKey], (result) => {
-        const arr = Array.isArray(result[storageKey]) ? result[storageKey] : [];
+      queueHighlightStorageMutation(storageKey, (arr) => {
         arr.push(hlObj);
-        chrome.storage.local.set({ [storageKey]: arr }, () => {
-          notifyPageHighlightsChanged(storageKey, arr);
-        });
+        return arr;
+      }, (arr) => {
+        notifyPageHighlightsChanged(storageKey, arr);
       });
     } catch (e) { }
 
