@@ -10,68 +10,176 @@
 
 <body>
   <div id="options-container">
-    <header>
-      <div class="header-copy">
-        <h1>高亮与笔记管理</h1>
-        <p class="header-subtitle">整理页面记录、笔记与高亮内容</p>
+    <header class="page-header">
+      <div class="brand-shell">
+        <div class="brand-mark">
+          <img src="icons/icon48.png" alt="划线猫 logo" />
+        </div>
+        <div class="header-copy">
+          <h1>划线猫</h1>
+          <p class="header-subtitle">为网页阅读与大模型对话标记重点、记录思考</p>
+        </div>
       </div>
-    </header>
-    <div class="global-actions-bar">
-      <select id="export-dropdown" class="export-dropdown">
-        <option value="">📥 导出全部</option>
-        <option value="markdown">📄 Markdown 格式</option>
-        <option value="html">🌐 HTML 格式</option>
-        <option value="mowen">✍️ 导出到墨问</option>
-      </select>
-      <button id="mowen-config-toggle" class="mowen-config-btn" type="button" aria-expanded="false" aria-controls="mowen-panel">设置</button>
-    </div>
-    <details id="mowen-panel" class="mowen-panel" aria-label="墨问导出设置">
-      <summary class="mowen-summary">
-        <div class="mowen-summary-main">
-          <div class="mowen-summary-title">墨问导出配置</div>
-          <div id="mowen-summary-meta" class="mowen-summary-meta">未配置 API Key</div>
-        </div>
-        <div class="mowen-summary-actions">
-          <span class="mowen-summary-chevron" aria-hidden="true"></span>
-        </div>
-      </summary>
-      <div class="mowen-panel-body">
-        <div class="mowen-panel-head">
-          <div>
-            <h2>墨问导出设置</h2>
-            <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
+      <div class="header-actions">
+        <button id="mowen-config-toggle" class="top-action-btn" type="button" aria-expanded="false"
+          aria-controls="mowen-panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
+          </svg>
+          <span>设置</span>
+        </button>
+        <div id="export-menu" class="export-menu">
+          <button id="export-menu-trigger" class="top-action-btn top-action-btn-primary" type="button"
+            aria-expanded="false" aria-haspopup="menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 17V3"></path>
+              <path d="M7 8l5-5 5 5"></path>
+              <path d="M5 21h14"></path>
+            </svg>
+            <span>导出全部</span>
+            <span class="top-action-chevron" aria-hidden="true"></span>
+          </button>
+          <div id="export-menu-popover" class="export-menu-popover" role="menu">
+            <button class="export-menu-option" type="button" data-format="mowen" role="menuitem">墨问</button>
+            <button class="export-menu-option" type="button" data-format="markdown" role="menuitem">Markdown</button>
+            <button class="export-menu-option" type="button" data-format="html" role="menuitem">HTML</button>
           </div>
         </div>
-        <div class="mowen-form">
-          <label class="mowen-field">
-            <span>API Key</span>
-            <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
-          </label>
-          <label class="mowen-field">
-            <span>默认标签</span>
-            <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
-          </label>
+      </div>
+    </header>
+
+    <section class="overview-grid" aria-label="记录概览">
+      <article class="overview-card">
+        <div id="overview-pages" class="overview-number">0</div>
+        <div class="overview-label">页面</div>
+      </article>
+      <article class="overview-card">
+        <div id="overview-highlights" class="overview-number">0</div>
+        <div class="overview-label">条高亮</div>
+      </article>
+      <article class="overview-card">
+        <div id="overview-notes" class="overview-number">0</div>
+        <div class="overview-label">条笔记</div>
+      </article>
+    </section>
+
+    <details id="mowen-panel" class="config-panel" aria-label="导出配置">
+      <summary class="config-summary">
+        <div class="config-summary-main">
+          <span class="config-summary-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M7 17L17 7"></path>
+              <path d="M7 7h10v10"></path>
+            </svg>
+          </span>
+          <div class="config-summary-copy">
+            <div class="config-summary-title">导出配置</div>
+            <div id="mowen-summary-meta" class="config-summary-meta">未配置 API Key</div>
+          </div>
         </div>
-        <div class="mowen-actions">
-          <button id="mowen-save-btn" type="button">保存设置</button>
-          <button id="mowen-test-btn" type="button">测试导出</button>
+        <div class="config-summary-right">
+          <span id="config-summary-toggle-text" class="config-summary-toggle-text">展开</span>
+          <span class="config-summary-chevron" aria-hidden="true"></span>
         </div>
-        <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
+      </summary>
+      <div class="config-panel-body">
+        <div class="export-target-grid">
+          <article id="mowen-target-card" class="export-target-card export-target-card-active">
+            <div class="export-target-top">
+              <div class="export-target-name-wrap">
+                <span id="mowen-target-dot" class="export-status-dot export-status-dot-success" aria-hidden="true"></span>
+                <span class="export-target-name">墨问</span>
+              </div>
+              <span id="mowen-target-status" class="export-target-status export-target-status-success">API 已配置</span>
+            </div>
+            <div class="export-target-actions">
+              <button id="mowen-config-edit-btn" class="target-action-btn" type="button">重新配置</button>
+              <button id="mowen-test-btn" class="target-action-btn" type="button">测试</button>
+            </div>
+          </article>
+
+          <article class="export-target-card export-target-card-soon">
+            <div class="export-target-top">
+              <div class="export-target-name-wrap">
+                <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                <span class="export-target-name">Notion</span>
+              </div>
+              <span class="export-target-status export-target-status-muted">即将支持</span>
+            </div>
+            <div class="export-target-actions">
+              <span class="target-placeholder-pill">即将支持</span>
+            </div>
+          </article>
+
+          <article class="export-target-card export-target-card-soon">
+            <div class="export-target-top">
+              <div class="export-target-name-wrap">
+                <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                <span class="export-target-name">Obsidian</span>
+              </div>
+              <span class="export-target-status export-target-status-muted">即将支持</span>
+            </div>
+            <div class="export-target-actions">
+              <span class="target-placeholder-pill">即将支持</span>
+            </div>
+          </article>
+        </div>
+
+        <div id="mowen-form-card" class="mowen-form-card hidden">
+          <div class="mowen-form-head">
+            <div>
+              <h2>墨问导出设置</h2>
+              <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
+            </div>
+          </div>
+          <div class="mowen-form">
+            <label class="mowen-field">
+              <span>API Key</span>
+              <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
+            </label>
+            <label class="mowen-field">
+              <span>默认标签</span>
+              <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
+            </label>
+          </div>
+          <div class="mowen-actions">
+            <button id="mowen-save-btn" type="button">保存设置</button>
+          </div>
+          <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
+        </div>
       </div>
     </details>
-    <div class="tool-strip content-tool-strip">
-      <div id="view-filters" class="view-filters" aria-label="页面筛选">
-        <button class="filter-chip active" data-filter="all">全部页面</button>
+
+    <section class="list-toolbar" aria-label="记录筛选工具">
+      <div id="view-filters" class="view-filters">
+        <button class="filter-chip active" data-filter="all">全部</button>
         <button class="filter-chip" data-filter="with-notes">有笔记</button>
       </div>
-      <div class="search-wrap tool-search-wrap">
+      <label class="search-field">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+        </span>
         <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." />
-      </div>
-      <div class="tool-meta">
-        <button id="select-mode-btn" class="select-mode-btn">✅ 多选</button>
-      </div>
-    </div>
-    <!-- Batch selection header (hidden by default) -->
+      </label>
+      <label class="sort-shell" for="sort-select">
+        <select id="sort-select" class="sort-select">
+          <option value="updated-desc">最近更新</option>
+          <option value="updated-asc">最早更新</option>
+        </select>
+      </label>
+      <button id="select-mode-btn" class="tool-mode-btn" type="button">多选</button>
+    </section>
+
     <div id="batch-header" class="batch-header hidden">
       <label class="select-all-label">
         <input type="checkbox" id="select-all-checkbox" />
@@ -79,18 +187,39 @@
       </label>
       <button id="cancel-select-btn" class="cancel-btn">取消</button>
     </div>
-    <div id="pages-list"></div>
-    <div id="blacklist-section" style="margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px;">
-      <h2>黑名单管理</h2>
-      <p style="color:#666;font-size:14px;margin-bottom:10px;">以下网站已被禁用划线功能：</p>
-      <div id="blacklist-container"></div>
-    </div>
+
+    <div id="pages-list" class="pages-list"></div>
+
+    <section id="blacklist-section" class="settings-section">
+      <div class="settings-section-head">
+        <div>
+          <h2>黑名单设置</h2>
+          <p>这些网站已被排除在划线和高亮之外。</p>
+        </div>
+      </div>
+      <div id="blacklist-container" class="blacklist-container"></div>
+    </section>
   </div>
-  <!-- Batch action bar (hidden by default) -->
+
   <div id="batch-action-bar" class="batch-action-bar hidden">
-    <button id="batch-delete-btn" class="batch-btn danger">🗑️ 删除所选</button>
-    <button id="batch-copy-btn" class="batch-btn primary">📋 合并复制</button>
+    <button id="batch-delete-btn" class="batch-btn danger" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      <span>删除所选</span>
+    </button>
+    <button id="batch-copy-btn" class="batch-btn primary" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span>合并复制</span>
+    </button>
   </div>
+
   <script src="note-repo.js"></script>
   <script src="page-note-service.js"></script>
   <script src="feature-gate.js"></script>

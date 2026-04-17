@@ -749,9 +749,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         [
+            { value: 'mowen', label: '墨问' },
             { value: 'markdown', label: 'Markdown' },
-            { value: 'html', label: 'HTML' },
-            { value: 'mowen', label: '墨问' }
+            { value: 'html', label: 'HTML' }
         ].forEach(option => {
             const optionBtn = document.createElement('button');
             optionBtn.type = 'button';

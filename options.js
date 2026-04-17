@@ -18,16 +18,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const batchActionBar = document.getElementById('batch-action-bar');
   const batchDeleteBtn = document.getElementById('batch-delete-btn');
   const batchCopyBtn = document.getElementById('batch-copy-btn');
-  const exportDropdown = document.getElementById('export-dropdown');
+  const exportMenu = document.getElementById('export-menu');
+  const exportMenuTrigger = document.getElementById('export-menu-trigger');
+  const exportMenuOptions = Array.from(document.querySelectorAll('.export-menu-option'));
   const mowenConfigToggle = document.getElementById('mowen-config-toggle');
+  const sortSelect = document.getElementById('sort-select');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const mowenPanel = document.getElementById('mowen-panel');
   const mowenSummaryMeta = document.getElementById('mowen-summary-meta');
+  const configSummaryToggleText = document.getElementById('config-summary-toggle-text');
+  const mowenTargetCard = document.getElementById('mowen-target-card');
+  const mowenTargetDot = document.getElementById('mowen-target-dot');
+  const mowenTargetStatus = document.getElementById('mowen-target-status');
+  const mowenConfigEditBtn = document.getElementById('mowen-config-edit-btn');
+  const mowenFormCard = document.getElementById('mowen-form-card');
   const mowenApiKeyInput = document.getElementById('mowen-api-key');
   const mowenTagsInput = document.getElementById('mowen-tags');
   const mowenSaveBtn = document.getElementById('mowen-save-btn');
   const mowenTestBtn = document.getElementById('mowen-test-btn');
   const mowenStatus = document.getElementById('mowen-status');
+  const overviewPages = document.getElementById('overview-pages');
+  const overviewHighlights = document.getElementById('overview-highlights');
+  const overviewNotes = document.getElementById('overview-notes');
 
   const MOWEN_API_KEY_KEY = 'mowen_api_key';
   const MOWEN_TAGS_KEY = 'mowen_default_tags';
@@ -49,7 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedIds = new Set();
   let selectionMap = new Map(); // id -> pageKey
   let activeFilter = 'all';
+  let activeSort = 'updated-desc';
   let mowenIsBusy = false;
+  let mowenFormExpanded = false;
 
   function getMowenApiKey() {
     return String(mowenApiKeyInput && mowenApiKeyInput.value || '').trim();
@@ -59,16 +73,42 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(mowenTagsInput && mowenTagsInput.value || '').trim();
   }
 
+  function closeExportMenu() {
+    if (!exportMenu) return;
+    exportMenu.classList.remove('open');
+    if (exportMenuTrigger) {
+      exportMenuTrigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  function openExportMenu() {
+    if (!exportMenu) return;
+    exportMenu.classList.add('open');
+    if (exportMenuTrigger) {
+      exportMenuTrigger.setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  function setMowenFormVisible(visible) {
+    if (!mowenFormCard) return;
+    mowenFormExpanded = !!visible;
+    mowenFormCard.classList.toggle('hidden', !visible);
+  }
+
   function syncMowenToggleState() {
     if (!mowenConfigToggle || !mowenPanel) return;
     const expanded = !!mowenPanel.open;
     mowenConfigToggle.classList.toggle('active', expanded);
     mowenConfigToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (configSummaryToggleText) {
+      configSummaryToggleText.textContent = expanded ? '收起' : '展开';
+    }
   }
 
   function openMowenPanel() {
     if (!mowenPanel) return;
     mowenPanel.open = true;
+    closeExportMenu();
     syncMowenToggleState();
   }
 
@@ -84,8 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateMowenSummary(settings) {
-    if (!mowenSummaryMeta) return;
-
     const apiKey = String(settings && settings.apiKey || '').trim();
     const tags = String(settings && settings.tags || '').trim();
     const lastTestedKey = String(settings && settings.lastTestedKey || '').trim();
@@ -98,10 +136,39 @@ document.addEventListener('DOMContentLoaded', () => {
       parts.push(`标签：${tags}`);
     }
 
-    mowenSummaryMeta.textContent = parts.join(' · ');
+    if (mowenSummaryMeta) {
+      mowenSummaryMeta.textContent = parts.join(' · ');
+    }
+
+    if (mowenTargetStatus) {
+      mowenTargetStatus.textContent = apiKey
+        ? (testedForCurrentKey ? 'API 已配置 · 测试已通过' : 'API 已配置 · 待测试')
+        : '未配置';
+      mowenTargetStatus.classList.toggle('export-target-status-success', !!apiKey);
+      mowenTargetStatus.classList.toggle('export-target-status-muted', !apiKey);
+    }
+
+    if (mowenTargetDot) {
+      mowenTargetDot.classList.toggle('export-status-dot-success', !!apiKey);
+      mowenTargetDot.classList.toggle('export-status-dot-muted', !apiKey);
+    }
+
+    if (mowenTargetCard) {
+      mowenTargetCard.classList.toggle('export-target-card-active', true);
+    }
+
+    if (mowenConfigEditBtn) {
+      mowenConfigEditBtn.textContent = apiKey ? '重新配置' : '去配置';
+    }
 
     if (mowenPanel && !apiKey && !mowenPanel.open) {
       openMowenPanel();
+    }
+
+    if (!apiKey) {
+      setMowenFormVisible(true);
+    } else if (!mowenFormExpanded) {
+      setMowenFormVisible(false);
     }
   }
 
@@ -157,6 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateMowenSummary({ apiKey, tags, lastTestedKey: nextTestedKey });
     syncMowenActionState(nextTestedKey);
     setMowenStatus('设置已保存。若 API Key 有变化，请先重新测试导出。', 'success');
+    if (apiKey) {
+      setMowenFormVisible(false);
+    }
   }
 
   async function withMowenBusy(task) {
@@ -244,6 +314,64 @@ document.addEventListener('DOMContentLoaded', () => {
     return Math.max(highlightTs, noteTs);
   }
 
+  function renderOverviewStats() {
+    if (overviewPages) {
+      overviewPages.textContent = String(pagesData.length);
+    }
+
+    if (overviewHighlights) {
+      const totalHighlights = pagesData.reduce((sum, page) => sum + page.highlights.length, 0);
+      overviewHighlights.textContent = String(totalHighlights);
+    }
+
+    if (overviewNotes) {
+      const totalNotes = pagesData.reduce((sum, page) => sum + (page.note && page.note.content ? 1 : 0), 0);
+      overviewNotes.textContent = String(totalNotes);
+    }
+  }
+
+  function getPageDomain(url) {
+    try {
+      const hostname = new URL(url).hostname || url;
+      return hostname.replace(/^www\./, '');
+    } catch (err) {
+      return url || '';
+    }
+  }
+
+  function formatUpdatedTime(timestamp) {
+    if (!timestamp) return '更新时间未知';
+
+    const diff = Date.now() - timestamp;
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+
+    if (diff < minute) return '刚刚更新';
+    if (diff < hour) return `${Math.max(1, Math.floor(diff / minute))} 分钟前更新`;
+    if (diff < day) return `${Math.floor(diff / hour)} 小时前更新`;
+    if (diff < 7 * day) return `${Math.floor(diff / day)} 天前更新`;
+
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${dayOfMonth} 更新`;
+  }
+
+  function getPageTimeBucket(page) {
+    const timestamp = getPageLastUpdated(page);
+    if (!timestamp) return '更早';
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+
+    if (timestamp >= startOfToday) return '今天';
+    if (timestamp >= startOfYesterday) return '昨天';
+    return '更早';
+  }
+
   function getNoteWordCount(page) {
     if (!page || !page.note || !page.note.content) return 0;
     if (typeof page.note.wordCount === 'number') return page.note.wordCount;
@@ -279,11 +407,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getVisiblePages() {
     const keyword = searchInput.value.trim().toLowerCase();
-    return pagesData.filter(page => {
+    const visiblePages = pagesData.filter(page => {
       if (!matchesViewFilter(page)) return false;
       if (!keyword) return true;
       return getPageSearchText(page).includes(keyword);
     });
+
+    visiblePages.sort((a, b) => {
+      const aUpdated = getPageLastUpdated(a);
+      const bUpdated = getPageLastUpdated(b);
+
+      if (activeSort === 'updated-asc') {
+        return aUpdated - bUpdated || a.title.localeCompare(b.title);
+      }
+
+      return bUpdated - aUpdated || a.title.localeCompare(b.title);
+    });
+
+    return visiblePages;
   }
 
   function normalizeClipboardText(value) {
@@ -299,6 +440,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) return '';
     const annotation = normalizeClipboardText((highlight && highlight.annotation) || '');
     return annotation ? `${text}\n批注：${annotation}` : text;
+  }
+
+  function formatPageForClipboard(page) {
+    const sections = [];
+    const note = page && page.note && page.note.content
+      ? normalizeClipboardText(page.note.content)
+      : '';
+    const highlights = Array.isArray(page && page.highlights)
+      ? page.highlights.map(formatHighlightForClipboard).filter(Boolean)
+      : [];
+
+    if (note) {
+      sections.push(`页面笔记\n${note}`);
+    }
+
+    if (highlights.length > 0) {
+      sections.push(`高亮内容\n${highlights.join('\n\n')}`);
+    }
+
+    return sections.join('\n\n').trim();
   }
 
   function updateFilterChips() {
@@ -359,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .filter(page => page.highlights.length > 0 || (page.note && page.note.content))
         .sort((a, b) => getPageLastUpdated(b) - getPageLastUpdated(a) || a.title.localeCompare(b.title));
 
+      renderOverviewStats();
       updateFilterChips();
       renderList();
       getMowenSettings().then(settings => syncMowenActionState(settings.lastTestedKey));
@@ -450,6 +612,33 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
+  async function deletePageRecord(page) {
+    if (!page) return;
+
+    const removeKeys = [];
+    const ids = page.highlights.map(h => h.id).filter(Boolean);
+
+    if (page.highlights.length > 0) {
+      removeKeys.push(page.key);
+    }
+
+    if (page.note && page.note.content) {
+      removeKeys.push(NOTE_PREFIX + ((page.note.pageUrl || page.url)));
+    }
+
+    if (removeKeys.length > 0) {
+      await chrome.storage.local.remove(removeKeys);
+    }
+
+    if (ids.length > 0) {
+      await removeIdsFromSyncIndex(ids);
+      await notifyTabsForPage(page.url, { command: 'clearHighlights' });
+    }
+
+    openedPageKeys.delete(page.key);
+    loadData();
+  }
+
   async function deletePageNote(page) {
     if (!page.note || !page.note.content) return;
 
@@ -467,32 +656,25 @@ document.addEventListener('DOMContentLoaded', () => {
       container.innerHTML = '';
 
       if (list.length === 0) {
-        container.textContent = '暂无禁用网站';
-        container.style.color = '#999';
+        const empty = document.createElement('div');
+        empty.className = 'blacklist-empty';
+        empty.textContent = '暂无禁用网站';
+        container.appendChild(empty);
         return;
       }
 
       list.forEach(domain => {
         const tag = document.createElement('div');
         tag.className = 'blacklist-tag';
-        tag.style.display = 'inline-flex';
-        tag.style.alignItems = 'center';
-        tag.style.background = '#eee';
-        tag.style.padding = '4px 10px';
-        tag.style.borderRadius = '16px';
-        tag.style.margin = '0 8px 8px 0';
-        tag.style.fontSize = '14px';
 
         const text = document.createElement('span');
         text.textContent = domain;
         tag.appendChild(text);
 
-        const removeBtn = document.createElement('span');
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'blacklist-remove';
         removeBtn.textContent = '×';
-        removeBtn.style.marginLeft = '8px';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.fontWeight = 'bold';
-        removeBtn.style.color = '#888';
         removeBtn.title = '移除';
 
         removeBtn.addEventListener('click', () => {
@@ -512,7 +694,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const visiblePages = getVisiblePages();
     pagesList.innerHTML = '';
 
+    if (visiblePages.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = '没有匹配的记录';
+      pagesList.appendChild(empty);
+      return;
+    }
+
+    let currentGroup = null;
+    let currentGroupList = null;
+
     visiblePages.forEach(page => {
+      const bucket = getPageTimeBucket(page);
+      if (bucket !== currentGroup) {
+        currentGroup = bucket;
+        const group = document.createElement('section');
+        group.className = 'page-group';
+
+        const title = document.createElement('h2');
+        title.className = 'page-group-title';
+        title.textContent = bucket;
+        group.appendChild(title);
+
+        currentGroupList = document.createElement('div');
+        currentGroupList.className = 'page-group-list';
+        group.appendChild(currentGroupList);
+        pagesList.appendChild(group);
+      }
+
       const details = document.createElement('details');
       details.dataset.pageKey = page.key;
       if (openedPageKeys.has(page.key)) details.open = true;
@@ -539,40 +749,108 @@ document.addEventListener('DOMContentLoaded', () => {
         summaryMain.appendChild(pageCheckbox);
       }
 
+      const accent = document.createElement('span');
+      accent.className = 'page-accent';
+      summaryMain.appendChild(accent);
+
       const infoDiv = document.createElement('div');
       infoDiv.className = 'page-info';
+
+      const titleRow = document.createElement('div');
+      titleRow.className = 'page-title-row';
 
       const titleSpan = document.createElement('span');
       titleSpan.className = 'page-title';
       titleSpan.textContent = page.title;
-      infoDiv.appendChild(titleSpan);
+      titleRow.appendChild(titleSpan);
+
+      if (page.highlights.length > 0) {
+        const highlightBadge = document.createElement('span');
+        highlightBadge.className = 'summary-badge summary-badge-highlight';
+        highlightBadge.textContent = `${page.highlights.length} 条`;
+        titleRow.appendChild(highlightBadge);
+      }
+
+      if (page.note && page.note.content) {
+        const noteBadge = document.createElement('span');
+        noteBadge.className = 'summary-badge summary-badge-note';
+        noteBadge.textContent = `${getNoteWordCount(page)} 字笔记`;
+        titleRow.appendChild(noteBadge);
+      }
+
+      infoDiv.appendChild(titleRow);
+
+      const metaLine = document.createElement('div');
+      metaLine.className = 'page-meta-line';
 
       const urlSpan = document.createElement('span');
       urlSpan.className = 'page-url';
-      urlSpan.textContent = page.url;
-      infoDiv.appendChild(urlSpan);
+      urlSpan.textContent = getPageDomain(page.url);
+      urlSpan.title = page.url;
+      metaLine.appendChild(urlSpan);
+
+      const separator = document.createElement('span');
+      separator.className = 'page-meta-separator';
+      separator.textContent = '•';
+      metaLine.appendChild(separator);
+
+      const updatedSpan = document.createElement('span');
+      updatedSpan.className = 'page-updated';
+      const updatedAt = getPageLastUpdated(page);
+      updatedSpan.textContent = formatUpdatedTime(updatedAt);
+      if (updatedAt) {
+        updatedSpan.title = new Date(updatedAt).toLocaleString('zh-CN');
+      }
+      metaLine.appendChild(updatedSpan);
+
+      infoDiv.appendChild(metaLine);
       summaryMain.appendChild(infoDiv);
       summary.appendChild(summaryMain);
 
-      const statWrap = document.createElement('div');
-      statWrap.className = 'summary-stats';
+      if (!isSelectionMode) {
+        const actionWrap = document.createElement('div');
+        actionWrap.className = 'page-summary-actions';
 
-      const countSpan = document.createElement('span');
-      countSpan.className = 'count';
-      countSpan.textContent = `${page.highlights.length} 条高亮`;
-      statWrap.appendChild(countSpan);
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'summary-action-btn';
+        copyBtn.textContent = '复制';
+        copyBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const content = formatPageForClipboard(page);
+          if (!content) return;
+          navigator.clipboard.writeText(content).catch(err => console.warn('复制失败', err));
+        });
+        actionWrap.appendChild(copyBtn);
 
-      const noteCount = document.createElement('span');
-      noteCount.className = 'count note-count';
-      if (page.note && page.note.content) {
-        noteCount.textContent = `已记录 ${getNoteWordCount(page)} 字`;
-        noteCount.classList.add('has-note');
-      } else {
-        noteCount.textContent = '暂无笔记';
+        const exportBtn = document.createElement('button');
+        exportBtn.type = 'button';
+        exportBtn.className = 'summary-action-btn';
+        exportBtn.textContent = '导出';
+        exportBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          exportPages([page]);
+        });
+        actionWrap.appendChild(exportBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'summary-action-btn danger';
+        deleteBtn.textContent = '删除';
+        deleteBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (confirm(`确定删除“${page.title}”的整页记录吗？这会删除该页的高亮和页面笔记。`)) {
+            await deletePageRecord(page);
+          }
+        });
+        actionWrap.appendChild(deleteBtn);
+
+        summary.appendChild(actionWrap);
       }
-      statWrap.appendChild(noteCount);
 
-      summary.appendChild(statWrap);
       details.appendChild(summary);
 
       if (page.note && page.note.content) {
@@ -634,31 +912,33 @@ document.addEventListener('DOMContentLoaded', () => {
           const textSpan = document.createElement('span');
           textSpan.className = 'text';
           let display = String(h.text || '').trim().replace(/\s+/g, ' ');
-          if (display.length > 80) display = display.slice(0, 80) + '…';
-          if (h.annotation) display += ' 📝';
+          if (display.length > 120) display = display.slice(0, 120) + '…';
+          if (h.annotation) display += ' · 含批注';
           textSpan.textContent = display;
           row.appendChild(textSpan);
 
           if (!isSelectionMode) {
-            const copyBtn = document.createElement('button');
-            copyBtn.textContent = '复制';
-            copyBtn.addEventListener('click', (e) => {
+            const copyHighlightBtn = document.createElement('button');
+            copyHighlightBtn.type = 'button';
+            copyHighlightBtn.textContent = '复制';
+            copyHighlightBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               navigator.clipboard.writeText(formatHighlightForClipboard(h)).catch(err => {
                 console.warn('复制失败', err);
               });
             });
-            row.appendChild(copyBtn);
+            row.appendChild(copyHighlightBtn);
 
-            const delBtn = document.createElement('button');
-            delBtn.textContent = '删除';
-            delBtn.addEventListener('click', (e) => {
+            const deleteHighlightBtn = document.createElement('button');
+            deleteHighlightBtn.type = 'button';
+            deleteHighlightBtn.textContent = '删除';
+            deleteHighlightBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               if (confirm('删除此高亮吗？')) {
                 deleteHighlight(page.key, h.id);
               }
             });
-            row.appendChild(delBtn);
+            row.appendChild(deleteHighlightBtn);
           }
 
           container.appendChild(row);
@@ -668,11 +948,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (!isSelectionMode) {
-        const actions = document.createElement('div');
-        actions.className = 'page-actions';
+        const detailActions = document.createElement('div');
+        detailActions.className = 'detail-actions';
 
         if (page.highlights.length > 0) {
           const deletePageBtn = document.createElement('button');
+          deletePageBtn.type = 'button';
+          deletePageBtn.className = 'danger';
           deletePageBtn.textContent = '删除高亮';
           deletePageBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -680,11 +962,12 @@ document.addEventListener('DOMContentLoaded', () => {
               await deletePageHighlights(page);
             }
           });
-          actions.appendChild(deletePageBtn);
+          detailActions.appendChild(deletePageBtn);
 
-          const copyPageBtn = document.createElement('button');
-          copyPageBtn.textContent = '复制高亮';
-          copyPageBtn.addEventListener('click', (e) => {
+          const copyHighlightsBtn = document.createElement('button');
+          copyHighlightsBtn.type = 'button';
+          copyHighlightsBtn.textContent = '复制高亮';
+          copyHighlightsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const texts = page.highlights
               .map(formatHighlightForClipboard)
@@ -694,19 +977,22 @@ document.addEventListener('DOMContentLoaded', () => {
               navigator.clipboard.writeText(texts).catch(err => console.warn('复制失败', err));
             }
           });
-          actions.appendChild(copyPageBtn);
+          detailActions.appendChild(copyHighlightsBtn);
         }
 
         if (page.note && page.note.content) {
           const copyNoteBtn = document.createElement('button');
+          copyNoteBtn.type = 'button';
           copyNoteBtn.textContent = '复制笔记';
           copyNoteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             navigator.clipboard.writeText(page.note.content).catch(err => console.warn('复制失败', err));
           });
-          actions.appendChild(copyNoteBtn);
+          detailActions.appendChild(copyNoteBtn);
 
           const deleteNoteBtn = document.createElement('button');
+          deleteNoteBtn.type = 'button';
+          deleteNoteBtn.className = 'danger';
           deleteNoteBtn.textContent = '删除笔记';
           deleteNoteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -714,18 +1000,12 @@ document.addEventListener('DOMContentLoaded', () => {
               await deletePageNote(page);
             }
           });
-          actions.appendChild(deleteNoteBtn);
+          detailActions.appendChild(deleteNoteBtn);
         }
 
-        const exportPageBtn = document.createElement('button');
-        exportPageBtn.textContent = '导出本页';
-        exportPageBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          exportPages([page]);
-        });
-        actions.appendChild(exportPageBtn);
-
-        details.appendChild(actions);
+        if (detailActions.children.length > 0) {
+          details.appendChild(detailActions);
+        }
       }
 
       details.addEventListener('toggle', () => {
@@ -733,16 +1013,8 @@ document.addEventListener('DOMContentLoaded', () => {
         else openedPageKeys.delete(page.key);
       });
 
-      pagesList.appendChild(details);
+      currentGroupList.appendChild(details);
     });
-
-    if (visiblePages.length === 0) {
-      const empty = document.createElement('p');
-      empty.textContent = '没有匹配的记录';
-      empty.style.color = '#666';
-      empty.style.fontSize = '14px';
-      pagesList.appendChild(empty);
-    }
   }
 
   async function deleteHighlight(key, id) {
@@ -780,39 +1052,61 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList();
   });
 
-  if (exportDropdown) {
-    exportDropdown.addEventListener('change', async (e) => {
-      const format = e.target.value;
-      if (!format) return;
+  if (sortSelect) {
+    sortSelect.value = activeSort;
+    sortSelect.addEventListener('change', () => {
+      activeSort = sortSelect.value || 'updated-desc';
+      renderList();
+    });
+  }
 
-      if (format === 'markdown' || format === 'html') {
-        exportPages(pagesData, format);
-        e.target.value = '';
-        return;
+  if (exportMenuTrigger) {
+    exportMenuTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (exportMenu && exportMenu.classList.contains('open')) {
+        closeExportMenu();
+      } else {
+        openExportMenu();
       }
+    });
+  }
 
-      if (format === 'mowen') {
-        const settings = await getMowenSettings();
-        const hasApiKey = !!String(settings.apiKey || '').trim();
-        const isTested = hasApiKey && settings.lastTestedKey === settings.apiKey;
+  if (exportMenuOptions.length > 0) {
+    exportMenuOptions.forEach(option => {
+      option.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const format = option.dataset.format;
+        closeExportMenu();
+        if (!format) return;
 
-        if (!hasApiKey) {
-          openMowenPanel();
-          setMowenStatus('请先完成墨问配置，再执行导出。', 'error');
-          e.target.value = '';
+        if (format === 'markdown' || format === 'html') {
+          exportPages(pagesData, format);
           return;
         }
 
-        if (!isTested) {
-          openMowenPanel();
-          setMowenStatus('请先测试墨问导出，确认配置可用后再导出。', 'error');
-          e.target.value = '';
-          return;
-        }
+        if (format === 'mowen') {
+          const settings = await getMowenSettings();
+          const hasApiKey = !!String(settings.apiKey || '').trim();
+          const isTested = hasApiKey && settings.lastTestedKey === settings.apiKey;
 
-        exportAllToMowen();
-        e.target.value = '';
-      }
+          if (!hasApiKey) {
+            openMowenPanel();
+            setMowenStatus('请先完成墨问配置，再执行导出。', 'error');
+            setMowenFormVisible(true);
+            return;
+          }
+
+          if (!isTested) {
+            openMowenPanel();
+            setMowenStatus('请先测试墨问导出，确认配置可用后再导出。', 'error');
+            return;
+          }
+
+          openMowenPanel();
+          setMowenFormVisible(true);
+          exportAllToMowen();
+        }
+      });
     });
   }
 
@@ -821,6 +1115,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!mowenPanel) return;
       mowenPanel.open = !mowenPanel.open;
       syncMowenToggleState();
+      if (mowenPanel.open) {
+        closeExportMenu();
+      }
+    });
+  }
+
+  if (mowenConfigEditBtn) {
+    mowenConfigEditBtn.addEventListener('click', () => {
+      openMowenPanel();
+      setMowenFormVisible(true);
+      if (mowenApiKeyInput) {
+        mowenApiKeyInput.focus();
+      }
     });
   }
 
@@ -829,6 +1136,16 @@ document.addEventListener('DOMContentLoaded', () => {
       syncMowenToggleState();
     });
   }
+
+  document.addEventListener('click', () => {
+    closeExportMenu();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeExportMenu();
+    }
+  });
 
   filterChips.forEach(chip => {
     chip.addEventListener('click', () => {
@@ -860,6 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (mowenTestBtn) {
     mowenTestBtn.addEventListener('click', () => {
+      setMowenFormVisible(true);
       testMowenExport();
     });
   }

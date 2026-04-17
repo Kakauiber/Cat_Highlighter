@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>划线猫黑金侧边栏配色预览</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page-bg: #0b0b0d;
+      --page-text: #f3ebde;
+      --page-muted: #ab9f90;
+      --page-border: rgba(255, 219, 144, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "SF Pro Display", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 201, 82, 0.14), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 185, 61, 0.08), transparent 24%),
+        linear-gradient(180deg, #121215 0%, #0a0a0c 100%);
+      color: var(--page-text);
+    }
+
+    body {
+      padding: 32px 22px 48px;
+    }
+
+    .page-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 22px;
+      padding: 24px 28px;
+      border-radius: 26px;
+      border: 1px solid var(--page-border);
+      background:
+        linear-gradient(135deg, rgba(255, 199, 91, 0.1) 0%, rgba(255, 199, 91, 0.02) 28%, rgba(255, 255, 255, 0.02) 100%),
+        rgba(18, 18, 21, 0.88);
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 194, 70, 0.1);
+      color: #f7c860;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 920px;
+      color: var(--page-muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .concept-card {
+      --bg: #141519;
+      --bg-top: #1a1b20;
+      --header-bg: linear-gradient(135deg, #25262c 0%, #141519 100%);
+      --card: rgba(31, 32, 37, 0.92);
+      --card-soft: rgba(26, 27, 32, 0.76);
+      --surface: rgba(24, 25, 30, 0.78);
+      --surface-strong: rgba(17, 18, 21, 0.9);
+      --border: rgba(241, 182, 63, 0.14);
+      --text: #f3ecdf;
+      --muted: #bcae9f;
+      --subtle: #8f8478;
+      --gold: #f1b63f;
+      --gold-strong: #ffca58;
+      --gold-soft: rgba(241, 182, 63, 0.14);
+      --tag: rgba(241, 182, 63, 0.18);
+      --shadow: 0 20px 44px rgba(0, 0, 0, 0.36);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 215, 126, 0.12);
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 203, 98, 0.06) 0%, rgba(255, 203, 98, 0.01) 26%, rgba(255, 255, 255, 0) 100%),
+        rgba(16, 16, 19, 0.94);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .concept-card.theme-museum {
+      --bg: #121316;
+      --bg-top: #1b1c21;
+      --header-bg: linear-gradient(135deg, #27282f 0%, #141519 100%);
+      --card: rgba(30, 31, 36, 0.95);
+      --card-soft: rgba(24, 25, 29, 0.85);
+      --surface: rgba(26, 27, 31, 0.8);
+      --surface-strong: rgba(18, 19, 23, 0.94);
+      --border: rgba(241, 182, 63, 0.15);
+      --text: #f4eddf;
+      --muted: #bfaf9c;
+      --subtle: #8f8272;
+      --gold: #f0b541;
+      --gold-strong: #ffd061;
+      --gold-soft: rgba(240, 181, 65, 0.16);
+      --tag: rgba(240, 181, 65, 0.2);
+      --shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+    }
+
+    .concept-card.theme-amber {
+      --bg: #171418;
+      --bg-top: #231d22;
+      --header-bg: linear-gradient(135deg, #30262d 0%, #19171b 100%);
+      --card: rgba(37, 30, 36, 0.94);
+      --card-soft: rgba(32, 27, 31, 0.82);
+      --surface: rgba(31, 25, 30, 0.8);
+      --surface-strong: rgba(24, 20, 24, 0.94);
+      --border: rgba(229, 169, 58, 0.14);
+      --text: #f4ebdf;
+      --muted: #c3b09d;
+      --subtle: #928374;
+      --gold: #e3a63c;
+      --gold-strong: #f4c661;
+      --gold-soft: rgba(227, 166, 60, 0.16);
+      --tag: rgba(227, 166, 60, 0.2);
+      --shadow: 0 22px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    .concept-card.theme-brass {
+      --bg: #101114;
+      --bg-top: #191b20;
+      --header-bg: linear-gradient(135deg, #23262d 0%, #121318 100%);
+      --card: rgba(28, 30, 35, 0.95);
+      --card-soft: rgba(22, 24, 28, 0.84);
+      --surface: rgba(20, 22, 27, 0.82);
+      --surface-strong: rgba(14, 15, 19, 0.95);
+      --border: rgba(203, 148, 46, 0.14);
+      --text: #efe7da;
+      --muted: #baab99;
+      --subtle: #857a6e;
+      --gold: #cb942e;
+      --gold-strong: #efbf5e;
+      --gold-soft: rgba(203, 148, 46, 0.14);
+      --tag: rgba(203, 148, 46, 0.18);
+      --shadow: 0 20px 46px rgba(0, 0, 0, 0.4);
+    }
+
+    .concept-head {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 215, 126, 0.08);
+    }
+
+    .concept-kicker {
+      color: var(--gold-strong);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .concept-title {
+      margin: 8px 0 6px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .concept-desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .sidebar-preview {
+      width: 100%;
+      min-height: 724px;
+      padding: 10px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 198, 84, 0.09), transparent 24%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 100%);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px 12px;
+      border-radius: 18px;
+      background: var(--header-bg);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 227, 164, 0.08);
+    }
+
+    .brand-wrap {
+      min-width: 0;
+    }
+
+    .brand-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .brand-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .icon-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      display: grid;
+      place-items: center;
+      color: var(--gold-strong);
+      box-shadow: inset 0 1px 0 rgba(255, 231, 173, 0.06);
+    }
+
+    .icon-btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+    }
+
+    .top-card,
+    .tabs,
+    .workspace,
+    .note-card {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      box-shadow: inset 0 1px 0 rgba(255, 234, 188, 0.03);
+    }
+
+    .top-card {
+      margin-top: 10px;
+      padding: 14px;
+    }
+
+    .page-name {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .page-url {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .page-stats {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--tag);
+      border: 1px solid rgba(255, 220, 146, 0.06);
+      color: var(--gold-strong);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .ghost-btn,
+    .gold-btn {
+      min-height: 34px;
+      padding: 0 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+
+    .ghost-btn {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--muted);
+    }
+
+    .gold-btn {
+      background: linear-gradient(135deg, rgba(255, 202, 88, 0.2) 0%, rgba(255, 202, 88, 0.1) 100%);
+      color: var(--gold-strong);
+      box-shadow: inset 0 1px 0 rgba(255, 232, 173, 0.14);
+    }
+
+    .tabs {
+      margin-top: 10px;
+      padding: 5px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      background: var(--card-soft);
+    }
+
+    .tab {
+      min-height: 50px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      background: linear-gradient(180deg, rgba(255, 202, 88, 0.1) 0%, rgba(255, 202, 88, 0.04) 100%);
+      border-color: rgba(255, 209, 97, 0.14);
+      color: var(--text);
+    }
+
+    .tab-label {
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tab-meta {
+      font-size: 10px;
+      color: var(--subtle);
+    }
+
+    .workspace {
+      margin-top: 10px;
+      padding: 14px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .section-meta {
+      color: var(--gold-strong);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .highlight-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .highlight-item {
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 209, 97, 0.08);
+      background: var(--surface);
+    }
+
+    .highlight-line {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      margin-top: 4px;
+      flex-shrink: 0;
+      border-radius: 999px;
+      background: var(--gold);
+      box-shadow: 0 0 0 3px rgba(255, 204, 92, 0.08);
+    }
+
+    .highlight-text {
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.62;
+    }
+
+    .highlight-note {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .note-card {
+      margin-top: 10px;
+      padding: 14px;
+      background: var(--card-soft);
+    }
+
+    .textarea {
+      min-height: 128px;
+      margin-top: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 209, 97, 0.08);
+      background: var(--surface-strong);
+      padding: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      box-shadow: inset 0 1px 0 rgba(255, 233, 181, 0.04);
+    }
+
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .swatch {
+      min-width: 112px;
+      padding: 9px 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 216, 124, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .swatch-chip {
+      width: 100%;
+      height: 34px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .swatch-label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .swatch-value {
+      margin-top: 3px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    @media (max-width: 1180px) {
+      .concept-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-preview {
+        min-height: 660px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page-shell">
+    <section class="hero">
+      <div class="eyebrow">Black + Gold Study</div>
+      <h1>划线猫侧边栏黑金风格预览</h1>
+      <p>
+        这 3 套方案都基于你给的“安德森猫”参考图来推导：核心是磨砂黑、暖金黄、偏博物馆文创的精致感。区别主要在于黑色是更纯粹、更温暖，还是更偏金属感；黄色是更明快的招牌金，还是更收敛的黄铜金。
+      </p>
+    </section>
+
+    <div class="concept-grid">
+      <section class="concept-card theme-museum">
+        <div class="concept-head">
+          <div class="concept-kicker">Concept 01</div>
+          <div class="concept-title">博物馆黑金</div>
+          <p class="concept-desc">最接近参考图。黑色偏磨砂，金色更像招牌猫吊饰的亮金，品牌识别度最强，适合作为“划线猫”的主视觉方向。</p>
+        </div>
+
+        <div class="sidebar-preview">
+          <div class="sidebar-header">
+            <div class="brand-wrap">
+              <div class="brand-name">划线猫</div>
+              <div class="brand-subtitle">为网页阅读与大模型对话标记重点、记录思考</div>
+            </div>
+            <div class="icon-row">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+              </div>
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82"></path>
+                  <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="top-card">
+            <div class="page-name">A1 投资助手傻猫张 - 价投能力提升计划</div>
+            <div class="page-url">chatgpt.com · 最近更新：3 分钟前</div>
+            <div class="page-stats">
+              <span class="pill">26 条高亮</span>
+              <span class="pill">120 字笔记</span>
+            </div>
+            <div class="action-row">
+              <button class="ghost-btn">复制本页</button>
+              <button class="gold-btn">导出到墨问</button>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active">
+              <div class="tab-label">高亮</div>
+              <div class="tab-meta">26 条记录</div>
+            </div>
+            <div class="tab">
+              <div class="tab-label">笔记</div>
+              <div class="tab-meta">已保存</div>
+            </div>
+          </div>
+
+          <div class="workspace">
+            <div class="section-head">
+              <div class="section-title">当前页高亮</div>
+              <div class="section-meta">正序</div>
+            </div>
+            <div class="highlight-list">
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“真正重要的，不是消息本身，而是它是否改变了你对企业长期价值的判断。”</div>
+                </div>
+                <div class="highlight-note">批注：这里适合在管理页做长期跟踪。</div>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“若结论足够清晰，高亮应该像做标本，而不是做摘抄。”</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="section-head">
+              <div class="section-title">当前页笔记</div>
+              <div class="section-meta">已保存</div>
+            </div>
+            <div class="textarea">这套颜色最像参考图里的安德森猫。整体品牌性强，黑底配亮金会让“高亮”这件事显得更像在做珍贵内容标记。</div>
+          </div>
+        </div>
+
+        <div class="palette">
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#121316;"></div>
+            <div class="swatch-label">Base</div>
+            <div class="swatch-value">#121316</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#1e1f24;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-value">#1E1F24</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#f0b541;"></div>
+            <div class="swatch-label">Gold</div>
+            <div class="swatch-value">#F0B541</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#f4eddf;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-value">#F4EDDF</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="concept-card theme-amber">
+        <div class="concept-head">
+          <div class="concept-kicker">Concept 02</div>
+          <div class="concept-title">琥珀夜读</div>
+          <p class="concept-desc">在黑金基础上加入一点暖棕和琥珀感，整体更柔和，更适合长时间阅读，不会那么“硬朗”，也更有夜灯下写笔记的感觉。</p>
+        </div>
+
+        <div class="sidebar-preview">
+          <div class="sidebar-header">
+            <div class="brand-wrap">
+              <div class="brand-name">划线猫</div>
+              <div class="brand-subtitle">高亮重点、批注想法，并在稍后统一整理导出</div>
+            </div>
+            <div class="icon-row">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+              </div>
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82"></path>
+                  <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="top-card">
+            <div class="page-name">李录最新谈话｜世界秩序转移与中国</div>
+            <div class="page-url">mp.weixin.qq.com · 最近更新：刚刚</div>
+            <div class="page-stats">
+              <span class="pill">7 条高亮</span>
+              <span class="pill">73 字笔记</span>
+            </div>
+            <div class="action-row">
+              <button class="ghost-btn">复制本页</button>
+              <button class="gold-btn">导出本页</button>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active">
+              <div class="tab-label">高亮</div>
+              <div class="tab-meta">摘要模式</div>
+            </div>
+            <div class="tab">
+              <div class="tab-label">笔记</div>
+              <div class="tab-meta">73 字</div>
+            </div>
+          </div>
+
+          <div class="workspace">
+            <div class="section-head">
+              <div class="section-title">当前页高亮</div>
+              <div class="section-meta">倒序</div>
+            </div>
+            <div class="highlight-list">
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“投资决策的关键，是在信息爆炸之后仍能保留判断骨架。”</div>
+                </div>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“高亮的价值不在于量，而在于你以后还能回到这里。”</div>
+                </div>
+                <div class="highlight-note">这句很适合做成管理页上的页面摘要。</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="section-head">
+              <div class="section-title">当前页笔记</div>
+              <div class="section-meta">最后更新：刚刚</div>
+            </div>
+            <div class="textarea">这套比第一套更暖，也更“陪伴感”。如果你希望插件像一个静静陪你工作的工具，而不是特别强调品牌张力，这套会舒服很多。</div>
+          </div>
+        </div>
+
+        <div class="palette">
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#171418;"></div>
+            <div class="swatch-label">Base</div>
+            <div class="swatch-value">#171418</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#251e24;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-value">#251E24</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#e3a63c;"></div>
+            <div class="swatch-label">Amber</div>
+            <div class="swatch-value">#E3A63C</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#f4ebdf;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-value">#F4EBDF</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="concept-card theme-brass">
+        <div class="concept-head">
+          <div class="concept-kicker">Concept 03</div>
+          <div class="concept-title">黄铜墨影</div>
+          <p class="concept-desc">更克制、更高级的一版。金色不再发亮，而是偏黄铜金，整体更像工具级产品和高端文具，成熟感最强。</p>
+        </div>
+
+        <div class="sidebar-preview">
+          <div class="sidebar-header">
+            <div class="brand-wrap">
+              <div class="brand-name">划线猫</div>
+              <div class="brand-subtitle">沉淀网页阅读与对话页面中的重点内容和思考</div>
+            </div>
+            <div class="icon-row">
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+              </div>
+              <div class="icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82"></path>
+                  <path d="M4.6 9a1.65 1.65 0 0 0-.33-1.82"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="top-card">
+            <div class="page-name">2026.4.11 真鸣投资交流的理念小结</div>
+            <div class="page-url">mp.weixin.qq.com · 最后整理：今天</div>
+            <div class="page-stats">
+              <span class="pill">13 条高亮</span>
+              <span class="pill">页面笔记已保存</span>
+            </div>
+            <div class="action-row">
+              <button class="ghost-btn">复制</button>
+              <button class="gold-btn">导出到墨问</button>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active">
+              <div class="tab-label">高亮</div>
+              <div class="tab-meta">重点回顾</div>
+            </div>
+            <div class="tab">
+              <div class="tab-label">笔记</div>
+              <div class="tab-meta">整理台</div>
+            </div>
+          </div>
+
+          <div class="workspace">
+            <div class="section-head">
+              <div class="section-title">当前页高亮</div>
+              <div class="section-meta">已整理</div>
+            </div>
+            <div class="highlight-list">
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“真正高级的视觉，不是把黄色做得更亮，而是让黄色在黑底上更有分量。”</div>
+                </div>
+              </div>
+              <div class="highlight-item">
+                <div class="highlight-line">
+                  <span class="dot"></span>
+                  <div class="highlight-text">“若插件长期使用，黑金更适合作为品牌深色主题，而不是纯娱乐向配色。”</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <div class="section-head">
+              <div class="section-title">当前页笔记</div>
+              <div class="section-meta">120 字</div>
+            </div>
+            <div class="textarea">如果你想让产品气质再往“高级工具”方向走，而不是可爱文创感，这套是最稳的。它会比第一套更耐看，也更适合以后扩展管理页。</div>
+          </div>
+        </div>
+
+        <div class="palette">
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#101114;"></div>
+            <div class="swatch-label">Base</div>
+            <div class="swatch-value">#101114</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#1c1e23;"></div>
+            <div class="swatch-label">Surface</div>
+            <div class="swatch-value">#1C1E23</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#cb942e;"></div>
+            <div class="swatch-label">Brass</div>
+            <div class="swatch-value">#CB942E</div>
+          </div>
+          <div class="swatch">
+            <div class="swatch-chip" style="background:#efe7da;"></div>
+            <div class="swatch-label">Text</div>
+            <div class="swatch-value">#EFE7DA</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+
+</html>
