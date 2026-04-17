@@ -256,6 +256,37 @@ textarea {
   font-weight: 600;
 }
 
+/* Management page: keep header and overview cards rounded, make the rest square */
+.config-panel,
+.config-summary-icon,
+.export-menu-popover,
+.export-menu-option,
+.export-target-card,
+.export-target-status,
+.target-action-btn,
+.target-placeholder-pill,
+.mowen-form-card,
+.mowen-field input,
+.mowen-actions button,
+.filter-chip,
+.tool-mode-btn,
+.search-field,
+.sort-shell,
+.batch-header,
+.cancel-btn,
+#pages-list details,
+.summary-action-btn,
+.summary-badge,
+.page-note-panel,
+.detail-actions button,
+.settings-section,
+.blacklist-tag,
+.batch-action-bar,
+.batch-btn,
+.empty-state {
+  border-radius: 0;
+}
+
 .config-panel {
   margin-bottom: 12px;
   border: 1px solid var(--border);
@@ -1260,4 +1291,37 @@ textarea {
   .batch-btn {
     justify-content: center;
   }
+}
+
+/* Final management-page shape override: keep only the header rounded */
+.overview-card,
+.top-action-btn,
+.export-menu-popover,
+.export-menu-option,
+.config-panel,
+.config-summary-icon,
+.export-target-card,
+.export-target-status,
+.target-action-btn,
+.target-placeholder-pill,
+.mowen-form-card,
+.mowen-field input,
+.mowen-actions button,
+.filter-chip,
+.tool-mode-btn,
+.search-field,
+.sort-shell,
+.batch-header,
+.cancel-btn,
+#pages-list details,
+.summary-action-btn,
+.summary-badge,
+.page-note-panel,
+.detail-actions button,
+.settings-section,
+.blacklist-tag,
+.batch-action-bar,
+.batch-btn,
+.empty-state {
+  border-radius: 0 !important;
 }
