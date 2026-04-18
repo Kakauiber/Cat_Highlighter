@@ -22,7 +22,7 @@
       </div>
       <div class="header-actions">
         <button id="mowen-config-toggle" class="top-action-btn" type="button" aria-expanded="false"
-          aria-controls="mowen-panel">
+          aria-controls="settings-panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
             stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"></circle>
@@ -53,6 +53,106 @@
       </div>
     </header>
 
+    <section id="settings-panel" class="settings-panel hidden" aria-label="设置">
+      <details id="mowen-panel" class="config-panel" aria-label="导出配置" open>
+        <summary class="config-summary">
+          <div class="config-summary-main">
+            <span class="config-summary-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M7 17L17 7"></path>
+                <path d="M7 7h10v10"></path>
+              </svg>
+            </span>
+            <div class="config-summary-copy">
+              <div class="config-summary-title">导出配置</div>
+              <div id="mowen-summary-meta" class="config-summary-meta">未配置 API Key</div>
+            </div>
+          </div>
+          <div class="config-summary-right">
+            <span id="config-summary-toggle-text" class="config-summary-toggle-text">展开</span>
+            <span class="config-summary-chevron" aria-hidden="true"></span>
+          </div>
+        </summary>
+        <div class="config-panel-body">
+          <div class="export-target-grid">
+            <article id="mowen-target-card" class="export-target-card export-target-card-active">
+              <div class="export-target-top">
+                <div class="export-target-name-wrap">
+                  <span id="mowen-target-dot" class="export-status-dot export-status-dot-success" aria-hidden="true"></span>
+                  <span class="export-target-name">墨问</span>
+                </div>
+                <span id="mowen-target-status" class="export-target-status export-target-status-success">API 已配置</span>
+              </div>
+              <div class="export-target-actions">
+                <button id="mowen-config-edit-btn" class="target-action-btn" type="button">重新配置</button>
+                <button id="mowen-test-btn" class="target-action-btn" type="button">测试</button>
+              </div>
+            </article>
+
+            <article class="export-target-card export-target-card-soon">
+              <div class="export-target-top">
+                <div class="export-target-name-wrap">
+                  <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                  <span class="export-target-name">Notion</span>
+                </div>
+                <span class="export-target-status export-target-status-muted">即将支持</span>
+              </div>
+              <div class="export-target-actions">
+                <span class="target-placeholder-pill">即将支持</span>
+              </div>
+            </article>
+
+            <article class="export-target-card export-target-card-soon">
+              <div class="export-target-top">
+                <div class="export-target-name-wrap">
+                  <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                  <span class="export-target-name">Obsidian</span>
+                </div>
+                <span class="export-target-status export-target-status-muted">即将支持</span>
+              </div>
+              <div class="export-target-actions">
+                <span class="target-placeholder-pill">即将支持</span>
+              </div>
+            </article>
+          </div>
+
+          <div id="mowen-form-card" class="mowen-form-card hidden">
+            <div class="mowen-form-head">
+              <div>
+                <h2>墨问导出设置</h2>
+                <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
+              </div>
+            </div>
+            <div class="mowen-form">
+              <label class="mowen-field">
+                <span>API Key</span>
+                <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
+              </label>
+              <label class="mowen-field">
+                <span>默认标签</span>
+                <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
+              </label>
+            </div>
+            <div class="mowen-actions">
+              <button id="mowen-save-btn" type="button">保存设置</button>
+            </div>
+            <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
+          </div>
+        </div>
+      </details>
+
+      <section id="blacklist-section" class="settings-section">
+        <div class="settings-section-head">
+          <div>
+            <h2>黑名单管理</h2>
+            <p>这些网站已被排除在划线和高亮之外。</p>
+          </div>
+        </div>
+        <div id="blacklist-container" class="blacklist-container"></div>
+      </section>
+    </section>
+
     <section class="overview-grid" aria-label="记录概览">
       <article class="overview-card">
         <div id="overview-pages" class="overview-number">0</div>
@@ -67,94 +167,6 @@
         <div class="overview-label">条笔记</div>
       </article>
     </section>
-
-    <details id="mowen-panel" class="config-panel" aria-label="导出配置">
-      <summary class="config-summary">
-        <div class="config-summary-main">
-          <span class="config-summary-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round">
-              <path d="M7 17L17 7"></path>
-              <path d="M7 7h10v10"></path>
-            </svg>
-          </span>
-          <div class="config-summary-copy">
-            <div class="config-summary-title">导出配置</div>
-            <div id="mowen-summary-meta" class="config-summary-meta">未配置 API Key</div>
-          </div>
-        </div>
-        <div class="config-summary-right">
-          <span id="config-summary-toggle-text" class="config-summary-toggle-text">展开</span>
-          <span class="config-summary-chevron" aria-hidden="true"></span>
-        </div>
-      </summary>
-      <div class="config-panel-body">
-        <div class="export-target-grid">
-          <article id="mowen-target-card" class="export-target-card export-target-card-active">
-            <div class="export-target-top">
-              <div class="export-target-name-wrap">
-                <span id="mowen-target-dot" class="export-status-dot export-status-dot-success" aria-hidden="true"></span>
-                <span class="export-target-name">墨问</span>
-              </div>
-              <span id="mowen-target-status" class="export-target-status export-target-status-success">API 已配置</span>
-            </div>
-            <div class="export-target-actions">
-              <button id="mowen-config-edit-btn" class="target-action-btn" type="button">重新配置</button>
-              <button id="mowen-test-btn" class="target-action-btn" type="button">测试</button>
-            </div>
-          </article>
-
-          <article class="export-target-card export-target-card-soon">
-            <div class="export-target-top">
-              <div class="export-target-name-wrap">
-                <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
-                <span class="export-target-name">Notion</span>
-              </div>
-              <span class="export-target-status export-target-status-muted">即将支持</span>
-            </div>
-            <div class="export-target-actions">
-              <span class="target-placeholder-pill">即将支持</span>
-            </div>
-          </article>
-
-          <article class="export-target-card export-target-card-soon">
-            <div class="export-target-top">
-              <div class="export-target-name-wrap">
-                <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
-                <span class="export-target-name">Obsidian</span>
-              </div>
-              <span class="export-target-status export-target-status-muted">即将支持</span>
-            </div>
-            <div class="export-target-actions">
-              <span class="target-placeholder-pill">即将支持</span>
-            </div>
-          </article>
-        </div>
-
-        <div id="mowen-form-card" class="mowen-form-card hidden">
-          <div class="mowen-form-head">
-            <div>
-              <h2>墨问导出设置</h2>
-              <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
-            </div>
-          </div>
-          <div class="mowen-form">
-            <label class="mowen-field">
-              <span>API Key</span>
-              <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
-            </label>
-            <label class="mowen-field">
-              <span>默认标签</span>
-              <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
-            </label>
-          </div>
-          <div class="mowen-actions">
-            <button id="mowen-save-btn" type="button">保存设置</button>
-          </div>
-          <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
-        </div>
-      </div>
-    </details>
 
     <section class="list-toolbar" aria-label="记录筛选工具">
       <div id="view-filters" class="view-filters">
@@ -190,15 +202,6 @@
 
     <div id="pages-list" class="pages-list"></div>
 
-    <section id="blacklist-section" class="settings-section">
-      <div class="settings-section-head">
-        <div>
-          <h2>黑名单设置</h2>
-          <p>这些网站已被排除在划线和高亮之外。</p>
-        </div>
-      </div>
-      <div id="blacklist-container" class="blacklist-container"></div>
-    </section>
   </div>
 
   <div id="batch-action-bar" class="batch-action-bar hidden">

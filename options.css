@@ -256,6 +256,169 @@ textarea {
   font-weight: 600;
 }
 
+.settings-panel {
+  --settings-ink: #48372b;
+  --settings-ink-soft: #76695d;
+  --settings-shell-border: rgba(108, 79, 42, 0.16);
+  --settings-shell-highlight: rgba(255, 255, 255, 0.42);
+  --settings-gold: #dca743;
+  --settings-gold-deep: #b57a13;
+  --settings-gold-soft: rgba(220, 167, 67, 0.14);
+  --settings-success: #6d7866;
+  --settings-success-soft: rgba(109, 120, 102, 0.12);
+  --settings-muted-soft: rgba(143, 126, 104, 0.12);
+  --settings-muted-text: #9c8f81;
+  --settings-card-border: rgba(117, 88, 50, 0.14);
+  --settings-action-border: rgba(117, 88, 50, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 16px 16px 14px;
+  border: 1px solid var(--settings-shell-border);
+  background:
+    linear-gradient(180deg, rgba(67, 51, 37, 0.15) 0%, rgba(255, 250, 241, 0.98) 16%, rgba(247, 237, 223, 0.96) 100%);
+  box-shadow:
+    inset 0 0 0 1px var(--settings-shell-highlight),
+    0 18px 36px rgba(77, 56, 31, 0.1);
+  position: relative;
+}
+
+.settings-panel::before {
+  content: '设置';
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(241, 212, 145, 0.18);
+  background: linear-gradient(180deg, rgba(74, 57, 41, 0.84) 0%, rgba(58, 45, 33, 0.92) 100%);
+  color: #efd08f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  box-shadow: 0 8px 18px rgba(53, 41, 29, 0.16);
+}
+
+.settings-panel .config-panel {
+  margin-bottom: 0;
+  border-color: var(--settings-card-border);
+  background: rgba(255, 251, 245, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+.settings-panel .settings-section {
+  margin-top: 0;
+  border-color: rgba(117, 88, 50, 0.12);
+  background: rgba(255, 252, 248, 0.66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.settings-panel .config-summary {
+  background: linear-gradient(180deg, rgba(255, 247, 235, 0.84) 0%, rgba(242, 230, 214, 0.94) 100%);
+}
+
+.settings-panel .config-summary-icon {
+  background: linear-gradient(180deg, #ffd257 0%, #f0b531 100%);
+  color: #47341a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.settings-panel .config-summary-title,
+.settings-panel .settings-section-head h2 {
+  color: var(--settings-ink);
+}
+
+.settings-panel .config-summary-meta,
+.settings-panel .config-summary-right,
+.settings-panel .settings-section-head p,
+.settings-panel .mowen-form-head p,
+.settings-panel .mowen-field span,
+.settings-panel .blacklist-empty {
+  color: var(--settings-ink-soft);
+}
+
+.settings-panel .config-panel-body {
+  border-top-color: rgba(191, 163, 126, 0.28);
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.9) 0%, rgba(249, 242, 233, 0.86) 100%);
+}
+
+.settings-panel .export-target-card,
+.settings-panel .mowen-form-card,
+.settings-panel .blacklist-tag {
+  border-color: var(--settings-card-border);
+  background: rgba(255, 252, 247, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.settings-panel .export-target-card-active {
+  box-shadow:
+    inset 0 0 0 1px rgba(220, 167, 67, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.settings-panel .export-status-dot-success {
+  background: var(--settings-success);
+}
+
+.settings-panel .export-status-dot-muted {
+  background: #cfc7be;
+}
+
+.settings-panel .export-target-status-success {
+  background: var(--settings-success-soft);
+  color: var(--settings-success);
+}
+
+.settings-panel .export-target-status-muted {
+  background: var(--settings-muted-soft);
+  color: var(--settings-muted-text);
+}
+
+.settings-panel .target-action-btn,
+.settings-panel .target-placeholder-pill,
+.settings-panel .mowen-actions button {
+  border-color: var(--settings-action-border);
+  background: rgba(255, 250, 242, 0.72);
+  color: var(--settings-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.settings-panel .target-action-btn:hover:not(:disabled),
+.settings-panel .mowen-actions button:hover:not(:disabled) {
+  background: rgba(255, 252, 247, 0.9);
+  border-color: rgba(220, 167, 67, 0.34);
+}
+
+.settings-panel .target-placeholder-pill {
+  color: var(--settings-muted-text);
+  background: rgba(245, 239, 232, 0.92);
+}
+
+.settings-panel .mowen-field input {
+  border-color: rgba(187, 163, 134, 0.72);
+  background: rgba(255, 250, 243, 0.94);
+}
+
+.settings-panel .mowen-field input:focus {
+  border-color: rgba(220, 167, 67, 0.42);
+  box-shadow: 0 0 0 3px rgba(220, 167, 67, 0.12);
+}
+
+.settings-panel .mowen-status {
+  color: var(--settings-ink-soft);
+}
+
+.settings-panel .mowen-status.is-success {
+  color: var(--settings-success);
+}
+
+.settings-panel .mowen-status.is-error {
+  color: #b04f43;
+}
+
 /* Management page: keep header and overview cards rounded, make the rest square */
 .config-panel,
 .config-summary-icon,
@@ -1293,12 +1456,13 @@ textarea {
   }
 }
 
-/* Final management-page shape override: keep only the header rounded */
+/* Final management-page shape override: keep only the main header rounded */
 .overview-card,
 .top-action-btn,
 .export-menu-popover,
 .export-menu-option,
 .config-panel,
+.config-summary,
 .config-summary-icon,
 .export-target-card,
 .export-target-status,

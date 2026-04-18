@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportMenuTrigger = document.getElementById('export-menu-trigger');
   const exportMenuOptions = Array.from(document.querySelectorAll('.export-menu-option'));
   const mowenConfigToggle = document.getElementById('mowen-config-toggle');
+  const settingsPanel = document.getElementById('settings-panel');
   const sortSelect = document.getElementById('sort-select');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const mowenPanel = document.getElementById('mowen-panel');
@@ -95,21 +96,35 @@ document.addEventListener('DOMContentLoaded', () => {
     mowenFormCard.classList.toggle('hidden', !visible);
   }
 
-  function syncMowenToggleState() {
-    if (!mowenConfigToggle || !mowenPanel) return;
-    const expanded = !!mowenPanel.open;
+  function syncSettingsPanelState() {
+    if (!mowenConfigToggle || !settingsPanel) return;
+    const expanded = !settingsPanel.classList.contains('hidden');
     mowenConfigToggle.classList.toggle('active', expanded);
     mowenConfigToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function syncMowenPanelState() {
+    if (!mowenPanel) return;
+    const expanded = !!mowenPanel.open;
     if (configSummaryToggleText) {
       configSummaryToggleText.textContent = expanded ? '收起' : '展开';
     }
   }
 
+  function setSettingsPanelVisible(visible) {
+    if (!settingsPanel) return;
+    settingsPanel.classList.toggle('hidden', !visible);
+    syncSettingsPanelState();
+  }
+
   function openMowenPanel() {
+    if (settingsPanel) {
+      setSettingsPanelVisible(true);
+    }
     if (!mowenPanel) return;
     mowenPanel.open = true;
     closeExportMenu();
-    syncMowenToggleState();
+    syncMowenPanelState();
   }
 
   function setMowenStatus(message, tone) {
@@ -159,10 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (mowenConfigEditBtn) {
       mowenConfigEditBtn.textContent = apiKey ? '重新配置' : '去配置';
-    }
-
-    if (mowenPanel && !apiKey && !mowenPanel.open) {
-      openMowenPanel();
     }
 
     if (!apiKey) {
@@ -1102,8 +1113,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
 
-          openMowenPanel();
-          setMowenFormVisible(true);
           exportAllToMowen();
         }
       });
@@ -1112,10 +1121,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (mowenConfigToggle) {
     mowenConfigToggle.addEventListener('click', () => {
-      if (!mowenPanel) return;
-      mowenPanel.open = !mowenPanel.open;
-      syncMowenToggleState();
-      if (mowenPanel.open) {
+      if (!settingsPanel) return;
+      const willOpen = settingsPanel.classList.contains('hidden');
+      setSettingsPanelVisible(willOpen);
+      if (willOpen) {
         closeExportMenu();
       }
     });
@@ -1133,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (mowenPanel) {
     mowenPanel.addEventListener('toggle', () => {
-      syncMowenToggleState();
+      syncMowenPanelState();
     });
   }
 
@@ -1212,7 +1221,8 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('加载墨问设置失败', err);
     setMowenStatus('加载墨问设置失败。', 'error');
   });
-  syncMowenToggleState();
+  syncSettingsPanelState();
+  syncMowenPanelState();
 
   function toggleSelection(id, pageKey, isSelected) {
     if (isSelected) {
