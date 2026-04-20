@@ -255,6 +255,184 @@ body {
     display: none;
 }
 
+.onboarding-card {
+    background:
+        radial-gradient(circle at top right, rgba(220, 165, 66, 0.16), transparent 36%),
+        linear-gradient(180deg, rgba(255, 250, 241, 0.96) 0%, rgba(249, 243, 233, 0.98) 100%);
+    border: 1px solid rgba(186, 134, 38, 0.14);
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.onboarding-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.onboarding-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.onboarding-title-group {
+    min-width: 0;
+}
+
+.onboarding-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin-bottom: 5px;
+}
+
+.onboarding-title {
+    font-size: 18px;
+    line-height: 1.4;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.onboarding-dismiss-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(121, 101, 92, 0.12);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.62);
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.onboarding-dismiss-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.onboarding-dismiss-btn:hover,
+.onboarding-dismiss-btn:focus-visible {
+    background: rgba(220, 165, 66, 0.1);
+    color: var(--accent-strong);
+    border-color: rgba(220, 165, 66, 0.22);
+    outline: none;
+}
+
+.onboarding-list {
+    display: grid;
+    gap: 10px;
+}
+
+.onboarding-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+}
+
+.onboarding-item-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 165, 66, 0.12);
+    color: var(--accent-strong);
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.onboarding-item-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.onboarding-footer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(121, 101, 92, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.onboarding-page-state {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.onboarding-page-label {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.onboarding-domain {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(49, 39, 31, 0.05);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    max-width: 100%;
+}
+
+.onboarding-availability {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success);
+}
+
+.onboarding-availability.is-muted {
+    color: var(--text-tertiary);
+}
+
+.onboarding-manage-btn {
+    border: 1px solid rgba(121, 101, 92, 0.12);
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.onboarding-manage-btn:hover,
+.onboarding-manage-btn:focus-visible {
+    background: rgba(220, 165, 66, 0.1);
+    border-color: rgba(220, 165, 66, 0.22);
+    color: var(--accent-strong);
+    outline: none;
+}
+
 .page-meta-btn {
     border: 1px solid var(--border);
     background: rgba(255, 255, 255, 0.6);
@@ -827,6 +1005,10 @@ body {
 
 .selection-mode .page-card-actions,
 .selection-mode .page-group-actions {
+    display: none !important;
+}
+
+.selection-mode .onboarding-card {
     display: none !important;
 }
 

@@ -17,6 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesTabMeta = document.getElementById('notes-tab-meta');
     const currentTab = document.getElementById('current-tab');
     const notesTab = document.getElementById('notes-tab');
+    const onboardingCard = document.getElementById('onboarding-card');
+    const onboardingDomain = document.getElementById('onboarding-domain');
+    const onboardingAvailability = document.getElementById('onboarding-availability');
+    const onboardingDismissBtn = document.getElementById('onboarding-dismiss-btn');
+    const onboardingManageBtn = document.getElementById('onboarding-manage-btn');
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const manageBtn = document.getElementById('manage-btn');
@@ -39,14 +44,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteUpdateTime = document.getElementById('note-update-time');
     const noteWordCount = document.getElementById('note-word-count');
 
-    // --- Manage Button ---
-    manageBtn.addEventListener('click', () => {
+    function openManagePage() {
         if (chrome.runtime.openOptionsPage) {
             chrome.runtime.openOptionsPage();
         } else {
             window.open(chrome.runtime.getURL('options.html'));
         }
-    });
+    }
+
+    function getPageHostLabel(url) {
+        if (!url) return '未定位到网页';
+        try {
+            return new URL(url).hostname.replace(/^www\./i, '') || '当前网页';
+        } catch (err) {
+            return '当前网页';
+        }
+    }
+
+    function updateOnboardingCard() {
+        if (!onboardingCard || !onboardingDomain || !onboardingAvailability) {
+            return;
+        }
+
+        const hasActivePage = Boolean(currentActivePageUrl);
+        onboardingDomain.textContent = getPageHostLabel(currentActivePageUrl);
+        onboardingAvailability.textContent = hasActivePage ? '可直接划线记录' : '请切换到普通网页后使用';
+        onboardingAvailability.classList.toggle('is-muted', !hasActivePage);
+        onboardingCard.classList.toggle('hidden', onboardingDismissed || isSelectionMode);
+    }
+
+    async function loadOnboardingState() {
+        try {
+            const result = await chrome.storage.local.get([ONBOARDING_DISMISSED_KEY]);
+            onboardingDismissed = Boolean(result[ONBOARDING_DISMISSED_KEY]);
+        } catch (err) {
+            console.warn('[SidePanel] Failed to load onboarding state:', err);
+            onboardingDismissed = false;
+        }
+        updateOnboardingCard();
+    }
+
+    async function dismissOnboarding() {
+        onboardingDismissed = true;
+        updateOnboardingCard();
+
+        try {
+            await chrome.storage.local.set({ [ONBOARDING_DISMISSED_KEY]: true });
+        } catch (err) {
+            console.warn('[SidePanel] Failed to persist onboarding dismissal:', err);
+        }
+    }
+
+    // --- Manage Button ---
+    manageBtn.addEventListener('click', openManagePage);
+    if (onboardingManageBtn) {
+        onboardingManageBtn.addEventListener('click', openManagePage);
+    }
+    if (onboardingDismissBtn) {
+        onboardingDismissBtn.addEventListener('click', () => {
+            dismissOnboarding();
+        });
+    }
 
     // State
     let allPagesData = [];
@@ -71,6 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOWEN_API_KEY_KEY = 'mowen_api_key';
     const MOWEN_TAGS_KEY = 'mowen_default_tags';
     const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
+    const ONBOARDING_DISMISSED_KEY = 'sidepanel_onboarding_dismissed';
+    let onboardingDismissed = false;
+    let currentActivePageUrl = null;
 
     function syncTabChrome() {
         currentTab.classList.toggle('active', activeTab === 'current');
@@ -359,12 +420,15 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             currentPageData = null;
             currentPageTabId = null;
+            currentActivePageUrl = null;
             const prefix = 'page_highlights_';
             await reconcileStoredHighlights(prefix);
             allPagesData = await loadStoredPagesData(prefix);
 
             // Get current page data
             const tab = await getActiveTab();
+            currentActivePageUrl = (tab && tab.url) || null;
+            updateOnboardingCard();
             console.log('[SidePanel] Active tab:', tab ? { id: tab.id, url: tab.url } : 'none');
 
             if (tab && tab.url) {
@@ -450,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render based on active tab
     function renderCurrentView() {
         syncSelectionModeUI();
+        updateOnboardingCard();
         renderCurrentPage();
     }
 
@@ -1517,8 +1582,14 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') {
             const changedKeys = Object.keys(changes);
-            const hasHighlightChanges = changedKeys.some(k => !k.startsWith('page_notes_'));
+            const hasOnboardingChanges = changedKeys.includes(ONBOARDING_DISMISSED_KEY);
+            const hasHighlightChanges = changedKeys.some(k => !k.startsWith('page_notes_') && k !== ONBOARDING_DISMISSED_KEY);
             const hasNoteChanges = changedKeys.some(k => k.startsWith('page_notes_'));
+
+            if (hasOnboardingChanges) {
+                onboardingDismissed = Boolean(changes[ONBOARDING_DISMISSED_KEY].newValue);
+                updateOnboardingCard();
+            }
 
             // If only page_notes_ keys changed, skip full highlight reload
             // but still refresh note state if the change wasn't from our own save
@@ -1530,6 +1601,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         loadCurrentPageNote(currentNoteUrl, (currentPageData && currentPageData.title) || currentNoteUrl);
                     }
                 }
+                return;
+            }
+
+            if (!hasHighlightChanges) {
                 return;
             }
 
@@ -1616,5 +1691,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial load
     syncTabChrome();
     updateBatchActionVisibility();
+    loadOnboardingState();
     loadAllData();
 });
