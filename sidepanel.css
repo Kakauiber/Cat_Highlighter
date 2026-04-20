@@ -119,6 +119,17 @@ body {
     transform: translateY(-1px);
 }
 
+.header-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.header-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(248, 213, 150, 0.16);
+}
+
 .header-btn:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px rgba(220, 165, 66, 0.18);

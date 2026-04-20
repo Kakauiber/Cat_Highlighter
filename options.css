@@ -920,6 +920,33 @@ textarea {
   gap: 14px;
 }
 
+.list-end-marker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 2px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.list-end-marker::before,
+.list-end-marker::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(176, 165, 154, 0) 0%, rgba(176, 165, 154, 0.55) 100%);
+}
+
+.list-end-marker::after {
+  background: linear-gradient(90deg, rgba(176, 165, 154, 0.55) 0%, rgba(176, 165, 154, 0) 100%);
+}
+
+.list-end-marker span {
+  flex-shrink: 0;
+}
+
 .page-group {
   display: flex;
   flex-direction: column;

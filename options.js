@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const NOTE_PREFIX = (window.PageNotes && window.PageNotes.NOTE_PREFIX) || 'page_notes_';
 
   const pagesList = document.getElementById('pages-list');
+  const listEndMarker = document.getElementById('list-end-marker');
   const searchInput = document.getElementById('search-input');
   const selectModeBtn = document.getElementById('select-mode-btn');
   const batchHeader = document.getElementById('batch-header');
@@ -704,6 +705,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderList() {
     const visiblePages = getVisiblePages();
     pagesList.innerHTML = '';
+
+    if (listEndMarker) {
+      listEndMarker.classList.toggle('hidden', visiblePages.length === 0);
+    }
 
     if (visiblePages.length === 0) {
       const empty = document.createElement('div');

@@ -136,7 +136,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncTabChrome() {
         currentTab.classList.toggle('active', activeTab === 'current');
         notesTab.classList.toggle('active', activeTab === 'notes');
-        selectModeBtn.classList.toggle('hidden', activeTab !== 'current');
+        selectModeBtn.classList.remove('hidden');
+        selectModeBtn.disabled = activeTab !== 'current';
+        selectModeBtn.title = activeTab === 'current' ? '多选' : '多选（仅高亮页可用）';
         syncSelectionModeUI();
     }
 
@@ -169,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const noteWordTotal = currentNoteRecord && currentNoteRecord.content
                 ? (currentNoteRecord.wordCount || window.PageNotes.countWords(currentNoteRecord.content))
                 : 0;
-            notesTabMeta.textContent = noteWordTotal > 0 ? `${noteWordTotal} 字笔记` : '暂未记录';
+            notesTabMeta.textContent = noteWordTotal > 0 ? `${noteWordTotal} 字笔记` : '暂无笔记';
         }
     }
 
