@@ -65,6 +65,198 @@ function initExtension() {
   // Unified colour for underline markings
   const UNDERLINE_COLOR = '#666666';
   const FRAME_DEBUG_ENABLED = /(^|\.)perplexity\.ai$/i.test(window.location.hostname) || /comet/i.test(window.location.hostname);
+  const TOP_FRAME_KEY = '__top__';
+  const HC_MESSAGE_SOURCE = 'highlight-cat';
+  const HC_PAGE_CONTEXT_REQUEST = 'HC_PAGE_CONTEXT_REQUEST';
+  const HC_PAGE_CONTEXT_RESPONSE = 'HC_PAGE_CONTEXT_RESPONSE';
+  const HC_PAGE_CONTEXT_BROADCAST = 'HC_PAGE_CONTEXT_BROADCAST';
+  const HC_FORWARD_COMMAND = 'HC_FORWARD_COMMAND';
+
+  function isTopWindowSafe() {
+    try {
+      return window.top === window;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  let pageContext = {
+    pageUrl: window.location.href,
+    pageTitle: '',
+    frameKey: isTopWindowSafe() ? TOP_FRAME_KEY : `frame:fallback:${window.location.href}`,
+    frameUrl: window.location.href,
+    isTopFrame: isTopWindowSafe()
+  };
+
+  function sanitizeFrameIdentity(value) {
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80);
+  }
+
+  function buildFrameKeyFromElement(frameEl, index) {
+    const identity = sanitizeFrameIdentity(
+      (frameEl && (
+        frameEl.getAttribute('data-testid') ||
+        frameEl.getAttribute('name') ||
+        frameEl.getAttribute('id') ||
+        frameEl.getAttribute('src') ||
+        frameEl.className
+      )) || ''
+    );
+    return `frame:${index}:${identity || 'anonymous'}`;
+  }
+
+  function updatePageContext(nextContext) {
+    if (!nextContext || typeof nextContext !== 'object') return;
+    pageContext = {
+      ...pageContext,
+      ...nextContext
+    };
+    currentPageUrl = pageContext.pageUrl || currentPageUrl;
+  }
+
+  function getCurrentFrameKey() {
+    return pageContext.frameKey || (pageContext.isTopFrame ? TOP_FRAME_KEY : `frame:fallback:${window.location.href}`);
+  }
+
+  function getCurrentFrameUrl() {
+    if (!pageContext.isTopFrame) {
+      return window.location.href;
+    }
+    return pageContext.frameUrl || window.location.href;
+  }
+
+  function isHighlightForCurrentFrame(item) {
+    const itemFrameKey = item && item.frameKey ? item.frameKey : TOP_FRAME_KEY;
+    return itemFrameKey === getCurrentFrameKey();
+  }
+
+  function getChildFrameContextForWindow(targetWindow) {
+    if (!isTopWindowSafe() || !targetWindow) return null;
+    const frames = Array.from(document.querySelectorAll('iframe, frame'));
+    for (let index = 0; index < frames.length; index += 1) {
+      const frameEl = frames[index];
+      try {
+        if (frameEl.contentWindow === targetWindow) {
+          return {
+            frameKey: buildFrameKeyFromElement(frameEl, index),
+            frameUrl: frameEl.getAttribute('src') || frameEl.src || ''
+          };
+        }
+      } catch (err) {
+        // Ignore inaccessible frame internals; contentWindow equality is enough.
+      }
+    }
+    return null;
+  }
+
+  function postPageContextToChildFrame(targetWindow, requestId) {
+    if (!targetWindow) return;
+    const childContext = getChildFrameContextForWindow(targetWindow);
+    const payload = {
+      source: HC_MESSAGE_SOURCE,
+      type: HC_PAGE_CONTEXT_RESPONSE,
+      requestId: requestId || '',
+      pageUrl: window.location.href,
+      pageTitle: getPreferredPageTitle(),
+      frameKey: childContext && childContext.frameKey ? childContext.frameKey : `frame:fallback:${window.location.href}`,
+      frameUrl: childContext && childContext.frameUrl ? childContext.frameUrl : ''
+    };
+    try {
+      targetWindow.postMessage(payload, '*');
+    } catch (err) {
+      logFrameDebug('page-context-response-failed', { error: String(err) });
+    }
+  }
+
+  function broadcastPageContextToChildFrames() {
+    if (!isTopWindowSafe()) return;
+    const payload = {
+      source: HC_MESSAGE_SOURCE,
+      type: HC_PAGE_CONTEXT_BROADCAST,
+      pageUrl: window.location.href,
+      pageTitle: getPreferredPageTitle()
+    };
+    document.querySelectorAll('iframe, frame').forEach((frameEl) => {
+      try {
+        if (frameEl.contentWindow) {
+          frameEl.contentWindow.postMessage(payload, '*');
+        }
+      } catch (err) {
+        // Ignore individual frame broadcast failures.
+      }
+    });
+  }
+
+  function requestTopFramePageContext() {
+    if (isTopWindowSafe()) {
+      updatePageContext({
+        pageUrl: window.location.href,
+        pageTitle: document.title || window.location.href,
+        frameKey: TOP_FRAME_KEY,
+        frameUrl: window.location.href,
+        isTopFrame: true
+      });
+      return Promise.resolve(pageContext);
+    }
+
+    return new Promise((resolve) => {
+      const requestId = `ctx_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      let settled = false;
+
+      function finish(nextContext) {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener('message', onMessage, true);
+        resolve(nextContext);
+      }
+
+      function onMessage(event) {
+        const data = event && event.data;
+        if (!data || data.source !== HC_MESSAGE_SOURCE || data.type !== HC_PAGE_CONTEXT_RESPONSE || data.requestId !== requestId) {
+          return;
+        }
+        finish({
+          pageUrl: data.pageUrl || window.location.href,
+          pageTitle: data.pageTitle || document.title || window.location.href,
+          frameKey: data.frameKey || `frame:fallback:${window.location.href}`,
+          frameUrl: window.location.href,
+          isTopFrame: false
+        });
+      }
+
+      window.addEventListener('message', onMessage, true);
+
+      try {
+        window.top.postMessage({
+          source: HC_MESSAGE_SOURCE,
+          type: HC_PAGE_CONTEXT_REQUEST,
+          requestId
+        }, '*');
+      } catch (err) {
+        finish({
+          pageUrl: window.location.href,
+          pageTitle: document.title || window.location.href,
+          frameKey: `frame:fallback:${window.location.href}`,
+          frameUrl: window.location.href,
+          isTopFrame: false
+        });
+        return;
+      }
+
+      window.setTimeout(() => {
+        finish({
+          pageUrl: window.location.href,
+          pageTitle: document.title || window.location.href,
+          frameKey: `frame:fallback:${window.location.href}`,
+          frameUrl: window.location.href,
+          isTopFrame: false
+        });
+      }, 700);
+    });
+  }
 
   function describeNode(node) {
     if (!node) return 'null';
@@ -166,6 +358,124 @@ function initExtension() {
     });
   }
 
+  function forwardCommandToChildFrames(command, payload = {}) {
+    if (!isTopWindowSafe()) return;
+    document.querySelectorAll('iframe, frame').forEach((frameEl) => {
+      try {
+        if (frameEl.contentWindow) {
+          frameEl.contentWindow.postMessage({
+            source: HC_MESSAGE_SOURCE,
+            type: HC_FORWARD_COMMAND,
+            command,
+            payload
+          }, '*');
+        }
+      } catch (err) {
+        // Ignore per-frame command forwarding failures.
+      }
+    });
+  }
+
+  function refreshTopFramePageContextBroadcast() {
+    if (!isTopWindowSafe()) return;
+    updatePageContext({
+      pageUrl: window.location.href,
+      pageTitle: getPreferredPageTitle(),
+      frameKey: TOP_FRAME_KEY,
+      frameUrl: window.location.href,
+      isTopFrame: true
+    });
+    broadcastPageContextToChildFrames();
+  }
+
+  function installTopFrameNavigationWatchers() {
+    if (!isTopWindowSafe()) return;
+
+    let lastKnownUrl = window.location.href;
+
+    const handlePotentialNavigation = () => {
+      if (window.location.href === lastKnownUrl) {
+        return;
+      }
+      lastKnownUrl = window.location.href;
+      refreshTopFramePageContextBroadcast();
+      debouncedRestore();
+    };
+
+    const { pushState, replaceState } = window.history;
+    window.history.pushState = function (...args) {
+      const result = pushState.apply(this, args);
+      window.setTimeout(handlePotentialNavigation, 0);
+      return result;
+    };
+    window.history.replaceState = function (...args) {
+      const result = replaceState.apply(this, args);
+      window.setTimeout(handlePotentialNavigation, 0);
+      return result;
+    };
+
+    window.addEventListener('popstate', handlePotentialNavigation);
+    window.addEventListener('hashchange', handlePotentialNavigation);
+  }
+
+  window.addEventListener('message', (event) => {
+    const data = event && event.data;
+    if (!data || data.source !== HC_MESSAGE_SOURCE) {
+      return;
+    }
+
+    if (data.type === HC_PAGE_CONTEXT_REQUEST) {
+      if (!isTopWindowSafe() || event.source === window) {
+        return;
+      }
+      postPageContextToChildFrame(event.source, data.requestId);
+      return;
+    }
+
+    if (data.type === HC_PAGE_CONTEXT_BROADCAST && !isTopWindowSafe()) {
+      const previousPageUrl = pageContext.pageUrl;
+      updatePageContext({
+        pageUrl: data.pageUrl || pageContext.pageUrl,
+        pageTitle: data.pageTitle || pageContext.pageTitle,
+        frameUrl: window.location.href,
+        isTopFrame: false
+      });
+      if (previousPageUrl !== pageContext.pageUrl) {
+        debouncedRestore();
+      }
+      return;
+    }
+
+    if (data.type !== HC_FORWARD_COMMAND) {
+      return;
+    }
+
+    const payload = data.payload || {};
+    if (data.command === 'scrollToHighlight') {
+      const elem = document.querySelector('span[data-hl-id="' + payload.id + '"]');
+      if (elem) {
+        elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        elem.classList.add('hl-flash');
+        setTimeout(() => elem.classList.remove('hl-flash'), 1000);
+      }
+      return;
+    }
+
+    if (data.command === 'removeHighlight' && payload.id) {
+      removeHighlightLocally(payload.id);
+      return;
+    }
+
+    if (data.command === 'updateAnnotation' && payload.id) {
+      applyAnnotationToHighlightSpans(payload.id, payload.note || '');
+      return;
+    }
+
+    if (data.command === 'clearHighlights') {
+      clearHighlightsLocally();
+    }
+  }, true);
+
   /**
    * Determine whether the current selection originates in a contenteditable
    * element or textarea.  Selections in editors should use execCommand
@@ -202,6 +512,69 @@ function initExtension() {
     return false;
   }
 
+  function isEditorLikeNode(node) {
+    let current = node;
+
+    while (current) {
+      if (current.nodeType === Node.TEXT_NODE) {
+        current = current.parentElement;
+        continue;
+      }
+
+      if (current.nodeType !== Node.ELEMENT_NODE) {
+        current = current.parentElement || null;
+        continue;
+      }
+
+      if (
+        current.isContentEditable ||
+        current.tagName === 'TEXTAREA' ||
+        current.tagName === 'INPUT' ||
+        current.getAttribute('role') === 'textbox'
+      ) {
+        return true;
+      }
+
+      if (typeof current.matches === 'function' && current.matches(
+        '[contenteditable="true"], [data-slate-editor], [data-lexical-editor="true"], .ProseMirror, .ql-editor, .cm-content, .CodeMirror, .ace_content, [class*="DraftEditor"], [class*="notion-"], [class*="feishu-"], [data-testid*="editor"]'
+      )) {
+        return true;
+      }
+
+      const root = typeof current.getRootNode === 'function' ? current.getRootNode() : null;
+      if (root && root.host && root.host !== current) {
+        current = root.host;
+        continue;
+      }
+
+      current = current.parentElement;
+    }
+
+    return false;
+  }
+
+  function shouldSuppressToolbarForRange(range) {
+    if (!range) return false;
+    if (rangeInEditable(range)) return true;
+
+    if (isEditorLikeNode(range.commonAncestorContainer)) {
+      return true;
+    }
+
+    const active = document.activeElement;
+    if (active && isEditorLikeNode(active)) {
+      try {
+        if (active.contains(range.commonAncestorContainer) || range.commonAncestorContainer === active) {
+          return true;
+        }
+      } catch (err) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   // Track the last selected colour across toolbar interactions
   let lastSelectedColor = 'yellow';
 
@@ -212,13 +585,13 @@ function initExtension() {
     text: ''
   };
 
-  let currentPageUrl = window.location.href;
+  let currentPageUrl = pageContext.pageUrl || window.location.href;
   let pinnedAnnotationId = null;
   const NOTE_PREFIX = 'page_notes_';
   let highlightStorageQueue = Promise.resolve();
 
   function getCurrentPageUrl() {
-    return window.location.href;
+    return pageContext.pageUrl || window.location.href;
   }
 
   function getStorageKey(url = getCurrentPageUrl()) {
@@ -353,6 +726,10 @@ function initExtension() {
   }
 
   function getPreferredPageTitle() {
+    if (!pageContext.isTopFrame && pageContext.pageTitle) {
+      return pageContext.pageTitle;
+    }
+
     const host = window.location.hostname;
     const domainSpecificSelectors = [];
 
@@ -416,7 +793,7 @@ function initExtension() {
       return documentTitle;
     }
 
-    return getCurrentPageUrl();
+    return pageContext.pageTitle || getCurrentPageUrl();
   }
 
   function shouldUpgradePageTitle(currentTitle, nextTitle) {
@@ -436,6 +813,7 @@ function initExtension() {
   function syncCurrentPageTitleMetadata(callback) {
     const currentUrl = getCurrentPageUrl();
     const preferredTitle = getPreferredPageTitle();
+    updatePageContext({ pageTitle: preferredTitle, pageUrl: currentUrl });
     const storageKey = getStorageKey(currentUrl);
     const noteKey = getNoteStorageKey(currentUrl);
 
@@ -521,6 +899,8 @@ function initExtension() {
       hlObj.pageTitle = getPreferredPageTitle();
     }
     hlObj.pageUrl = getCurrentPageUrl();
+    hlObj.frameKey = getCurrentFrameKey();
+    hlObj.frameUrl = getCurrentFrameUrl();
     // Add timestamp for sync ordering
     if (!hlObj.timestamp) {
       hlObj.timestamp = Date.now();
@@ -561,6 +941,17 @@ function initExtension() {
         maybePromise.catch(() => {});
       }
     } catch (e) { }
+  }
+
+  function notifyPageHighlightsChangedFromStorage(storageKey = getStorageKey()) {
+    try {
+      chrome.storage.local.get([storageKey], (result) => {
+        const nextHighlights = Array.isArray(result[storageKey]) ? result[storageKey] : [];
+        notifyPageHighlightsChanged(storageKey, nextHighlights);
+      });
+    } catch (e) {
+      notifyPageHighlightsChanged(storageKey, []);
+    }
   }
 
   function getCurrentPageHighlightsSnapshot() {
@@ -669,6 +1060,8 @@ function initExtension() {
           segments: [],
           pageTitle: getPreferredPageTitle(),
           pageUrl: getCurrentPageUrl(),
+          frameKey: span.getAttribute('data-frame-key') || getCurrentFrameKey(),
+          frameUrl: span.getAttribute('data-frame-url') || getCurrentFrameUrl(),
           timestamp: Date.now()
         };
         byId.set(id, item);
@@ -695,6 +1088,49 @@ function initExtension() {
         };
       })
       .filter(item => item.text);
+  }
+
+  function syncCurrentFrameDomWithStorage(allHighlights) {
+    const nextHighlights = Array.isArray(allHighlights)
+      ? allHighlights.filter(item => isHighlightForCurrentFrame(item))
+      : [];
+    const storedIds = new Set(nextHighlights.map(item => item.id).filter(Boolean));
+    const domIds = new Set();
+
+    document.querySelectorAll('span[data-hl-id]').forEach(span => {
+      const id = span.getAttribute('data-hl-id');
+      if (!id) return;
+      domIds.add(id);
+      if (!storedIds.has(id)) {
+        removeHighlightLocally(id);
+      }
+    });
+
+    nextHighlights.forEach(item => {
+      if (!item || !item.id) return;
+      if (!domIds.has(item.id)) {
+        applyHighlights([item]);
+        return;
+      }
+
+      if (typeof item.annotation === 'string') {
+        applyAnnotationToHighlightSpans(item.id, item.annotation);
+      }
+    });
+  }
+
+  function installStorageSyncListener() {
+    if (!chrome.storage || !chrome.storage.onChanged) return;
+
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local') return;
+
+      const storageKey = getStorageKey();
+      const pageChange = changes[storageKey];
+      if (!pageChange) return;
+
+      syncCurrentFrameDomWithStorage(pageChange.newValue);
+    });
   }
 
   function syncDomHighlightsToStorage() {
@@ -782,6 +1218,16 @@ function initExtension() {
 
       if ((!nextItem.pageUrl || nextItem.pageUrl !== domItem.pageUrl) && domItem.pageUrl) {
         nextItem.pageUrl = domItem.pageUrl;
+        itemChanged = true;
+      }
+
+      if ((!nextItem.frameKey || nextItem.frameKey !== domItem.frameKey) && domItem.frameKey) {
+        nextItem.frameKey = domItem.frameKey;
+        itemChanged = true;
+      }
+
+      if ((!nextItem.frameUrl || nextItem.frameUrl !== domItem.frameUrl) && domItem.frameUrl) {
+        nextItem.frameUrl = domItem.frameUrl;
         itemChanged = true;
       }
 
@@ -953,6 +1399,30 @@ function initExtension() {
     } catch (e) { }
   }
 
+  function removeHighlightLocally(id) {
+    if (!id) return;
+
+    document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      parent.removeChild(span);
+    });
+
+    const overlay = document.getElementById('hl-overlay-' + id);
+    if (overlay) overlay.remove();
+  }
+
+  function clearHighlightsLocally() {
+    document.querySelectorAll('span[data-hl-id]').forEach(span => {
+      const parent = span.parentNode;
+      if (!parent) return;
+      while (span.firstChild) parent.insertBefore(span.firstChild, span);
+      parent.removeChild(span);
+    });
+    document.querySelectorAll('.hl-control-overlay').forEach(el => el.remove());
+  }
+
   function removeHighlightsByIds(ids) {
     const uniqueIds = Array.from(new Set((ids || []).filter(Boolean)));
     if (uniqueIds.length === 0) return;
@@ -960,22 +1430,14 @@ function initExtension() {
     const storageKey = getStorageKey();
 
     uniqueIds.forEach(id => {
-      document.querySelectorAll('span[data-hl-id="' + id + '"]').forEach(span => {
-        const parent = span.parentNode;
-        if (!parent) return;
-        while (span.firstChild) parent.insertBefore(span.firstChild, span);
-        parent.removeChild(span);
-      });
-
-      const overlay = document.getElementById('hl-overlay-' + id);
-      if (overlay) overlay.remove();
+      removeHighlightLocally(id);
     });
 
     updateStoredHighlightRecords((arr) => {
       const filtered = arr.filter(item => !uniqueIds.includes(item.id));
       return filtered.length !== arr.length ? filtered : arr;
     }, () => {
-      notifyPageHighlightsChanged(storageKey, getCurrentPageHighlightsSnapshot());
+      notifyPageHighlightsChangedFromStorage(storageKey);
     });
 
     removeIdsFromSyncIndex(uniqueIds);
@@ -1001,7 +1463,7 @@ function initExtension() {
       };
       return nextArr;
     }, () => {
-      notifyPageHighlightsChanged(storageKey, getCurrentPageHighlightsSnapshot());
+      notifyPageHighlightsChangedFromStorage(storageKey);
     });
   }
 
@@ -1315,6 +1777,8 @@ function initExtension() {
     span.setAttribute('data-hl-color', color);
     span.setAttribute('data-hl-type', type);
     span.setAttribute('data-page-url', getCurrentPageUrl());
+    span.setAttribute('data-frame-key', getCurrentFrameKey());
+    span.setAttribute('data-frame-url', getCurrentFrameUrl());
     if (annotation) span.setAttribute('data-annotation', annotation);
     if (type === 'underline') {
       span.style.borderBottom = `2px solid ${UNDERLINE_COLOR}`;
@@ -1614,7 +2078,9 @@ function initExtension() {
 
   function applyHighlights(data) {
     if (!Array.isArray(data)) return;
-    data.forEach(item => {
+    data
+      .filter(item => isHighlightForCurrentFrame(item))
+      .forEach(item => {
       if (!item || !item.id || hasHighlightInDom(item.id)) {
         return;
       }
@@ -1629,7 +2095,7 @@ function initExtension() {
       } else {
         findAndApplyHighlight(restoreText, item.color, item.id, item.annotation, item.xpath, item.context);
       }
-    });
+      });
   }
 
   /**
@@ -2164,6 +2630,10 @@ function initExtension() {
       return;
     }
     const range = sel.getRangeAt(0).cloneRange();
+    if (shouldSuppressToolbarForRange(range)) {
+      hideToolbar();
+      return;
+    }
     const text = sel.toString().trim();
     if (text) {
       lastSelection.range = range;
@@ -2198,6 +2668,10 @@ function initExtension() {
       return;
     }
     const range = sel.getRangeAt(0).cloneRange();
+    if (shouldSuppressToolbarForRange(range)) {
+      hideToolbar();
+      return;
+    }
     lastSelection.range = range;
     lastSelection.text = text;
     const rect = range.getBoundingClientRect();
@@ -2259,15 +2733,14 @@ function initExtension() {
     } else if (message.command === 'clearHighlights') {
       handleUrlChange();
       const storageKey = getStorageKey();
-      // Remove highlight spans
-      document.querySelectorAll('span[data-hl-id]').forEach(span => {
-        const parent = span.parentNode;
-        while (span.firstChild) parent.insertBefore(span.firstChild, span);
-        parent.removeChild(span);
-      });
-      document.querySelectorAll('.hl-control-overlay').forEach(el => el.remove());
+      clearHighlightsLocally();
+      if (isTopWindowSafe()) {
+        forwardCommandToChildFrames('clearHighlights');
+      }
       try {
-        chrome.storage && chrome.storage.local.remove(storageKey);
+        chrome.storage && chrome.storage.local.remove(storageKey, () => {
+          notifyPageHighlightsChanged(storageKey, []);
+        });
       } catch (e) { }
       sendResponse({ status: 'cleared' });
     } else if (message.command === 'scrollToHighlight') {
@@ -2277,17 +2750,23 @@ function initExtension() {
         elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         elem.classList.add('hl-flash');
         setTimeout(() => elem.classList.remove('hl-flash'), 1000);
+      } else if (isTopWindowSafe()) {
+        forwardCommandToChildFrames('scrollToHighlight', { id });
       }
       sendResponse({});
     } else if (message.command === 'removeHighlight') {
-      // Remove highlight from DOM (storage already updated by sidepanel)
       const id = message.id;
-      removeHighlight(id);
+      removeHighlightLocally(id);
+      if (isTopWindowSafe()) {
+        forwardCommandToChildFrames('removeHighlight', { id });
+      }
       sendResponse({ status: 'removed' });
     } else if (message.command === 'updateAnnotation') {
-      // Update annotation in DOM
       const { id, note } = message;
       applyAnnotationToHighlightSpans(id, note);
+      if (isTopWindowSafe()) {
+        forwardCommandToChildFrames('updateAnnotation', { id, note });
+      }
       sendResponse({ status: 'updated' });
     }
     return true;
@@ -2333,20 +2812,41 @@ function initExtension() {
     });
   };
 
-  // Initial trigger
-  logFrameDebug('init');
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    restoreAllHighlights(); // Immediate attempt
-    observeDOM();           // Start watching
-  } else {
-    document.addEventListener('DOMContentLoaded', () => {
+  function startHighlightRuntime() {
+    logFrameDebug('init', { pageContext });
+
+    if (pageContext.isTopFrame) {
+      installTopFrameNavigationWatchers();
+      refreshTopFramePageContextBroadcast();
+    }
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
       restoreAllHighlights();
       observeDOM();
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        restoreAllHighlights();
+        observeDOM();
+      }, { once: true });
+    }
+
+    window.addEventListener('load', () => {
+      if (pageContext.isTopFrame) {
+        refreshTopFramePageContextBroadcast();
+      }
+      restoreAllHighlights();
     });
   }
 
-  // Double-check on window load (for images/frames)
-  window.addEventListener('load', restoreAllHighlights);
+  installStorageSyncListener();
+  requestTopFramePageContext()
+    .then((resolvedContext) => {
+      updatePageContext(resolvedContext);
+      startHighlightRuntime();
+    })
+    .catch(() => {
+      startHighlightRuntime();
+    });
 
   // Inject CSS for toolbar and highlight effects
   const style = document.createElement('style');

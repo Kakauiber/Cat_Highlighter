@@ -68,8 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hasActivePage = Boolean(currentActivePageUrl);
         onboardingDomain.textContent = getPageHostLabel(currentActivePageUrl);
-        onboardingAvailability.textContent = hasActivePage ? '可直接划线记录' : '请切换到普通网页后使用';
-        onboardingAvailability.classList.toggle('is-muted', !hasActivePage);
+        if (currentPageAccessState === 'restricted') {
+            onboardingAvailability.textContent = '当前页面运行在受限容器中';
+            onboardingAvailability.classList.remove('is-muted');
+        } else {
+            onboardingAvailability.textContent = hasActivePage ? '可直接划线记录' : '请切换到普通网页后使用';
+            onboardingAvailability.classList.toggle('is-muted', !hasActivePage);
+        }
         onboardingCard.classList.toggle('hidden', onboardingDismissed || isSelectionMode);
     }
 
@@ -112,6 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPageTabId = null;
     let activeTab = 'current';
     let currentHighlightSortOrder = 'asc';
+    let currentPageAccessState = 'unknown';
+    let currentPageFallbackTitle = '';
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
@@ -296,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await chrome.tabs.sendMessage(tab.id, { command: 'ping' });
+            const response = await chrome.tabs.sendMessage(tab.id, { command: 'ping' }, { frameId: 0 });
             if (response && response.ok) {
                 return false;
             }
@@ -306,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
+                target: { tabId: tab.id, allFrames: true },
                 files: ['content.js']
             });
             return true;
@@ -396,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' });
+            const response = await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' }, { frameId: 0 });
             const highlights = Array.isArray(response?.highlights) ? response.highlights : [];
             const resolvedUrl = response?.pageUrl || tab.url;
             const title = getBestPageTitle(
@@ -423,6 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPageData = null;
             currentPageTabId = null;
             currentActivePageUrl = null;
+            currentPageAccessState = 'unknown';
+            currentPageFallbackTitle = '';
             const prefix = 'page_highlights_';
             await reconcileStoredHighlights(prefix);
             allPagesData = await loadStoredPagesData(prefix);
@@ -435,6 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tab && tab.url) {
                 currentPageTabId = tab.id;
+                currentPageFallbackTitle = tab.title || tab.url;
                 const reinjected = await ensureContentScript(tab);
                 if (reinjected) {
                     await new Promise(resolve => setTimeout(resolve, 150));
@@ -452,17 +462,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('[SidePanel] Storage fallback:', currentPageData ? 'found' : 'not found');
                 }
 
-                // Fallback: Create empty entry for current page
-                if (!currentPageData) {
-                    console.log('[SidePanel] No match found, creating empty entry');
-                    currentPageData = {
-                        tabId: tab.id,
-                        key: currentKey,
-                        url: resolvedCurrentUrl,
-                        title: tab.title || resolvedCurrentUrl,
-                        highlights: []
-                    };
-                }
+                currentPageAccessState = currentPageData ? 'ready' : 'restricted';
+            } else {
+                currentPageAccessState = 'unavailable';
             }
 
             // Update sync status
@@ -528,7 +530,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentPageData) {
             updateTabMeta();
-            showEmptyState(currentHighlights, '无法获取当前页面信息');
+            if (currentPageAccessState === 'restricted') {
+                if (currentPageFallbackTitle) {
+                    const titleEl = document.createElement('div');
+                    titleEl.className = 'page-title';
+                    titleEl.textContent = currentPageFallbackTitle;
+                    currentPageInfo.appendChild(titleEl);
+                    currentPageInfo.classList.add('compact');
+                } else {
+                    currentPageInfo.classList.add('page-info-hidden');
+                }
+
+                showEmptyState(
+                    currentHighlights,
+                    '当前页面暂不支持划线',
+                    '当前页面运行在受限容器中。请在标准浏览器标签页中打开原链接后使用。',
+                    '🧩'
+                );
+            } else {
+                currentPageInfo.classList.add('page-info-hidden');
+                showEmptyState(currentHighlights, '无法获取当前页面信息');
+            }
             return;
         }
 
@@ -748,11 +770,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const tab = await getActiveTab();
                 if (tab && page.url === tab.url) {
-                    chrome.tabs.sendMessage(tab.id, { command: 'scrollToHighlight', id: h.id });
+                    chrome.tabs.sendMessage(tab.id, { command: 'scrollToHighlight', id: h.id }, { frameId: 0 });
                 } else {
                     chrome.tabs.create({ url: page.url }, (newTab) => {
                         setTimeout(() => {
-                            chrome.tabs.sendMessage(newTab.id, { command: 'scrollToHighlight', id: h.id });
+                            chrome.tabs.sendMessage(newTab.id, { command: 'scrollToHighlight', id: h.id }, { frameId: 0 });
                         }, 2000);
                     });
                 }
@@ -968,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tabs = await chrome.tabs.query({});
         const matchedTabs = tabs.filter(tab => tab.id && tab.url === url);
         await Promise.all(matchedTabs.map(tab =>
-            chrome.tabs.sendMessage(tab.id, message).catch(() => { })
+            chrome.tabs.sendMessage(tab.id, message, { frameId: 0 }).catch(() => { })
         ));
     }
 
@@ -1030,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Notify content script to update DOM
         const tab = await getActiveTab();
         if (tab && tab.url) {
-            chrome.tabs.sendMessage(tab.id, { command: 'updateAnnotation', id, note }).catch(() => { });
+            chrome.tabs.sendMessage(tab.id, { command: 'updateAnnotation', id, note }, { frameId: 0 }).catch(() => { });
         }
 
         // Reload data
@@ -1038,11 +1060,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Show empty state
-    function showEmptyState(container, message) {
+    function showEmptyState(container, message, description = '', icon = '📭') {
         container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📭</div>
+        <div class="empty-icon">${escapeHtml(icon)}</div>
         <div class="empty-text">${escapeHtml(message)}</div>
+        ${description ? `<div class="empty-description">${escapeHtml(description)}</div>` : ''}
       </div>
     `;
     }

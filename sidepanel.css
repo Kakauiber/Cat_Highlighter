@@ -824,6 +824,16 @@ body {
     font-size: 14px;
 }
 
+.empty-state .empty-description {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    max-width: 280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 /* Color Map */
 .color-yellow {
     background: #FFEA8A;

@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await chrome.tabs.sendMessage(tab.id, { command: 'ping' });
+      const response = await chrome.tabs.sendMessage(tab.id, { command: 'ping' }, { frameId: 0 });
       if (response && response.ok) {
         return false;
       }
@@ -556,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId: tab.id, allFrames: true },
         files: ['content.js']
       });
       return true;
@@ -577,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (reinjected) {
             await new Promise(resolve => setTimeout(resolve, 150));
           }
-          await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' });
+          await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' }, { frameId: 0 });
         } catch (err) {
           // Ignore tabs we still can't reach; the management page will
           // continue using whatever is already in storage.
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = await chrome.tabs.query({});
     const matchedTabs = tabs.filter(tab => tab.id && tab.url === url);
     await Promise.all(matchedTabs.map(tab =>
-      chrome.tabs.sendMessage(tab.id, message).catch(() => { })
+      chrome.tabs.sendMessage(tab.id, message, { frameId: 0 }).catch(() => { })
     ));
   }
 
