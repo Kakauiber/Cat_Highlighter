@@ -886,7 +886,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { value: 'mowen', label: '墨问' },
             { value: 'markdown', label: 'Markdown' },
             { value: 'html', label: 'HTML' },
-            { value: 'obsidian', label: 'Obsidian' }
+            { value: 'obsidian', label: 'Obsidian' },
+            { value: 'siyuan', label: '思源' }
         ].forEach(option => {
             const optionBtn = document.createElement('button');
             optionBtn.type = 'button';
@@ -924,6 +925,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return {
             vault: String(result.obsidian_vault || '').trim(),
             folder: String(result.obsidian_folder || '').trim()
+        };
+    }
+
+    async function getSiyuanSettings() {
+        if (window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.getSettings === 'function') {
+            return window.HighlightSiyuanExporter.getSettings();
+        }
+
+        const result = await chrome.storage.local.get([
+            'siyuan_endpoint',
+            'siyuan_token',
+            'siyuan_notebook_id',
+            'siyuan_notebook_name',
+            'siyuan_folder'
+        ]);
+        return {
+            endpoint: String(result.siyuan_endpoint || '').trim(),
+            token: String(result.siyuan_token || '').trim(),
+            notebookId: String(result.siyuan_notebook_id || '').trim(),
+            notebookName: String(result.siyuan_notebook_name || '').trim(),
+            folder: String(result.siyuan_folder || '').trim()
         };
     }
 
@@ -1026,6 +1048,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings });
             if (!result.ok) {
                 alert(result.message || '发送到 Obsidian 失败，请检查配置或剪贴板权限。');
+                return;
+            }
+
+            ok = true;
+        } else if (targetFormat === 'siyuan') {
+            if (!window.HighlightSiyuanExporter || typeof window.HighlightSiyuanExporter.exportBundleToSiyuan !== 'function') {
+                alert('思源导出当前不可用');
+                return;
+            }
+
+            const settings = await getSiyuanSettings();
+            if (!settings.token) {
+                alert('请先在管理页配置思源 API Token。');
+                return;
+            }
+            if (!settings.notebookId) {
+                alert('请先在管理页选择思源目标笔记本。');
+                return;
+            }
+
+            const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
+            if (!result.ok) {
+                alert(result.message || '发送到思源失败，请检查配置或思源运行状态。');
                 return;
             }
 

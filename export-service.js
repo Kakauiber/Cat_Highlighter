@@ -164,6 +164,10 @@
     return bundle.pages.map(renderPageMarkdown).join('\n\n');
   }
 
+  function exportBundleToSiyuan(bundle) {
+    return exportBundleToMarkdown(bundle);
+  }
+
   function normalizeObsidianText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -446,6 +450,7 @@
   window.HighlightExport.buildPageExportItem = buildPageExportItem;
   window.HighlightExport.buildExportBundle = buildExportBundle;
   window.HighlightExport.exportBundleToMarkdown = exportBundleToMarkdown;
+  window.HighlightExport.exportBundleToSiyuan = exportBundleToSiyuan;
   window.HighlightExport.exportBundleToHtml = exportBundleToHtml;
   window.HighlightExport.exportBundleToObsidian = exportBundleToObsidian;
   window.HighlightExport.downloadBundleAsMarkdown = downloadBundleAsMarkdown;

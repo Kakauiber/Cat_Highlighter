@@ -49,6 +49,7 @@
             <button class="export-menu-option" type="button" data-format="markdown" role="menuitem">Markdown</button>
             <button class="export-menu-option" type="button" data-format="html" role="menuitem">HTML</button>
             <button class="export-menu-option" type="button" data-format="obsidian" role="menuitem">Obsidian</button>
+            <button class="export-menu-option" type="button" data-format="siyuan" role="menuitem">思源</button>
           </div>
         </div>
       </div>
@@ -117,6 +118,20 @@
                 <button id="obsidian-test-btn" class="target-action-btn" type="button">测试</button>
               </div>
             </article>
+
+            <article id="siyuan-target-card" class="export-target-card">
+              <div class="export-target-top">
+                <div class="export-target-name-wrap">
+                  <span id="siyuan-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                  <span class="export-target-name">思源</span>
+                </div>
+                <span id="siyuan-target-status" class="export-target-status export-target-status-muted">未配置</span>
+              </div>
+              <div class="export-target-actions">
+                <button id="siyuan-config-edit-btn" class="target-action-btn" type="button">去配置</button>
+                <button id="siyuan-test-btn" class="target-action-btn" type="button">测试</button>
+              </div>
+            </article>
           </div>
 
           <div id="mowen-form-card" class="mowen-form-card hidden">
@@ -173,6 +188,51 @@
               <button id="obsidian-save-btn" type="button">保存设置</button>
             </div>
             <div id="obsidian-status" class="mowen-status" aria-live="polite"></div>
+          </div>
+
+          <div id="siyuan-form-card" class="mowen-form-card hidden">
+            <div class="mowen-form-head">
+              <div>
+                <h2>思源导出设置</h2>
+                <p>按官方 API 直连思源本地服务，保存后可直接把高亮和笔记写入指定笔记本。</p>
+              </div>
+            </div>
+            <div class="mowen-form">
+              <label class="mowen-field">
+                <span>服务地址</span>
+                <input id="siyuan-endpoint" type="text" placeholder="默认：http://127.0.0.1:6806" autocomplete="off" />
+              </label>
+              <label class="mowen-field">
+                <span>API Token</span>
+                <input id="siyuan-token" type="password" placeholder="输入思源 API Token" autocomplete="off" />
+              </label>
+              <label class="mowen-field">
+                <span>目标笔记本</span>
+                <div class="inline-field-row">
+                  <select id="siyuan-notebook">
+                    <option value="">请先刷新笔记本列表</option>
+                  </select>
+                  <button id="siyuan-refresh-btn" class="inline-field-btn" type="button">刷新笔记本</button>
+                </div>
+              </label>
+              <label class="mowen-field">
+                <span>目标目录</span>
+                <input id="siyuan-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" autocomplete="off" />
+              </label>
+            </div>
+            <div class="obsidian-help-card">
+              <div class="obsidian-help-title">不知道怎么获取思源 API Token？</div>
+              <ol class="obsidian-help-list">
+                <li>打开思源桌面版。</li>
+                <li>进入「设置」→「关于」。</li>
+                <li>复制页面中的 API Token，并粘贴到这里。</li>
+              </ol>
+              <div class="obsidian-help-tip">默认服务地址是 `http://127.0.0.1:6806`。测试或正式导出前，请先确认思源桌面版正在运行。</div>
+            </div>
+            <div class="mowen-actions">
+              <button id="siyuan-save-btn" type="button">保存设置</button>
+            </div>
+            <div id="siyuan-status" class="mowen-status" aria-live="polite"></div>
           </div>
         </div>
       </details>
@@ -267,6 +327,7 @@
   <script src="export-service.js"></script>
   <script src="mowen-exporter.js"></script>
   <script src="obsidian-exporter.js"></script>
+  <script src="siyuan-exporter.js"></script>
   <script src="options.js"></script>
 </body>
 

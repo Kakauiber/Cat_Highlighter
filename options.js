@@ -49,6 +49,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const obsidianSaveBtn = document.getElementById('obsidian-save-btn');
   const obsidianTestBtn = document.getElementById('obsidian-test-btn');
   const obsidianStatus = document.getElementById('obsidian-status');
+  const siyuanTargetCard = document.getElementById('siyuan-target-card');
+  const siyuanTargetDot = document.getElementById('siyuan-target-dot');
+  const siyuanTargetStatus = document.getElementById('siyuan-target-status');
+  const siyuanConfigEditBtn = document.getElementById('siyuan-config-edit-btn');
+  const siyuanFormCard = document.getElementById('siyuan-form-card');
+  const siyuanEndpointInput = document.getElementById('siyuan-endpoint');
+  const siyuanTokenInput = document.getElementById('siyuan-token');
+  const siyuanNotebookSelect = document.getElementById('siyuan-notebook');
+  const siyuanRefreshBtn = document.getElementById('siyuan-refresh-btn');
+  const siyuanFolderInput = document.getElementById('siyuan-folder');
+  const siyuanSaveBtn = document.getElementById('siyuan-save-btn');
+  const siyuanTestBtn = document.getElementById('siyuan-test-btn');
+  const siyuanStatus = document.getElementById('siyuan-status');
   const overviewPages = document.getElementById('overview-pages');
   const overviewHighlights = document.getElementById('overview-highlights');
   const overviewNotes = document.getElementById('overview-notes');
@@ -60,6 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const OBSIDIAN_FOLDER_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_FOLDER_KEY) || 'obsidian_folder';
   const OBSIDIAN_LAST_TESTED_AT_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_LAST_TESTED_AT_KEY) || 'obsidian_last_tested_at';
   const OBSIDIAN_LAST_TESTED_SIGNATURE_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_LAST_TESTED_SIGNATURE_KEY) || 'obsidian_last_tested_signature';
+  const SIYUAN_DEFAULT_ENDPOINT = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.DEFAULT_ENDPOINT) || 'http://127.0.0.1:6806';
+  const SIYUAN_ENDPOINT_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_ENDPOINT_KEY) || 'siyuan_endpoint';
+  const SIYUAN_TOKEN_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_TOKEN_KEY) || 'siyuan_token';
+  const SIYUAN_NOTEBOOK_ID_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_NOTEBOOK_ID_KEY) || 'siyuan_notebook_id';
+  const SIYUAN_NOTEBOOK_NAME_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_NOTEBOOK_NAME_KEY) || 'siyuan_notebook_name';
+  const SIYUAN_FOLDER_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_FOLDER_KEY) || 'siyuan_folder';
+  const SIYUAN_LAST_TESTED_AT_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_LAST_TESTED_AT_KEY) || 'siyuan_last_tested_at';
+  const SIYUAN_LAST_TESTED_SIGNATURE_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_LAST_TESTED_SIGNATURE_KEY) || 'siyuan_last_tested_signature';
 
   // Cache of page data: { key, url, title, highlights: [...], note: record|null }
   let pagesData = [];
@@ -82,8 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let mowenFormExpanded = false;
   let obsidianIsBusy = false;
   let obsidianFormExpanded = false;
+  let siyuanIsBusy = false;
+  let siyuanFormExpanded = false;
   let lastMowenSettings = { apiKey: '', tags: '', lastTestedKey: '' };
   let lastObsidianSettings = { vault: '', folder: '', lastTestedAt: 0, lastTestedSignature: '' };
+  let lastSiyuanSettings = {
+    endpoint: SIYUAN_DEFAULT_ENDPOINT,
+    token: '',
+    notebookId: '',
+    notebookName: '',
+    folder: '',
+    lastTestedAt: 0,
+    lastTestedSignature: ''
+  };
+  let siyuanNotebookOptions = [];
 
   function getMowenApiKey() {
     return String(mowenApiKeyInput && mowenApiKeyInput.value || '').trim();
@@ -101,6 +134,32 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(obsidianFolderInput && obsidianFolderInput.value || '').trim();
   }
 
+  function getSiyuanEndpointInput() {
+    const raw = String(siyuanEndpointInput && siyuanEndpointInput.value || '').trim();
+    if (window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.normalizeEndpoint === 'function') {
+      return window.HighlightSiyuanExporter.normalizeEndpoint(raw || SIYUAN_DEFAULT_ENDPOINT);
+    }
+    return raw || SIYUAN_DEFAULT_ENDPOINT;
+  }
+
+  function getSiyuanTokenInput() {
+    return String(siyuanTokenInput && siyuanTokenInput.value || '').trim();
+  }
+
+  function getSiyuanNotebookIdInput() {
+    return String(siyuanNotebookSelect && siyuanNotebookSelect.value || '').trim();
+  }
+
+  function getSiyuanNotebookNameInput() {
+    const selected = siyuanNotebookSelect && siyuanNotebookSelect.selectedOptions && siyuanNotebookSelect.selectedOptions[0];
+    if (!selected) return '';
+    return String(selected.dataset.notebookName || selected.textContent || '').trim();
+  }
+
+  function getSiyuanFolderInput() {
+    return String(siyuanFolderInput && siyuanFolderInput.value || '').trim();
+  }
+
   function getObsidianSettingsSignature(settings) {
     if (window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.buildSettingsSignature === 'function') {
       return window.HighlightObsidianExporter.buildSettingsSignature(settings || {});
@@ -111,9 +170,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${vault}::${folder}`;
   }
 
+  function getSiyuanSettingsSignature(settings) {
+    if (window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.buildSettingsSignature === 'function') {
+      return window.HighlightSiyuanExporter.buildSettingsSignature(settings || {});
+    }
+
+    const endpoint = String(settings && settings.endpoint || '').trim();
+    const token = String(settings && settings.token || '').trim();
+    const notebookId = String(settings && settings.notebookId || '').trim();
+    const folder = String(settings && settings.folder || '').trim();
+    return `${endpoint}::${token}::${notebookId}::${folder}`;
+  }
+
   function isCurrentObsidianTest(settings) {
     if (!settings || !settings.vault || !settings.lastTestedAt) return false;
     return String(settings.lastTestedSignature || '') === getObsidianSettingsSignature(settings);
+  }
+
+  function isCurrentSiyuanTest(settings) {
+    if (!settings || !settings.token || !settings.notebookId || !settings.lastTestedAt) return false;
+    return String(settings.lastTestedSignature || '') === getSiyuanSettingsSignature(settings);
   }
 
   function updateConfigSummaryMeta() {
@@ -123,10 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const mowenTested = hasMowenKey && String(lastMowenSettings.lastTestedKey || '') === String(lastMowenSettings.apiKey || '').trim();
     const hasObsidianVault = !!String(lastObsidianSettings.vault || '').trim();
     const obsidianTested = isCurrentObsidianTest(lastObsidianSettings);
+    const hasSiyuanNotebook = !!String(lastSiyuanSettings.notebookId || '').trim();
+    const siyuanTested = isCurrentSiyuanTest(lastSiyuanSettings);
 
     const parts = [
       `墨问：${hasMowenKey ? (mowenTested ? '已配置并测试' : '已配置') : '未配置'}`,
-      `Obsidian：${hasObsidianVault ? (obsidianTested ? '已配置并测试' : '已配置') : '未配置'}`
+      `Obsidian：${hasObsidianVault ? (obsidianTested ? '已配置并测试' : '已配置') : '未配置'}`,
+      `思源：${hasSiyuanNotebook ? (siyuanTested ? '已配置并测试' : '已配置') : '未配置'}`
     ];
 
     mowenSummaryMeta.textContent = parts.join(' · ');
@@ -160,6 +239,16 @@ document.addEventListener('DOMContentLoaded', () => {
     obsidianFormCard.classList.toggle('hidden', !visible);
   }
 
+  function setSiyuanFormVisible(visible) {
+    if (!siyuanFormCard) return;
+    siyuanFormExpanded = !!visible;
+    siyuanFormCard.classList.toggle('hidden', !visible);
+    if (siyuanConfigEditBtn) {
+      const hasNotebook = !!String(lastSiyuanSettings && lastSiyuanSettings.notebookId || '').trim();
+      siyuanConfigEditBtn.textContent = visible ? '收起配置' : (hasNotebook ? '重新配置' : '去配置');
+    }
+  }
+
   function syncSettingsPanelState() {
     if (!mowenConfigToggle || !settingsPanel) return;
     const expanded = !settingsPanel.classList.contains('hidden');
@@ -178,6 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function setSettingsPanelVisible(visible) {
     if (!settingsPanel) return;
     settingsPanel.classList.toggle('hidden', !visible);
+    if (!visible) {
+      setMowenFormVisible(false);
+      setObsidianFormVisible(false);
+      setSiyuanFormVisible(false);
+    }
     syncSettingsPanelState();
   }
 
@@ -188,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mowenPanel) return;
     mowenPanel.open = true;
     setObsidianFormVisible(false);
+    setSiyuanFormVisible(false);
     closeExportMenu();
     syncMowenPanelState();
   }
@@ -202,6 +297,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setMowenFormVisible(false);
     setObsidianFormVisible(true);
+    setSiyuanFormVisible(false);
+    closeExportMenu();
+  }
+
+  function openSiyuanPanel() {
+    if (settingsPanel) {
+      setSettingsPanelVisible(true);
+    }
+    if (mowenPanel) {
+      mowenPanel.open = true;
+      syncMowenPanelState();
+    }
+    setMowenFormVisible(false);
+    setObsidianFormVisible(false);
+    setSiyuanFormVisible(true);
     closeExportMenu();
   }
 
@@ -224,6 +334,17 @@ document.addEventListener('DOMContentLoaded', () => {
       obsidianStatus.classList.add('is-success');
     } else if (tone === 'error') {
       obsidianStatus.classList.add('is-error');
+    }
+  }
+
+  function setSiyuanStatus(message, tone) {
+    if (!siyuanStatus) return;
+    siyuanStatus.textContent = message || '';
+    siyuanStatus.classList.remove('is-success', 'is-error');
+    if (tone === 'success') {
+      siyuanStatus.classList.add('is-success');
+    } else if (tone === 'error') {
+      siyuanStatus.classList.add('is-error');
     }
   }
 
@@ -308,6 +429,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function setSiyuanNotebookOptions(notebooks, selectedId, selectedName) {
+    if (!siyuanNotebookSelect) return;
+
+    const preferredId = String(selectedId || '').trim();
+    const preferredName = String(selectedName || '').trim();
+    const items = Array.isArray(notebooks) ? notebooks : [];
+    siyuanNotebookOptions = items;
+
+    siyuanNotebookSelect.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = items.length > 0 ? '请选择目标笔记本' : '请先刷新笔记本列表';
+    siyuanNotebookSelect.appendChild(placeholder);
+
+    items.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.closed ? `${item.name}（已关闭）` : item.name;
+      option.dataset.notebookName = item.name;
+      siyuanNotebookSelect.appendChild(option);
+    });
+
+    if (preferredId && items.some(item => item.id === preferredId)) {
+      siyuanNotebookSelect.value = preferredId;
+      return;
+    }
+
+    if (preferredId && preferredName) {
+      const fallback = document.createElement('option');
+      fallback.value = preferredId;
+      fallback.textContent = `${preferredName}（已保存）`;
+      fallback.dataset.notebookName = preferredName;
+      siyuanNotebookSelect.appendChild(fallback);
+      siyuanNotebookSelect.value = preferredId;
+      return;
+    }
+
+    const firstOpen = items.find(item => !item.closed) || items[0] || null;
+    siyuanNotebookSelect.value = firstOpen ? firstOpen.id : '';
+  }
+
+  function updateSiyuanSummary(settings) {
+    lastSiyuanSettings = {
+      endpoint: String(settings && settings.endpoint || SIYUAN_DEFAULT_ENDPOINT).trim() || SIYUAN_DEFAULT_ENDPOINT,
+      token: String(settings && settings.token || '').trim(),
+      notebookId: String(settings && settings.notebookId || '').trim(),
+      notebookName: String(settings && settings.notebookName || '').trim(),
+      folder: String(settings && settings.folder || '').trim(),
+      lastTestedAt: Number(settings && settings.lastTestedAt || 0),
+      lastTestedSignature: String(settings && settings.lastTestedSignature || '').trim()
+    };
+
+    const hasToken = !!lastSiyuanSettings.token;
+    const hasNotebook = !!lastSiyuanSettings.notebookId;
+    const tested = isCurrentSiyuanTest(lastSiyuanSettings);
+    updateConfigSummaryMeta();
+
+    if (siyuanTargetStatus) {
+      if (hasNotebook) {
+        siyuanTargetStatus.textContent = tested ? '笔记本已配置 · 已测试' : '笔记本已配置 · 待测试';
+      } else if (hasToken) {
+        siyuanTargetStatus.textContent = 'Token 已配置 · 待选择笔记本';
+      } else {
+        siyuanTargetStatus.textContent = '未配置';
+      }
+      siyuanTargetStatus.classList.toggle('export-target-status-success', hasNotebook);
+      siyuanTargetStatus.classList.toggle('export-target-status-muted', !hasNotebook);
+    }
+
+    if (siyuanTargetDot) {
+      siyuanTargetDot.classList.toggle('export-status-dot-success', hasNotebook);
+      siyuanTargetDot.classList.toggle('export-status-dot-muted', !hasNotebook);
+    }
+
+    if (siyuanTargetCard) {
+      siyuanTargetCard.classList.toggle('export-target-card-active', hasNotebook);
+    }
+
+    if (siyuanConfigEditBtn) {
+      siyuanConfigEditBtn.textContent = hasNotebook ? '重新配置' : '去配置';
+    }
+
+    if (!hasToken || !hasNotebook) {
+      setSiyuanFormVisible(true);
+    } else if (!siyuanFormExpanded) {
+      setSiyuanFormVisible(false);
+    }
+  }
+
   async function getMowenSettings() {
     const result = await chrome.storage.local.get([
       MOWEN_API_KEY_KEY,
@@ -341,6 +552,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  async function getSiyuanSettings() {
+    if (window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.getSettings === 'function') {
+      return window.HighlightSiyuanExporter.getSettings();
+    }
+
+    const result = await chrome.storage.local.get([
+      SIYUAN_ENDPOINT_KEY,
+      SIYUAN_TOKEN_KEY,
+      SIYUAN_NOTEBOOK_ID_KEY,
+      SIYUAN_NOTEBOOK_NAME_KEY,
+      SIYUAN_FOLDER_KEY,
+      SIYUAN_LAST_TESTED_AT_KEY,
+      SIYUAN_LAST_TESTED_SIGNATURE_KEY
+    ]);
+
+    return {
+      endpoint: String(result[SIYUAN_ENDPOINT_KEY] || SIYUAN_DEFAULT_ENDPOINT).trim() || SIYUAN_DEFAULT_ENDPOINT,
+      token: String(result[SIYUAN_TOKEN_KEY] || '').trim(),
+      notebookId: String(result[SIYUAN_NOTEBOOK_ID_KEY] || '').trim(),
+      notebookName: String(result[SIYUAN_NOTEBOOK_NAME_KEY] || '').trim(),
+      folder: String(result[SIYUAN_FOLDER_KEY] || '').trim(),
+      lastTestedAt: Number(result[SIYUAN_LAST_TESTED_AT_KEY] || 0),
+      lastTestedSignature: String(result[SIYUAN_LAST_TESTED_SIGNATURE_KEY] || '').trim()
+    };
+  }
+
   function syncMowenActionState(lastTestedKey) {
     const apiKey = getMowenApiKey();
     const hasKey = !!apiKey;
@@ -364,6 +601,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function syncSiyuanActionState() {
+    const hasToken = !!getSiyuanTokenInput();
+    const hasNotebook = !!getSiyuanNotebookIdInput();
+
+    if (siyuanSaveBtn) {
+      siyuanSaveBtn.disabled = siyuanIsBusy || !hasToken || !hasNotebook;
+    }
+    if (siyuanTestBtn) {
+      siyuanTestBtn.disabled = siyuanIsBusy || !hasToken || !hasNotebook;
+    }
+    if (siyuanRefreshBtn) {
+      siyuanRefreshBtn.disabled = siyuanIsBusy || !hasToken;
+    }
+  }
+
   async function loadMowenSettings() {
     const settings = await getMowenSettings();
     if (mowenApiKeyInput) mowenApiKeyInput.value = settings.apiKey;
@@ -378,6 +630,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (obsidianFolderInput) obsidianFolderInput.value = settings.folder;
     updateObsidianSummary(settings);
     syncObsidianActionState();
+  }
+
+  async function loadSiyuanSettings() {
+    const settings = await getSiyuanSettings();
+    if (siyuanEndpointInput) siyuanEndpointInput.value = settings.endpoint || SIYUAN_DEFAULT_ENDPOINT;
+    if (siyuanTokenInput) siyuanTokenInput.value = settings.token;
+    if (siyuanFolderInput) siyuanFolderInput.value = settings.folder;
+    setSiyuanNotebookOptions([], settings.notebookId, settings.notebookName);
+    updateSiyuanSummary(settings);
+    syncSiyuanActionState();
+
+    if (settings.token) {
+      await refreshSiyuanNotebookList({
+        silent: true,
+        preferredNotebookId: settings.notebookId,
+        preferredNotebookName: settings.notebookName
+      });
+    }
   }
 
   async function saveMowenSettings() {
@@ -424,6 +694,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function saveSiyuanSettings(options) {
+    const endpoint = getSiyuanEndpointInput();
+    const token = getSiyuanTokenInput();
+    const notebookId = getSiyuanNotebookIdInput();
+    const notebookName = getSiyuanNotebookNameInput();
+    const folder = getSiyuanFolderInput();
+
+    if (!token) {
+      if (!(options && options.silent)) {
+        setSiyuanStatus('请先填写思源 API Token。', 'error');
+      }
+      return null;
+    }
+
+    if (!notebookId) {
+      if (!(options && options.silent)) {
+        setSiyuanStatus('请先刷新并选择目标笔记本。', 'error');
+      }
+      return null;
+    }
+
+    const nextSettings = window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.saveSettings === 'function'
+      ? await window.HighlightSiyuanExporter.saveSettings({ endpoint, token, notebookId, notebookName, folder })
+      : await (async () => {
+        await chrome.storage.local.set({
+          [SIYUAN_ENDPOINT_KEY]: endpoint,
+          [SIYUAN_TOKEN_KEY]: token,
+          [SIYUAN_NOTEBOOK_ID_KEY]: notebookId,
+          [SIYUAN_NOTEBOOK_NAME_KEY]: notebookName,
+          [SIYUAN_FOLDER_KEY]: folder
+        });
+        return getSiyuanSettings();
+      })();
+
+    updateSiyuanSummary(nextSettings);
+    syncSiyuanActionState();
+    if (!(options && options.silent) && !(options && options.suppressSuccess)) {
+      setSiyuanStatus('设置已保存。建议先点“测试”，确认可以正常写入思源。', 'success');
+    }
+    if (!(options && options.keepOpen) && notebookId) {
+      setSiyuanFormVisible(false);
+    }
+    return nextSettings;
+  }
+
   async function withMowenBusy(task) {
     if (mowenIsBusy) return;
     mowenIsBusy = true;
@@ -451,6 +766,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const latest = await getObsidianSettings();
       updateObsidianSummary(latest);
       syncObsidianActionState();
+    }
+  }
+
+  async function withSiyuanBusy(task, options) {
+    if (siyuanIsBusy) return;
+    siyuanIsBusy = true;
+    syncSiyuanActionState();
+    try {
+      await task();
+    } finally {
+      siyuanIsBusy = false;
+      const latest = await getSiyuanSettings();
+      if (options && typeof options.after === 'function') {
+        await options.after(latest);
+      } else {
+        updateSiyuanSummary(latest);
+        syncSiyuanActionState();
+      }
     }
   }
 
@@ -546,6 +879,148 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.warn('Obsidian 测试失败', err);
         setObsidianStatus('测试失败，请检查 Obsidian 是否已安装并已允许处理 obsidian:// 链接。', 'error');
+      }
+    });
+  }
+
+  async function refreshSiyuanNotebookList(options) {
+    const endpoint = getSiyuanEndpointInput();
+    const token = getSiyuanTokenInput();
+    const preferredNotebookId = String(options && options.preferredNotebookId || getSiyuanNotebookIdInput()).trim();
+    const preferredNotebookName = String(options && options.preferredNotebookName || getSiyuanNotebookNameInput() || lastSiyuanSettings.notebookName || '').trim();
+
+    if (!window.HighlightSiyuanExporter || typeof window.HighlightSiyuanExporter.listNotebooks !== 'function') {
+      setSiyuanStatus('思源导出功能当前不可用。', 'error');
+      return null;
+    }
+
+    if (!token) {
+      setSiyuanNotebookOptions([], preferredNotebookId, preferredNotebookName);
+      if (!(options && options.silent)) {
+        setSiyuanStatus('请先填写思源 API Token，再刷新笔记本列表。', 'error');
+      }
+      syncSiyuanActionState();
+      return null;
+    }
+
+    let notebooksResult = null;
+    await withSiyuanBusy(async () => {
+      if (!(options && options.silent)) {
+        setSiyuanStatus('正在读取思源笔记本列表...', '');
+      }
+
+      try {
+        notebooksResult = await window.HighlightSiyuanExporter.listNotebooks({ endpoint, token });
+        if (!notebooksResult || !notebooksResult.ok) {
+          setSiyuanNotebookOptions([], preferredNotebookId, preferredNotebookName);
+          if (!(options && options.silent)) {
+            setSiyuanStatus((notebooksResult && notebooksResult.message) || '读取思源笔记本失败。', 'error');
+          }
+          return;
+        }
+
+        const notebooks = Array.isArray(notebooksResult.notebooks) ? notebooksResult.notebooks : [];
+        setSiyuanNotebookOptions(notebooks, preferredNotebookId, preferredNotebookName);
+        const selectedId = getSiyuanNotebookIdInput();
+        const selectedName = getSiyuanNotebookNameInput();
+        updateSiyuanSummary({
+          endpoint,
+          token,
+          notebookId: selectedId,
+          notebookName: selectedName,
+          folder: getSiyuanFolderInput(),
+          lastTestedAt: lastSiyuanSettings.lastTestedAt,
+          lastTestedSignature: lastSiyuanSettings.lastTestedSignature
+        });
+        if (!(options && options.silent)) {
+          setSiyuanStatus(notebooks.length > 0 ? `已获取 ${notebooks.length} 个笔记本，请确认导出目标。` : '未获取到可用笔记本。', notebooks.length > 0 ? 'success' : 'error');
+        }
+      } catch (err) {
+        console.warn('读取思源笔记本失败', err);
+        setSiyuanNotebookOptions([], preferredNotebookId, preferredNotebookName);
+        if (!(options && options.silent)) {
+          setSiyuanStatus('读取思源笔记本失败，请检查服务地址、Token 或思源是否已启动。', 'error');
+        }
+      }
+    }, {
+      after: async (latest) => {
+        updateSiyuanSummary({
+          endpoint,
+          token,
+          notebookId: getSiyuanNotebookIdInput(),
+          notebookName: getSiyuanNotebookNameInput() || preferredNotebookName,
+          folder: getSiyuanFolderInput(),
+          lastTestedAt: latest.lastTestedAt,
+          lastTestedSignature: latest.lastTestedSignature
+        });
+        syncSiyuanActionState();
+      }
+    });
+
+    return notebooksResult;
+  }
+
+  async function testSiyuanExport() {
+    const savedSettings = await saveSiyuanSettings({ keepOpen: true, suppressSuccess: true });
+    if (!savedSettings) return;
+
+    if (!window.HighlightSiyuanExporter || typeof window.HighlightSiyuanExporter.testSiyuanConnection !== 'function') {
+      setSiyuanStatus('思源导出功能当前不可用。', 'error');
+      return;
+    }
+
+    await withSiyuanBusy(async () => {
+      setSiyuanStatus('正在向思源写入测试文档...', '');
+      try {
+        const result = await window.HighlightSiyuanExporter.testSiyuanConnection(savedSettings);
+        if (!result.ok) {
+          setSiyuanStatus(result.message || '测试失败，请检查配置后重试。', 'error');
+          return;
+        }
+
+        const latest = result.settings || await getSiyuanSettings();
+        updateSiyuanSummary(latest);
+        setSiyuanStatus(result.message || '测试成功，已在思源中创建测试文档。', 'success');
+      } catch (err) {
+        console.warn('思源测试失败', err);
+        setSiyuanStatus('测试失败，请检查思源服务地址、Token 或桌面版运行状态。', 'error');
+      }
+    });
+  }
+
+  async function exportAllToSiyuan() {
+    if (pagesData.length === 0) {
+      setSiyuanStatus('当前没有可导出的页面记录。', 'error');
+      return;
+    }
+
+    const settings = await getSiyuanSettings();
+    if (!settings.token) {
+      openSiyuanPanel();
+      setSiyuanStatus('请先填写思源 API Token。', 'error');
+      return;
+    }
+    if (!settings.notebookId) {
+      openSiyuanPanel();
+      setSiyuanStatus('请先选择目标笔记本。', 'error');
+      return;
+    }
+
+    await withSiyuanBusy(async () => {
+      setSiyuanStatus('正在导出全部记录到思源...', '');
+      try {
+        const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
+        const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
+        if (!result || !result.ok) {
+          setSiyuanStatus((result && result.message) || '导出到思源失败。', 'error');
+          return;
+        }
+
+        updateSiyuanSummary(result.settings || await getSiyuanSettings());
+        setSiyuanStatus(`导出成功，已创建文档：${result.docPath}`, 'success');
+      } catch (err) {
+        console.warn('导出到思源失败', err);
+        setSiyuanStatus('导出到思源失败，请检查服务地址、Token 或思源运行状态。', 'error');
       }
     });
   }
@@ -770,6 +1245,10 @@ document.addEventListener('DOMContentLoaded', () => {
       getObsidianSettings().then(settings => {
         updateObsidianSummary(settings);
         syncObsidianActionState();
+      });
+      getSiyuanSettings().then(settings => {
+        updateSiyuanSummary(settings);
+        syncSiyuanActionState();
       });
     });
   }
@@ -1317,6 +1796,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (targetFormat === 'siyuan') {
+      if (!window.HighlightSiyuanExporter || typeof window.HighlightSiyuanExporter.exportBundleToSiyuan !== 'function') {
+        alert('思源导出功能暂不可用');
+        return;
+      }
+
+      const settings = await getSiyuanSettings();
+      if (!settings.token) {
+        openSiyuanPanel();
+        setSiyuanStatus('请先完成思源配置，再执行导出。', 'error');
+        return;
+      }
+      if (!settings.notebookId) {
+        openSiyuanPanel();
+        setSiyuanStatus('请先选择思源目标笔记本，再执行导出。', 'error');
+        return;
+      }
+
+      const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
+      if (!result.ok) {
+        openSiyuanPanel();
+        setSiyuanStatus(result.message || '发送到思源失败。', 'error');
+        return;
+      }
+
+      updateSiyuanSummary(result.settings || await getSiyuanSettings());
+      setSiyuanStatus(`已发送到思源：${result.docPath}`, 'success');
+      return;
+    }
+
     ok = targetFormat === 'html'
       ? window.HighlightExport.downloadBundleAsHtml(bundle, 'catlines')
       : window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
@@ -1380,6 +1889,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           exportAllToMowen();
+          return;
+        }
+
+        if (format === 'siyuan') {
+          exportAllToSiyuan();
         }
       });
     });
@@ -1412,6 +1926,19 @@ document.addEventListener('DOMContentLoaded', () => {
       openObsidianPanel();
       if (obsidianVaultInput) {
         obsidianVaultInput.focus();
+      }
+    });
+  }
+
+  if (siyuanConfigEditBtn) {
+    siyuanConfigEditBtn.addEventListener('click', () => {
+      if (settingsPanel && !settingsPanel.classList.contains('hidden') && siyuanFormCard && !siyuanFormCard.classList.contains('hidden')) {
+        setSiyuanFormVisible(false);
+        return;
+      }
+      openSiyuanPanel();
+      if (siyuanTokenInput) {
+        siyuanTokenInput.focus();
       }
     });
   }
@@ -1464,6 +1991,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mowenTestBtn.addEventListener('click', () => {
       setMowenFormVisible(true);
       setObsidianFormVisible(false);
+      setSiyuanFormVisible(false);
       testMowenExport();
     });
   }
@@ -1481,6 +2009,29 @@ document.addEventListener('DOMContentLoaded', () => {
     obsidianTestBtn.addEventListener('click', () => {
       openObsidianPanel();
       testObsidianExport();
+    });
+  }
+
+  if (siyuanRefreshBtn) {
+    siyuanRefreshBtn.addEventListener('click', () => {
+      openSiyuanPanel();
+      refreshSiyuanNotebookList();
+    });
+  }
+
+  if (siyuanSaveBtn) {
+    siyuanSaveBtn.addEventListener('click', () => {
+      saveSiyuanSettings().catch(err => {
+        console.warn('保存思源设置失败', err);
+        setSiyuanStatus('保存设置失败，请稍后重试。', 'error');
+      });
+    });
+  }
+
+  if (siyuanTestBtn) {
+    siyuanTestBtn.addEventListener('click', () => {
+      openSiyuanPanel();
+      testSiyuanExport();
     });
   }
 
@@ -1533,6 +2084,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (siyuanEndpointInput) {
+    siyuanEndpointInput.addEventListener('input', async () => {
+      const settings = await getSiyuanSettings();
+      setSiyuanNotebookOptions([], '', '');
+      updateSiyuanSummary({
+        endpoint: getSiyuanEndpointInput(),
+        token: getSiyuanTokenInput(),
+        notebookId: '',
+        notebookName: '',
+        folder: getSiyuanFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncSiyuanActionState();
+    });
+  }
+
+  if (siyuanTokenInput) {
+    siyuanTokenInput.addEventListener('input', async () => {
+      const settings = await getSiyuanSettings();
+      setSiyuanNotebookOptions([], '', '');
+      updateSiyuanSummary({
+        endpoint: getSiyuanEndpointInput(),
+        token: getSiyuanTokenInput(),
+        notebookId: '',
+        notebookName: '',
+        folder: getSiyuanFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncSiyuanActionState();
+    });
+  }
+
+  if (siyuanNotebookSelect) {
+    siyuanNotebookSelect.addEventListener('change', async () => {
+      const settings = await getSiyuanSettings();
+      updateSiyuanSummary({
+        endpoint: getSiyuanEndpointInput(),
+        token: getSiyuanTokenInput(),
+        notebookId: getSiyuanNotebookIdInput(),
+        notebookName: getSiyuanNotebookNameInput(),
+        folder: getSiyuanFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncSiyuanActionState();
+    });
+  }
+
+  if (siyuanFolderInput) {
+    siyuanFolderInput.addEventListener('input', async () => {
+      const settings = await getSiyuanSettings();
+      updateSiyuanSummary({
+        endpoint: getSiyuanEndpointInput(),
+        token: getSiyuanTokenInput(),
+        notebookId: getSiyuanNotebookIdInput(),
+        notebookName: getSiyuanNotebookNameInput() || settings.notebookName,
+        folder: getSiyuanFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncSiyuanActionState();
+    });
+  }
+
   loadData();
   warmOpenTabsHighlights();
   renderBlacklist();
@@ -1543,6 +2160,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadObsidianSettings().catch(err => {
     console.warn('加载 Obsidian 设置失败', err);
     setObsidianStatus('加载 Obsidian 设置失败。', 'error');
+  });
+  loadSiyuanSettings().catch(err => {
+    console.warn('加载思源设置失败', err);
+    setSiyuanStatus('加载思源设置失败。', 'error');
   });
   syncSettingsPanelState();
   syncMowenPanelState();

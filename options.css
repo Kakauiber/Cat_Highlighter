@@ -379,7 +379,8 @@ textarea {
 
 .settings-panel .target-action-btn,
 .settings-panel .target-placeholder-pill,
-.settings-panel .mowen-actions button {
+.settings-panel .mowen-actions button,
+.settings-panel .inline-field-btn {
   border-color: var(--settings-action-border);
   background: rgba(255, 250, 242, 0.72);
   color: var(--settings-ink);
@@ -387,7 +388,8 @@ textarea {
 }
 
 .settings-panel .target-action-btn:hover:not(:disabled),
-.settings-panel .mowen-actions button:hover:not(:disabled) {
+.settings-panel .mowen-actions button:hover:not(:disabled),
+.settings-panel .inline-field-btn:hover:not(:disabled) {
   background: rgba(255, 252, 247, 0.9);
   border-color: rgba(220, 167, 67, 0.34);
 }
@@ -397,12 +399,14 @@ textarea {
   background: rgba(245, 239, 232, 0.92);
 }
 
-.settings-panel .mowen-field input {
+.settings-panel .mowen-field input,
+.settings-panel .mowen-field select {
   border-color: rgba(187, 163, 134, 0.72);
   background: rgba(255, 250, 243, 0.94);
 }
 
-.settings-panel .mowen-field input:focus {
+.settings-panel .mowen-field input:focus,
+.settings-panel .mowen-field select:focus {
   border-color: rgba(220, 167, 67, 0.42);
   box-shadow: 0 0 0 3px rgba(220, 167, 67, 0.12);
 }
@@ -543,7 +547,7 @@ textarea {
 
 .export-target-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
 }
 
@@ -705,10 +709,60 @@ textarea {
   color: var(--text-primary);
 }
 
+.mowen-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid rgba(191, 181, 171, 0.72);
+  background: var(--surface-strong);
+  color: var(--text-primary);
+}
+
 .mowen-field input:focus {
   outline: none;
   border-color: rgba(104, 126, 167, 0.44);
   box-shadow: 0 0 0 3px rgba(104, 126, 167, 0.12);
+}
+
+.mowen-field select:focus {
+  outline: none;
+  border-color: rgba(104, 126, 167, 0.44);
+  box-shadow: 0 0 0 3px rgba(104, 126, 167, 0.12);
+}
+
+.mowen-field.full-span {
+  grid-column: 1 / -1;
+}
+
+.inline-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-field-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(184, 176, 167, 0.75);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.inline-field-btn:hover:not(:disabled) {
+  background: #fffdf8;
+  border-color: rgba(104, 126, 167, 0.28);
+  transform: translateY(-1px);
+}
+
+.inline-field-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .mowen-actions {
@@ -1455,6 +1509,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .inline-field-row {
+    grid-template-columns: 1fr;
+  }
+
   .list-toolbar {
     display: flex;
     align-items: stretch;
@@ -1530,6 +1588,8 @@ textarea {
 .target-placeholder-pill,
 .mowen-form-card,
 .mowen-field input,
+.mowen-field select,
+.inline-field-btn,
 .mowen-actions button,
 .filter-chip,
 .tool-mode-btn,
