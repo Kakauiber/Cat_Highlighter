@@ -119,6 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHighlightSortOrder = 'asc';
     let currentPageAccessState = 'unknown';
     let currentPageFallbackTitle = '';
+    let preferredActiveTabId = null;
+    let preferredWindowId = null;
     // Batch selection state
     let isSelectionMode = false;
     let selectedIds = new Set();
@@ -257,15 +259,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function isWebTab(tab) {
+        return Boolean(
+            tab &&
+            tab.url &&
+            (tab.url.startsWith('http://') || tab.url.startsWith('https://'))
+        );
+    }
+
     // Get the active web tab. Side panel runs in an extension context, so
     // currentWindow can resolve to the panel window instead of the page window.
     async function getActiveTab() {
         try {
+            if (preferredActiveTabId) {
+                try {
+                    const preferredTab = await chrome.tabs.get(preferredActiveTabId);
+                    if (isWebTab(preferredTab)) {
+                        console.log('[SidePanel] Using preferred active tab:', preferredTab.url);
+                        return preferredTab;
+                    }
+                } catch (err) {
+                    preferredActiveTabId = null;
+                }
+            }
+
+            if (preferredWindowId) {
+                try {
+                    const tabsInPreferredWindow = await chrome.tabs.query({ active: true, windowId: preferredWindowId });
+                    const preferredWindowTab = tabsInPreferredWindow.find(isWebTab);
+                    if (preferredWindowTab) {
+                        preferredActiveTabId = preferredWindowTab.id;
+                        console.log('[SidePanel] Found active web tab in preferred window:', preferredWindowTab.url);
+                        return preferredWindowTab;
+                    }
+                } catch (err) {
+                    preferredWindowId = null;
+                }
+            }
+
             // Prefer the last focused browser window, which is usually the page
             // window that the user opened the side panel from.
             let tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-            let webTab = tabs.find(t => t.url && (t.url.startsWith('http://') || t.url.startsWith('https://')));
+            let webTab = tabs.find(isWebTab);
             if (webTab) {
+                preferredActiveTabId = webTab.id;
+                preferredWindowId = webTab.windowId || null;
                 console.log('[SidePanel] Found active web tab in last focused window:', webTab.url);
                 return webTab;
             }
@@ -273,20 +311,25 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fallback to currentWindow for browsers that do not expose the
             // expected window as lastFocusedWindow in side panel context.
             tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            webTab = tabs.find(t => t.url && (t.url.startsWith('http://') || t.url.startsWith('https://')));
+            webTab = tabs.find(isWebTab);
             if (webTab) {
+                preferredActiveTabId = webTab.id;
+                preferredWindowId = webTab.windowId || null;
                 console.log('[SidePanel] Found active web tab in current window:', webTab.url);
                 return webTab;
             }
 
-            // Final fallback: scan windows for an active web tab.
-            const allWindows = await chrome.windows.getAll({ populate: true });
-            for (const win of allWindows) {
-                const activeTab = win.tabs?.find(t => t.active && t.url && (t.url.startsWith('http://') || t.url.startsWith('https://')));
-                if (activeTab) {
-                    console.log('[SidePanel] Found active web tab while scanning windows:', activeTab.url);
-                    return activeTab;
-                }
+            // Final fallback: scan all active tabs across browser windows and
+            // pick the one most recently accessed by the user.
+            tabs = await chrome.tabs.query({ active: true });
+            webTab = tabs
+                .filter(isWebTab)
+                .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0] || null;
+            if (webTab) {
+                preferredActiveTabId = webTab.id;
+                preferredWindowId = webTab.windowId || null;
+                console.log('[SidePanel] Found active web tab while scanning active tabs:', webTab.url);
+                return webTab;
             }
 
             console.log('[SidePanel] No valid web tab found');
@@ -444,6 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tab && tab.url) {
                 currentPageTabId = tab.id;
+                preferredActiveTabId = tab.id;
+                preferredWindowId = tab.windowId || null;
                 currentPageFallbackTitle = tab.title || tab.url;
                 const reinjected = await ensureContentScript(tab);
                 if (reinjected) {
@@ -840,7 +885,8 @@ document.addEventListener('DOMContentLoaded', () => {
         [
             { value: 'mowen', label: '墨问' },
             { value: 'markdown', label: 'Markdown' },
-            { value: 'html', label: 'HTML' }
+            { value: 'html', label: 'HTML' },
+            { value: 'obsidian', label: 'Obsidian' }
         ].forEach(option => {
             const optionBtn = document.createElement('button');
             optionBtn.type = 'button';
@@ -866,6 +912,18 @@ document.addEventListener('DOMContentLoaded', () => {
             apiKey: String(result[MOWEN_API_KEY_KEY] || '').trim(),
             tags: String(result[MOWEN_TAGS_KEY] || '').trim(),
             lastTestedKey: String(result[MOWEN_TESTED_KEY] || '').trim()
+        };
+    }
+
+    async function getObsidianSettings() {
+        if (window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.getSettings === 'function') {
+            return window.HighlightObsidianExporter.getSettings();
+        }
+
+        const result = await chrome.storage.local.get(['obsidian_vault', 'obsidian_folder']);
+        return {
+            vault: String(result.obsidian_vault || '').trim(),
+            folder: String(result.obsidian_folder || '').trim()
         };
     }
 
@@ -953,6 +1011,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     triggerControl.disabled = false;
                 }
             }
+        } else if (targetFormat === 'obsidian') {
+            if (!window.HighlightObsidianExporter || typeof window.HighlightObsidianExporter.exportBundleToObsidian !== 'function') {
+                alert('Obsidian 导出当前不可用');
+                return;
+            }
+
+            const settings = await getObsidianSettings();
+            if (!settings.vault) {
+                alert('请先在管理页配置 Obsidian Vault。');
+                return;
+            }
+
+            const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings });
+            if (!result.ok) {
+                alert(result.message || '发送到 Obsidian 失败，请检查配置或剪贴板权限。');
+                return;
+            }
+
+            ok = true;
         } else {
             ok = targetFormat === 'html'
                 ? window.HighlightExport.downloadBundleAsHtml(bundle, 'catlines')
@@ -1690,16 +1767,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Listen for tab activation (user switches tabs)
-    chrome.tabs.onActivated.addListener(() => {
-        console.log('[SidePanel] Tab activated, reloading data');
+    chrome.tabs.onActivated.addListener((activeInfo) => {
+        preferredActiveTabId = activeInfo && activeInfo.tabId ? activeInfo.tabId : null;
+        preferredWindowId = activeInfo && activeInfo.windowId ? activeInfo.windowId : null;
+        console.log('[SidePanel] Tab activated, reloading data:', activeInfo);
         loadAllData();
     });
 
     // Listen for tab URL changes (navigation within same tab)
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         if (changeInfo.status === 'complete' && tab.active) {
+            preferredActiveTabId = tabId;
+            preferredWindowId = tab && tab.windowId ? tab.windowId : preferredWindowId;
             console.log('[SidePanel] Tab updated, reloading data');
             loadAllData();
+        }
+    });
+
+    chrome.windows.onFocusChanged.addListener((windowId) => {
+        if (!windowId || windowId === chrome.windows.WINDOW_ID_NONE) {
+            return;
+        }
+        preferredWindowId = windowId;
+        console.log('[SidePanel] Window focused, reloading data:', windowId);
+        loadAllData();
+    });
+
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        if (preferredActiveTabId === tabId) {
+            preferredActiveTabId = null;
+        }
+        if (currentPageTabId === tabId) {
+            currentPageTabId = null;
         }
     });
 

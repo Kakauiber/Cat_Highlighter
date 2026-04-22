@@ -717,6 +717,39 @@ textarea {
   margin-top: 12px;
 }
 
+.obsidian-help-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(191, 181, 171, 0.56);
+  background: rgba(252, 248, 242, 0.9);
+}
+
+.obsidian-help-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.obsidian-help-text,
+.obsidian-help-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.obsidian-help-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.obsidian-help-list li + li {
+  margin-top: 2px;
+}
+
 .mowen-actions button {
   min-height: 36px;
   padding: 0 14px;

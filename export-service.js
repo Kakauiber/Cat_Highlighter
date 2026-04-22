@@ -164,6 +164,100 @@
     return bundle.pages.map(renderPageMarkdown).join('\n\n');
   }
 
+  function normalizeObsidianText(value) {
+    return String(value || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function escapeYamlString(value) {
+    return String(value || '')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+  }
+
+  function formatObsidianDateTime(timestamp) {
+    const date = new Date(timestamp || Date.now());
+    const year = String(date.getFullYear());
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    const second = String(date.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+  }
+
+  function renderNoteCalloutLines(note) {
+    const text = normalizeObsidianText(note);
+    if (!text) return [];
+
+    const lines = text.split('\n');
+    return ['> [!note] 页面笔记'].concat(lines.map(line => `> ${line}`));
+  }
+
+  function renderHighlightObsidianLines(item) {
+    const text = normalizeObsidianText(item.text);
+    if (!text) return [];
+
+    const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
+    if (item.annotation) {
+      lines.push(`  - 【批注】${normalizeObsidianText(item.annotation)}`);
+    }
+    return lines;
+  }
+
+  function renderPageObsidian(page, index) {
+    const lines = [];
+    const heading = page.title || page.url || `未命名页面 ${index + 1}`;
+    lines.push(`## ${heading}`);
+
+    if (page.url) {
+      lines.push(`[原文链接](${page.url})`);
+    }
+
+    if (page.note) {
+      lines.push('');
+      lines.push(...renderNoteCalloutLines(page.note));
+    }
+
+    if (page.highlights.length > 0) {
+      lines.push('');
+      lines.push('### 标注');
+      page.highlights.forEach(item => {
+        lines.push(...renderHighlightObsidianLines(item));
+      });
+    }
+
+    return lines.join('\n');
+  }
+
+  function exportBundleToObsidian(bundle) {
+    if (!bundle || !Array.isArray(bundle.pages) || bundle.pages.length === 0) {
+      return '';
+    }
+
+    const title = bundle.pageCount === 1
+      ? (bundle.pages[0].title || bundle.pages[0].url || '划线猫导出')
+      : `划线猫导出（${bundle.pageCount} 页）`;
+
+    const frontmatter = [
+      '---',
+      `title: "${escapeYamlString(title)}"`,
+      'source: "划线猫"',
+      `exported_at: "${formatObsidianDateTime(bundle.exportedAt)}"`,
+      `page_count: ${bundle.pageCount || 0}`,
+      'tags:',
+      '  - 划线猫',
+      '  - Obsidian',
+      '---'
+    ];
+
+    const body = bundle.pages.map(renderPageObsidian).join('\n\n');
+    return frontmatter.concat(['', `# ${title}`, '', body]).join('\n');
+  }
+
   function renderHighlightHtml(item) {
     const typeClass = item.type === 'underline' ? 'type-underline' : 'type-highlight';
     const colorClass = `color-${item.color}`;
@@ -311,6 +405,19 @@
     return true;
   }
 
+  function downloadBundleAsObsidian(bundle, filenamePrefix) {
+    const content = exportBundleToObsidian(bundle);
+    if (!content) return false;
+
+    const stamp = formatDateStamp(bundle && bundle.exportedAt);
+    downloadTextFile(
+      content,
+      `${filenamePrefix || 'catlines_obsidian'}_${stamp}.md`,
+      'text/markdown;charset=utf-8'
+    );
+    return true;
+  }
+
   function getExportTargetState(target) {
     const featureName = TARGET_FEATURE_MAP[target] || '';
     if (!window.FeatureGate || typeof window.FeatureGate.getFeatureState !== 'function') {
@@ -340,8 +447,10 @@
   window.HighlightExport.buildExportBundle = buildExportBundle;
   window.HighlightExport.exportBundleToMarkdown = exportBundleToMarkdown;
   window.HighlightExport.exportBundleToHtml = exportBundleToHtml;
+  window.HighlightExport.exportBundleToObsidian = exportBundleToObsidian;
   window.HighlightExport.downloadBundleAsMarkdown = downloadBundleAsMarkdown;
   window.HighlightExport.downloadBundleAsHtml = downloadBundleAsHtml;
+  window.HighlightExport.downloadBundleAsObsidian = downloadBundleAsObsidian;
   window.HighlightExport.getExportTargetState = getExportTargetState;
   window.HighlightExport.normalizeHighlightColor = normalizeHighlightColor;
   window.HighlightExport.getHighlightStyleLabel = getHighlightStyleLabel;

@@ -48,6 +48,7 @@
             <button class="export-menu-option" type="button" data-format="mowen" role="menuitem">墨问</button>
             <button class="export-menu-option" type="button" data-format="markdown" role="menuitem">Markdown</button>
             <button class="export-menu-option" type="button" data-format="html" role="menuitem">HTML</button>
+            <button class="export-menu-option" type="button" data-format="obsidian" role="menuitem">Obsidian</button>
           </div>
         </div>
       </div>
@@ -103,16 +104,17 @@
               </div>
             </article>
 
-            <article class="export-target-card export-target-card-soon">
+            <article id="obsidian-target-card" class="export-target-card">
               <div class="export-target-top">
                 <div class="export-target-name-wrap">
-                  <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                  <span id="obsidian-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
                   <span class="export-target-name">Obsidian</span>
                 </div>
-                <span class="export-target-status export-target-status-muted">即将支持</span>
+                <span id="obsidian-target-status" class="export-target-status export-target-status-muted">未配置</span>
               </div>
               <div class="export-target-actions">
-                <span class="target-placeholder-pill">即将支持</span>
+                <button id="obsidian-config-edit-btn" class="target-action-btn" type="button">去配置</button>
+                <button id="obsidian-test-btn" class="target-action-btn" type="button">测试</button>
               </div>
             </article>
           </div>
@@ -138,6 +140,39 @@
               <button id="mowen-save-btn" type="button">保存设置</button>
             </div>
             <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
+          </div>
+
+          <div id="obsidian-form-card" class="mowen-form-card hidden">
+            <div class="mowen-form-head">
+              <div>
+                <h2>Obsidian 导出设置</h2>
+                <p>按官方剪藏工具思路：先写入剪贴板，再调用 Obsidian App 把内容直接创建到指定仓库。</p>
+              </div>
+            </div>
+            <div class="mowen-form">
+              <label class="mowen-field">
+                <span>仓库名称 / Vault ID</span>
+                <input id="obsidian-vault" type="text" placeholder="可直接填写仓库名称；如需更稳，也可填写 Vault ID" autocomplete="off" />
+              </label>
+              <label class="mowen-field">
+                <span>目标文件夹</span>
+                <input id="obsidian-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" autocomplete="off" />
+              </label>
+            </div>
+            <div class="obsidian-help-card">
+              <div class="obsidian-help-title">不知道怎么获取 Vault ID？</div>
+              <div class="obsidian-help-text">可直接填写仓库名称；如果需要获取 Vault ID，请按下面步骤操作：</div>
+              <ol class="obsidian-help-list">
+                <li>打开 Obsidian 桌面版。</li>
+                <li>找到左下角的仓库切换器并切换至目标仓库。</li>
+                <li>右键点击目标仓库区域，在弹出菜单栏中点击“复制路径”。</li>
+              </ol>
+              <div class="obsidian-help-tip">官方文档说明：`vault` 参数既可以用仓库名称，也可以用 Vault ID；Vault ID 更稳定。</div>
+            </div>
+            <div class="mowen-actions">
+              <button id="obsidian-save-btn" type="button">保存设置</button>
+            </div>
+            <div id="obsidian-status" class="mowen-status" aria-live="polite"></div>
           </div>
         </div>
       </details>
@@ -231,6 +266,7 @@
   <script src="feature-gate.js"></script>
   <script src="export-service.js"></script>
   <script src="mowen-exporter.js"></script>
+  <script src="obsidian-exporter.js"></script>
   <script src="options.js"></script>
 </body>
 

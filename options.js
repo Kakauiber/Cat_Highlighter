@@ -39,6 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const mowenSaveBtn = document.getElementById('mowen-save-btn');
   const mowenTestBtn = document.getElementById('mowen-test-btn');
   const mowenStatus = document.getElementById('mowen-status');
+  const obsidianTargetCard = document.getElementById('obsidian-target-card');
+  const obsidianTargetDot = document.getElementById('obsidian-target-dot');
+  const obsidianTargetStatus = document.getElementById('obsidian-target-status');
+  const obsidianConfigEditBtn = document.getElementById('obsidian-config-edit-btn');
+  const obsidianFormCard = document.getElementById('obsidian-form-card');
+  const obsidianVaultInput = document.getElementById('obsidian-vault');
+  const obsidianFolderInput = document.getElementById('obsidian-folder');
+  const obsidianSaveBtn = document.getElementById('obsidian-save-btn');
+  const obsidianTestBtn = document.getElementById('obsidian-test-btn');
+  const obsidianStatus = document.getElementById('obsidian-status');
   const overviewPages = document.getElementById('overview-pages');
   const overviewHighlights = document.getElementById('overview-highlights');
   const overviewNotes = document.getElementById('overview-notes');
@@ -46,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const MOWEN_API_KEY_KEY = 'mowen_api_key';
   const MOWEN_TAGS_KEY = 'mowen_default_tags';
   const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
+  const OBSIDIAN_VAULT_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_VAULT_KEY) || 'obsidian_vault';
+  const OBSIDIAN_FOLDER_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_FOLDER_KEY) || 'obsidian_folder';
+  const OBSIDIAN_LAST_TESTED_AT_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_LAST_TESTED_AT_KEY) || 'obsidian_last_tested_at';
+  const OBSIDIAN_LAST_TESTED_SIGNATURE_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_LAST_TESTED_SIGNATURE_KEY) || 'obsidian_last_tested_signature';
 
   // Cache of page data: { key, url, title, highlights: [...], note: record|null }
   let pagesData = [];
@@ -66,6 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSort = 'updated-desc';
   let mowenIsBusy = false;
   let mowenFormExpanded = false;
+  let obsidianIsBusy = false;
+  let obsidianFormExpanded = false;
+  let lastMowenSettings = { apiKey: '', tags: '', lastTestedKey: '' };
+  let lastObsidianSettings = { vault: '', folder: '', lastTestedAt: 0, lastTestedSignature: '' };
 
   function getMowenApiKey() {
     return String(mowenApiKeyInput && mowenApiKeyInput.value || '').trim();
@@ -73,6 +91,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getMowenTagsInput() {
     return String(mowenTagsInput && mowenTagsInput.value || '').trim();
+  }
+
+  function getObsidianVaultInput() {
+    return String(obsidianVaultInput && obsidianVaultInput.value || '').trim();
+  }
+
+  function getObsidianFolderInput() {
+    return String(obsidianFolderInput && obsidianFolderInput.value || '').trim();
+  }
+
+  function getObsidianSettingsSignature(settings) {
+    if (window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.buildSettingsSignature === 'function') {
+      return window.HighlightObsidianExporter.buildSettingsSignature(settings || {});
+    }
+
+    const vault = String(settings && settings.vault || '').trim();
+    const folder = String(settings && settings.folder || '').trim();
+    return `${vault}::${folder}`;
+  }
+
+  function isCurrentObsidianTest(settings) {
+    if (!settings || !settings.vault || !settings.lastTestedAt) return false;
+    return String(settings.lastTestedSignature || '') === getObsidianSettingsSignature(settings);
+  }
+
+  function updateConfigSummaryMeta() {
+    if (!mowenSummaryMeta) return;
+
+    const hasMowenKey = !!String(lastMowenSettings.apiKey || '').trim();
+    const mowenTested = hasMowenKey && String(lastMowenSettings.lastTestedKey || '') === String(lastMowenSettings.apiKey || '').trim();
+    const hasObsidianVault = !!String(lastObsidianSettings.vault || '').trim();
+    const obsidianTested = isCurrentObsidianTest(lastObsidianSettings);
+
+    const parts = [
+      `墨问：${hasMowenKey ? (mowenTested ? '已配置并测试' : '已配置') : '未配置'}`,
+      `Obsidian：${hasObsidianVault ? (obsidianTested ? '已配置并测试' : '已配置') : '未配置'}`
+    ];
+
+    mowenSummaryMeta.textContent = parts.join(' · ');
   }
 
   function closeExportMenu() {
@@ -95,6 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mowenFormCard) return;
     mowenFormExpanded = !!visible;
     mowenFormCard.classList.toggle('hidden', !visible);
+  }
+
+  function setObsidianFormVisible(visible) {
+    if (!obsidianFormCard) return;
+    obsidianFormExpanded = !!visible;
+    obsidianFormCard.classList.toggle('hidden', !visible);
   }
 
   function syncSettingsPanelState() {
@@ -124,8 +187,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!mowenPanel) return;
     mowenPanel.open = true;
+    setObsidianFormVisible(false);
     closeExportMenu();
     syncMowenPanelState();
+  }
+
+  function openObsidianPanel() {
+    if (settingsPanel) {
+      setSettingsPanelVisible(true);
+    }
+    if (mowenPanel) {
+      mowenPanel.open = true;
+      syncMowenPanelState();
+    }
+    setMowenFormVisible(false);
+    setObsidianFormVisible(true);
+    closeExportMenu();
   }
 
   function setMowenStatus(message, tone) {
@@ -139,22 +216,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function setObsidianStatus(message, tone) {
+    if (!obsidianStatus) return;
+    obsidianStatus.textContent = message || '';
+    obsidianStatus.classList.remove('is-success', 'is-error');
+    if (tone === 'success') {
+      obsidianStatus.classList.add('is-success');
+    } else if (tone === 'error') {
+      obsidianStatus.classList.add('is-error');
+    }
+  }
+
   function updateMowenSummary(settings) {
+    lastMowenSettings = {
+      apiKey: String(settings && settings.apiKey || '').trim(),
+      tags: String(settings && settings.tags || '').trim(),
+      lastTestedKey: String(settings && settings.lastTestedKey || '').trim()
+    };
+
     const apiKey = String(settings && settings.apiKey || '').trim();
     const tags = String(settings && settings.tags || '').trim();
     const lastTestedKey = String(settings && settings.lastTestedKey || '').trim();
     const testedForCurrentKey = apiKey && lastTestedKey === apiKey;
-
-    const parts = [];
-    parts.push(apiKey ? '已配置 API Key' : '未配置 API Key');
-    parts.push(testedForCurrentKey ? '测试已通过' : '需先测试');
-    if (tags) {
-      parts.push(`标签：${tags}`);
-    }
-
-    if (mowenSummaryMeta) {
-      mowenSummaryMeta.textContent = parts.join(' · ');
-    }
+    updateConfigSummaryMeta();
 
     if (mowenTargetStatus) {
       mowenTargetStatus.textContent = apiKey
@@ -184,6 +268,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function updateObsidianSummary(settings) {
+    lastObsidianSettings = {
+      vault: String(settings && settings.vault || '').trim(),
+      folder: String(settings && settings.folder || '').trim(),
+      lastTestedAt: Number(settings && settings.lastTestedAt || 0),
+      lastTestedSignature: String(settings && settings.lastTestedSignature || '').trim()
+    };
+
+    const hasVault = !!lastObsidianSettings.vault;
+    const tested = isCurrentObsidianTest(lastObsidianSettings);
+    updateConfigSummaryMeta();
+
+    if (obsidianTargetStatus) {
+      obsidianTargetStatus.textContent = hasVault
+        ? (tested ? '仓库已配置 · 已测试' : '仓库已配置')
+        : '未配置';
+      obsidianTargetStatus.classList.toggle('export-target-status-success', hasVault);
+      obsidianTargetStatus.classList.toggle('export-target-status-muted', !hasVault);
+    }
+
+    if (obsidianTargetDot) {
+      obsidianTargetDot.classList.toggle('export-status-dot-success', hasVault);
+      obsidianTargetDot.classList.toggle('export-status-dot-muted', !hasVault);
+    }
+
+    if (obsidianTargetCard) {
+      obsidianTargetCard.classList.toggle('export-target-card-active', hasVault);
+    }
+
+    if (obsidianConfigEditBtn) {
+      obsidianConfigEditBtn.textContent = hasVault ? '重新配置' : '去配置';
+    }
+
+    if (!hasVault) {
+      setObsidianFormVisible(true);
+    } else if (!obsidianFormExpanded) {
+      setObsidianFormVisible(false);
+    }
+  }
+
   async function getMowenSettings() {
     const result = await chrome.storage.local.get([
       MOWEN_API_KEY_KEY,
@@ -197,10 +321,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  async function getObsidianSettings() {
+    if (window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.getSettings === 'function') {
+      return window.HighlightObsidianExporter.getSettings();
+    }
+
+    const result = await chrome.storage.local.get([
+      OBSIDIAN_VAULT_KEY,
+      OBSIDIAN_FOLDER_KEY,
+      OBSIDIAN_LAST_TESTED_AT_KEY,
+      OBSIDIAN_LAST_TESTED_SIGNATURE_KEY
+    ]);
+
+    return {
+      vault: String(result[OBSIDIAN_VAULT_KEY] || '').trim(),
+      folder: String(result[OBSIDIAN_FOLDER_KEY] || '').trim(),
+      lastTestedAt: Number(result[OBSIDIAN_LAST_TESTED_AT_KEY] || 0),
+      lastTestedSignature: String(result[OBSIDIAN_LAST_TESTED_SIGNATURE_KEY] || '').trim()
+    };
+  }
+
   function syncMowenActionState(lastTestedKey) {
     const apiKey = getMowenApiKey();
     const hasKey = !!apiKey;
-    const testedForCurrentKey = hasKey && lastTestedKey === apiKey;
 
     if (mowenSaveBtn) {
       mowenSaveBtn.disabled = mowenIsBusy || !hasKey;
@@ -210,12 +353,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function syncObsidianActionState() {
+    const hasVault = !!getObsidianVaultInput();
+
+    if (obsidianSaveBtn) {
+      obsidianSaveBtn.disabled = obsidianIsBusy || !hasVault;
+    }
+    if (obsidianTestBtn) {
+      obsidianTestBtn.disabled = obsidianIsBusy || !hasVault;
+    }
+  }
+
   async function loadMowenSettings() {
     const settings = await getMowenSettings();
     if (mowenApiKeyInput) mowenApiKeyInput.value = settings.apiKey;
     if (mowenTagsInput) mowenTagsInput.value = settings.tags;
     updateMowenSummary(settings);
     syncMowenActionState(settings.lastTestedKey);
+  }
+
+  async function loadObsidianSettings() {
+    const settings = await getObsidianSettings();
+    if (obsidianVaultInput) obsidianVaultInput.value = settings.vault;
+    if (obsidianFolderInput) obsidianFolderInput.value = settings.folder;
+    updateObsidianSummary(settings);
+    syncObsidianActionState();
   }
 
   async function saveMowenSettings() {
@@ -241,6 +403,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function saveObsidianSettings() {
+    const vault = getObsidianVaultInput();
+    const folder = getObsidianFolderInput();
+    const nextSettings = window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.saveSettings === 'function'
+      ? await window.HighlightObsidianExporter.saveSettings({ vault, folder })
+      : await (async () => {
+        await chrome.storage.local.set({
+          [OBSIDIAN_VAULT_KEY]: vault,
+          [OBSIDIAN_FOLDER_KEY]: folder
+        });
+        return getObsidianSettings();
+      })();
+
+    updateObsidianSummary(nextSettings);
+    syncObsidianActionState();
+    setObsidianStatus('设置已保存。建议先点“测试”，确认可以正常写入 Obsidian。', 'success');
+    if (vault) {
+      setObsidianFormVisible(false);
+    }
+  }
+
   async function withMowenBusy(task) {
     if (mowenIsBusy) return;
     mowenIsBusy = true;
@@ -254,6 +437,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const latest = await getMowenSettings();
       updateMowenSummary(latest);
       syncMowenActionState(latest.lastTestedKey);
+    }
+  }
+
+  async function withObsidianBusy(task) {
+    if (obsidianIsBusy) return;
+    obsidianIsBusy = true;
+    syncObsidianActionState();
+    try {
+      await task();
+    } finally {
+      obsidianIsBusy = false;
+      const latest = await getObsidianSettings();
+      updateObsidianSummary(latest);
+      syncObsidianActionState();
     }
   }
 
@@ -316,6 +513,39 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.warn('导出到墨问失败', err);
         setMowenStatus('导出到墨问失败，请检查网络、配额或 API Key。', 'error');
+      }
+    });
+  }
+
+  async function testObsidianExport() {
+    const vault = getObsidianVaultInput();
+    const folder = getObsidianFolderInput();
+
+    if (!vault) {
+      setObsidianStatus('请先填写 Obsidian Vault ID 或名称。', 'error');
+      return;
+    }
+
+    if (!window.HighlightObsidianExporter || typeof window.HighlightObsidianExporter.testObsidianConnection !== 'function') {
+      setObsidianStatus('Obsidian 导出功能当前不可用。', 'error');
+      return;
+    }
+
+    await withObsidianBusy(async () => {
+      setObsidianStatus('正在向 Obsidian 发送测试笔记...', '');
+      try {
+        const result = await window.HighlightObsidianExporter.testObsidianConnection({ vault, folder });
+        if (!result.ok) {
+          setObsidianStatus(result.message || '测试失败，请检查配置后重试。', 'error');
+          return;
+        }
+
+        const latest = result.settings || await getObsidianSettings();
+        updateObsidianSummary(latest);
+        setObsidianStatus(result.message || '已发送测试请求，请切换到 Obsidian 确认。', 'success');
+      } catch (err) {
+        console.warn('Obsidian 测试失败', err);
+        setObsidianStatus('测试失败，请检查 Obsidian 是否已安装并已允许处理 obsidian:// 链接。', 'error');
       }
     });
   }
@@ -537,6 +767,10 @@ document.addEventListener('DOMContentLoaded', () => {
       renderList();
       getMowenSettings().then(settings => syncMowenActionState(settings.lastTestedKey));
       getMowenSettings().then(settings => updateMowenSummary(settings));
+      getObsidianSettings().then(settings => {
+        updateObsidianSummary(settings);
+        syncObsidianActionState();
+      });
     });
   }
 
@@ -1048,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
-  function exportPages(pages, format) {
+  async function exportPages(pages, format) {
     if (!pages || pages.length === 0) {
       alert('没有可导出的内容');
       return;
@@ -1056,7 +1290,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const bundle = window.HighlightExport.buildExportBundle(pages, { source: 'options' });
     const targetFormat = format || 'markdown';
-    const ok = targetFormat === 'html'
+    let ok = false;
+
+    if (targetFormat === 'obsidian') {
+      if (!window.HighlightObsidianExporter || typeof window.HighlightObsidianExporter.exportBundleToObsidian !== 'function') {
+        alert('Obsidian 导出功能暂不可用');
+        return;
+      }
+
+      const settings = await getObsidianSettings();
+      if (!settings.vault) {
+        openObsidianPanel();
+        setObsidianStatus('请先完成 Obsidian 配置，再执行导出。', 'error');
+        return;
+      }
+
+      const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings });
+      if (!result.ok) {
+        openObsidianPanel();
+        setObsidianStatus(result.message || '发送到 Obsidian 失败。', 'error');
+        return;
+      }
+
+      updateObsidianSummary(await getObsidianSettings());
+      setObsidianStatus(`已发送到 Obsidian：${result.filePath}`, 'success');
+      return;
+    }
+
+    ok = targetFormat === 'html'
       ? window.HighlightExport.downloadBundleAsHtml(bundle, 'catlines')
       : window.HighlightExport.downloadBundleAsMarkdown(bundle, 'catlines');
     if (!ok) {
@@ -1095,8 +1356,8 @@ document.addEventListener('DOMContentLoaded', () => {
         closeExportMenu();
         if (!format) return;
 
-        if (format === 'markdown' || format === 'html') {
-          exportPages(pagesData, format);
+        if (format === 'markdown' || format === 'html' || format === 'obsidian') {
+          await exportPages(pagesData, format);
           return;
         }
 
@@ -1139,8 +1400,18 @@ document.addEventListener('DOMContentLoaded', () => {
     mowenConfigEditBtn.addEventListener('click', () => {
       openMowenPanel();
       setMowenFormVisible(true);
+      setObsidianFormVisible(false);
       if (mowenApiKeyInput) {
         mowenApiKeyInput.focus();
+      }
+    });
+  }
+
+  if (obsidianConfigEditBtn) {
+    obsidianConfigEditBtn.addEventListener('click', () => {
+      openObsidianPanel();
+      if (obsidianVaultInput) {
+        obsidianVaultInput.focus();
       }
     });
   }
@@ -1192,7 +1463,24 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mowenTestBtn) {
     mowenTestBtn.addEventListener('click', () => {
       setMowenFormVisible(true);
+      setObsidianFormVisible(false);
       testMowenExport();
+    });
+  }
+
+  if (obsidianSaveBtn) {
+    obsidianSaveBtn.addEventListener('click', () => {
+      saveObsidianSettings().catch(err => {
+        console.warn('保存 Obsidian 设置失败', err);
+        setObsidianStatus('保存设置失败，请稍后重试。', 'error');
+      });
+    });
+  }
+
+  if (obsidianTestBtn) {
+    obsidianTestBtn.addEventListener('click', () => {
+      openObsidianPanel();
+      testObsidianExport();
     });
   }
 
@@ -1219,12 +1507,42 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (obsidianVaultInput) {
+    obsidianVaultInput.addEventListener('input', async () => {
+      const settings = await getObsidianSettings();
+      updateObsidianSummary({
+        vault: getObsidianVaultInput(),
+        folder: getObsidianFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncObsidianActionState();
+    });
+  }
+
+  if (obsidianFolderInput) {
+    obsidianFolderInput.addEventListener('input', async () => {
+      const settings = await getObsidianSettings();
+      updateObsidianSummary({
+        vault: getObsidianVaultInput(),
+        folder: getObsidianFolderInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncObsidianActionState();
+    });
+  }
+
   loadData();
   warmOpenTabsHighlights();
   renderBlacklist();
   loadMowenSettings().catch(err => {
     console.warn('加载墨问设置失败', err);
     setMowenStatus('加载墨问设置失败。', 'error');
+  });
+  loadObsidianSettings().catch(err => {
+    console.warn('加载 Obsidian 设置失败', err);
+    setObsidianStatus('加载 Obsidian 设置失败。', 'error');
   });
   syncSettingsPanelState();
   syncMowenPanelState();
