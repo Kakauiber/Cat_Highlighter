@@ -884,10 +884,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         [
             { value: 'mowen', label: '墨问' },
-            { value: 'markdown', label: 'Markdown' },
-            { value: 'html', label: 'HTML' },
+            { value: 'notion', label: 'Notion' },
             { value: 'obsidian', label: 'Obsidian' },
-            { value: 'siyuan', label: '思源' }
+            { value: 'siyuan', label: '思源笔记' },
+            { value: 'markdown', label: 'Markdown' },
+            { value: 'html', label: 'HTML' }
         ].forEach(option => {
             const optionBtn = document.createElement('button');
             optionBtn.type = 'button';
@@ -914,6 +915,38 @@ document.addEventListener('DOMContentLoaded', () => {
             tags: String(result[MOWEN_TAGS_KEY] || '').trim(),
             lastTestedKey: String(result[MOWEN_TESTED_KEY] || '').trim()
         };
+    }
+
+    async function getNotionSettings() {
+        if (window.HighlightNotionExporter && typeof window.HighlightNotionExporter.getSettings === 'function') {
+            return window.HighlightNotionExporter.getSettings();
+        }
+
+        const result = await chrome.storage.local.get([
+            'notion_token',
+            'notion_parent_page_id',
+            'notion_last_tested_at',
+            'notion_last_tested_signature'
+        ]);
+
+        return {
+            token: String(result.notion_token || '').trim(),
+            parentPageId: String(result.notion_parent_page_id || '').trim(),
+            lastTestedAt: Number(result.notion_last_tested_at || 0),
+            lastTestedSignature: String(result.notion_last_tested_signature || '').trim()
+        };
+    }
+
+    function isCurrentNotionTest(settings) {
+        if (!settings || !settings.token || !settings.parentPageId || !settings.lastTestedAt) {
+            return false;
+        }
+
+        if (window.HighlightNotionExporter && typeof window.HighlightNotionExporter.buildSettingsSignature === 'function') {
+            return String(settings.lastTestedSignature || '') === window.HighlightNotionExporter.buildSettingsSignature(settings);
+        }
+
+        return String(settings.lastTestedSignature || '') === `${settings.token}::${settings.parentPageId}`;
     }
 
     async function getObsidianSettings() {
@@ -1027,6 +1060,43 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error('[SidePanel] Export to Mowen failed:', err);
                 alert('导出到墨问失败，请检查网络、配额或 API Key。');
+                return;
+            } finally {
+                if (triggerControl) {
+                    triggerControl.disabled = false;
+                }
+            }
+        } else if (targetFormat === 'notion') {
+            if (!window.HighlightNotionExporter || typeof window.HighlightNotionExporter.exportBundleToNotion !== 'function') {
+                alert('Notion 导出当前不可用');
+                return;
+            }
+
+            const settings = await getNotionSettings();
+            if (!settings.token || !settings.parentPageId) {
+                alert('请先在管理页配置 Notion API 集成密钥和目标父页面。');
+                return;
+            }
+            if (!isCurrentNotionTest(settings)) {
+                alert('请先在管理页完成一次 Notion 测试导出，再执行当前页导出。');
+                return;
+            }
+
+            if (triggerControl) {
+                triggerControl.disabled = true;
+            }
+
+            try {
+                const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
+                if (!result || !result.ok) {
+                    alert((result && result.message) || '导出到 Notion 失败，请检查 Token、页面权限或网络状态。');
+                    return;
+                }
+                alert(result.url ? `已创建 Notion 页面：${result.url}` : '已创建 Notion 页面。');
+                ok = true;
+            } catch (err) {
+                console.error('[SidePanel] Export to Notion failed:', err);
+                alert('导出到 Notion 失败，请检查 Token、页面权限或网络状态。');
                 return;
             } finally {
                 if (triggerControl) {

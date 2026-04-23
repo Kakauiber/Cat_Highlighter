@@ -46,6 +46,7 @@
           </button>
           <div id="export-menu-popover" class="export-menu-popover" role="menu">
             <button class="export-menu-option" type="button" data-format="mowen" role="menuitem">墨问</button>
+            <button class="export-menu-option" type="button" data-format="notion" role="menuitem">Notion</button>
             <button class="export-menu-option" type="button" data-format="markdown" role="menuitem">Markdown</button>
             <button class="export-menu-option" type="button" data-format="html" role="menuitem">HTML</button>
             <button class="export-menu-option" type="button" data-format="obsidian" role="menuitem">Obsidian</button>
@@ -92,16 +93,17 @@
               </div>
             </article>
 
-            <article class="export-target-card export-target-card-soon">
+            <article id="notion-target-card" class="export-target-card">
               <div class="export-target-top">
                 <div class="export-target-name-wrap">
-                  <span class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
+                  <span id="notion-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
                   <span class="export-target-name">Notion</span>
                 </div>
-                <span class="export-target-status export-target-status-muted">即将支持</span>
+                <span id="notion-target-status" class="export-target-status export-target-status-muted">未配置</span>
               </div>
               <div class="export-target-actions">
-                <span class="target-placeholder-pill">即将支持</span>
+                <button id="notion-config-edit-btn" class="target-action-btn" type="button">去配置</button>
+                <button id="notion-test-btn" class="target-action-btn" type="button">测试</button>
               </div>
             </article>
 
@@ -188,6 +190,40 @@
               <button id="obsidian-save-btn" type="button">保存设置</button>
             </div>
             <div id="obsidian-status" class="mowen-status" aria-live="polite"></div>
+          </div>
+
+          <div id="notion-form-card" class="mowen-form-card hidden">
+            <div class="mowen-form-head">
+              <div>
+                <h2>Notion 导出设置</h2>
+                <p>通过 Notion 官方 API，在目标父页面下创建新的子页面。</p>
+              </div>
+            </div>
+            <div class="mowen-form">
+              <label class="mowen-field">
+                <span>API 集成密钥（Integration Token）</span>
+                <input id="notion-token" type="password" placeholder="输入 Notion API 集成密钥" autocomplete="off" />
+              </label>
+              <label class="mowen-field">
+                <span>目标父页面链接 / ID（Page ID）</span>
+                <input id="notion-parent-page" type="text" placeholder="粘贴 Notion 父页面链接，或填写 Page ID" autocomplete="off" />
+              </label>
+            </div>
+            <div class="obsidian-help-card">
+              <div class="obsidian-help-title">不知道怎么配置 Notion？</div>
+              <ol class="obsidian-help-list">
+                <li>打开 Notion 设置页，点击上方「连接」。</li>
+                <li>点击「开发或管理集成」，再点击「创建新集成」。</li>
+                <li>填写「集成名称」，并在「安装范围（Installation scope）」处选择目标父页面。</li>
+                <li>创建完成后，复制「API 集成密钥（Integration Token）」并粘贴到这里。</li>
+                <li>复制目标父页面链接，粘贴到「目标父页面链接 / ID（Page ID）」处即可。</li>
+              </ol>
+              <div class="obsidian-help-tip">测试会在目标父页面下创建一篇「划线猫 Notion 测试」子页面。正式导出前，建议先完成一次测试。</div>
+            </div>
+            <div class="mowen-actions">
+              <button id="notion-save-btn" type="button">保存设置</button>
+            </div>
+            <div id="notion-status" class="mowen-status" aria-live="polite"></div>
           </div>
 
           <div id="siyuan-form-card" class="mowen-form-card hidden">
@@ -326,6 +362,7 @@
   <script src="feature-gate.js"></script>
   <script src="export-service.js"></script>
   <script src="mowen-exporter.js"></script>
+  <script src="notion-exporter.js"></script>
   <script src="obsidian-exporter.js"></script>
   <script src="siyuan-exporter.js"></script>
   <script src="options.js"></script>

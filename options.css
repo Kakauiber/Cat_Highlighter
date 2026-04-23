@@ -547,20 +547,20 @@ textarea {
 
 .export-target-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .export-target-card {
-  min-height: 98px;
-  padding: 14px;
+  min-height: 82px;
+  padding: 10px 12px;
   border-radius: 15px;
   border: 1px solid rgba(206, 196, 186, 0.7);
   background: rgba(255, 255, 255, 0.82);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .export-target-card-active {
@@ -570,20 +570,20 @@ textarea {
 .export-target-top {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .export-target-name-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 7px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .export-status-dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
   flex-shrink: 0;
 }
@@ -599,11 +599,11 @@ textarea {
 .export-target-status {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
+  min-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
   width: fit-content;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -626,8 +626,8 @@ textarea {
 
 .target-action-btn,
 .target-placeholder-pill {
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border-radius: 11px;
   border: 1px solid rgba(184, 176, 167, 0.75);
   background: rgba(255, 255, 255, 0.88);
@@ -1489,6 +1489,12 @@ textarea {
   display: none !important;
 }
 
+@media (max-width: 1180px) {
+  .export-target-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   #options-container {
     padding: 22px 18px 36px;
@@ -1503,10 +1509,6 @@ textarea {
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;
-  }
-
-  .export-target-grid {
-    grid-template-columns: 1fr;
   }
 
   .inline-field-row {

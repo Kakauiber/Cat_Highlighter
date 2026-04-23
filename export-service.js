@@ -168,6 +168,74 @@
     return exportBundleToMarkdown(bundle);
   }
 
+  function renderHighlightNotionLines(item) {
+    const text = normalizeMarkdownDisplayText(item.text);
+    if (!text) return [];
+
+    const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
+    if (item.annotation) {
+      lines.push(`  - 【批注】${normalizeMarkdownDisplayText(item.annotation)}`);
+    }
+    return lines;
+  }
+
+  function renderPageNotion(page, index, isSinglePage) {
+    const lines = [];
+    const heading = page.title || page.url || `未命名页面 ${index + 1}`;
+
+    if (!isSinglePage) {
+      lines.push(`## ${heading}`);
+    }
+
+    if (page.url) {
+      lines.push(`[原文链接](${page.url})`);
+    }
+
+    if (page.note) {
+      lines.push('');
+      lines.push(isSinglePage ? '## 页面笔记' : '### 页面笔记');
+      lines.push(normalizeMarkdownDisplayText(page.note));
+    }
+
+    if (page.highlights.length > 0) {
+      lines.push('');
+      lines.push(isSinglePage ? '## 标注' : '### 标注');
+      page.highlights.forEach(item => {
+        lines.push(...renderHighlightNotionLines(item));
+      });
+    }
+
+    return lines.join('\n').trim();
+  }
+
+  function exportBundleToNotion(bundle) {
+    if (!bundle || !Array.isArray(bundle.pages) || bundle.pages.length === 0) {
+      return '';
+    }
+
+    const isSinglePage = bundle.pages.length === 1;
+    const title = isSinglePage
+      ? (bundle.pages[0].title || bundle.pages[0].url || '划线猫导出')
+      : `划线猫导出（${bundle.pageCount || bundle.pages.length} 页）`;
+    const lines = [
+      `# ${normalizeMarkdownDisplayText(title)}`,
+      '',
+      `导出时间：${new Date(bundle.exportedAt || Date.now()).toLocaleString('zh-CN')}`,
+      '来源：划线猫'
+    ];
+
+    const body = bundle.pages
+      .map((page, index) => renderPageNotion(page, index, isSinglePage))
+      .filter(Boolean)
+      .join('\n\n---\n\n');
+
+    if (body) {
+      lines.push('', body);
+    }
+
+    return lines.join('\n').trim();
+  }
+
   function normalizeObsidianText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -451,6 +519,7 @@
   window.HighlightExport.buildExportBundle = buildExportBundle;
   window.HighlightExport.exportBundleToMarkdown = exportBundleToMarkdown;
   window.HighlightExport.exportBundleToSiyuan = exportBundleToSiyuan;
+  window.HighlightExport.exportBundleToNotion = exportBundleToNotion;
   window.HighlightExport.exportBundleToHtml = exportBundleToHtml;
   window.HighlightExport.exportBundleToObsidian = exportBundleToObsidian;
   window.HighlightExport.downloadBundleAsMarkdown = downloadBundleAsMarkdown;

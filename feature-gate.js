@@ -7,7 +7,7 @@
   const FEATURE_STATES = {
     'export.markdown': { enabled: true, tier: 'free' },
     'export.mowen': { enabled: true, tier: 'free' },
-    'export.notion': { enabled: false, tier: 'paid' },
+    'export.notion': { enabled: true, tier: 'paid' },
     'export.obsidian': { enabled: true, tier: 'paid' },
     'export.siyuan': { enabled: true, tier: 'paid' }
   };

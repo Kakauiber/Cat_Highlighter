@@ -39,6 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const mowenSaveBtn = document.getElementById('mowen-save-btn');
   const mowenTestBtn = document.getElementById('mowen-test-btn');
   const mowenStatus = document.getElementById('mowen-status');
+  const notionTargetCard = document.getElementById('notion-target-card');
+  const notionTargetDot = document.getElementById('notion-target-dot');
+  const notionTargetStatus = document.getElementById('notion-target-status');
+  const notionConfigEditBtn = document.getElementById('notion-config-edit-btn');
+  const notionFormCard = document.getElementById('notion-form-card');
+  const notionTokenInput = document.getElementById('notion-token');
+  const notionParentPageInput = document.getElementById('notion-parent-page');
+  const notionSaveBtn = document.getElementById('notion-save-btn');
+  const notionTestBtn = document.getElementById('notion-test-btn');
+  const notionStatus = document.getElementById('notion-status');
   const obsidianTargetCard = document.getElementById('obsidian-target-card');
   const obsidianTargetDot = document.getElementById('obsidian-target-dot');
   const obsidianTargetStatus = document.getElementById('obsidian-target-status');
@@ -69,6 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const MOWEN_API_KEY_KEY = 'mowen_api_key';
   const MOWEN_TAGS_KEY = 'mowen_default_tags';
   const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
+  const NOTION_TOKEN_KEY = (window.HighlightNotionExporter && window.HighlightNotionExporter.NOTION_TOKEN_KEY) || 'notion_token';
+  const NOTION_PARENT_PAGE_ID_KEY = (window.HighlightNotionExporter && window.HighlightNotionExporter.NOTION_PARENT_PAGE_ID_KEY) || 'notion_parent_page_id';
+  const NOTION_LAST_TESTED_AT_KEY = (window.HighlightNotionExporter && window.HighlightNotionExporter.NOTION_LAST_TESTED_AT_KEY) || 'notion_last_tested_at';
+  const NOTION_LAST_TESTED_SIGNATURE_KEY = (window.HighlightNotionExporter && window.HighlightNotionExporter.NOTION_LAST_TESTED_SIGNATURE_KEY) || 'notion_last_tested_signature';
   const OBSIDIAN_VAULT_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_VAULT_KEY) || 'obsidian_vault';
   const OBSIDIAN_FOLDER_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_FOLDER_KEY) || 'obsidian_folder';
   const OBSIDIAN_LAST_TESTED_AT_KEY = (window.HighlightObsidianExporter && window.HighlightObsidianExporter.OBSIDIAN_LAST_TESTED_AT_KEY) || 'obsidian_last_tested_at';
@@ -101,11 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeSort = 'updated-desc';
   let mowenIsBusy = false;
   let mowenFormExpanded = false;
+  let notionIsBusy = false;
+  let notionFormExpanded = false;
   let obsidianIsBusy = false;
   let obsidianFormExpanded = false;
   let siyuanIsBusy = false;
   let siyuanFormExpanded = false;
   let lastMowenSettings = { apiKey: '', tags: '', lastTestedKey: '' };
+  let lastNotionSettings = { token: '', parentPageId: '', lastTestedAt: 0, lastTestedSignature: '' };
   let lastObsidianSettings = { vault: '', folder: '', lastTestedAt: 0, lastTestedSignature: '' };
   let lastSiyuanSettings = {
     endpoint: SIYUAN_DEFAULT_ENDPOINT,
@@ -124,6 +141,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getMowenTagsInput() {
     return String(mowenTagsInput && mowenTagsInput.value || '').trim();
+  }
+
+  function getNotionTokenInput() {
+    return String(notionTokenInput && notionTokenInput.value || '').trim();
+  }
+
+  function getNotionParentPageInput() {
+    const raw = String(notionParentPageInput && notionParentPageInput.value || '').trim();
+    if (window.HighlightNotionExporter && typeof window.HighlightNotionExporter.normalizeParentPageId === 'function') {
+      return window.HighlightNotionExporter.normalizeParentPageId(raw);
+    }
+    return raw;
   }
 
   function getObsidianVaultInput() {
@@ -170,6 +199,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${vault}::${folder}`;
   }
 
+  function getNotionSettingsSignature(settings) {
+    if (window.HighlightNotionExporter && typeof window.HighlightNotionExporter.buildSettingsSignature === 'function') {
+      return window.HighlightNotionExporter.buildSettingsSignature(settings || {});
+    }
+
+    const token = String(settings && settings.token || '').trim();
+    const parentPageId = String(settings && settings.parentPageId || '').trim();
+    return `${token}::${parentPageId}`;
+  }
+
   function getSiyuanSettingsSignature(settings) {
     if (window.HighlightSiyuanExporter && typeof window.HighlightSiyuanExporter.buildSettingsSignature === 'function') {
       return window.HighlightSiyuanExporter.buildSettingsSignature(settings || {});
@@ -187,6 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(settings.lastTestedSignature || '') === getObsidianSettingsSignature(settings);
   }
 
+  function isCurrentNotionTest(settings) {
+    if (!settings || !settings.token || !settings.parentPageId || !settings.lastTestedAt) return false;
+    return String(settings.lastTestedSignature || '') === getNotionSettingsSignature(settings);
+  }
+
   function isCurrentSiyuanTest(settings) {
     if (!settings || !settings.token || !settings.notebookId || !settings.lastTestedAt) return false;
     return String(settings.lastTestedSignature || '') === getSiyuanSettingsSignature(settings);
@@ -197,6 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const hasMowenKey = !!String(lastMowenSettings.apiKey || '').trim();
     const mowenTested = hasMowenKey && String(lastMowenSettings.lastTestedKey || '') === String(lastMowenSettings.apiKey || '').trim();
+    const hasNotionParent = !!String(lastNotionSettings.parentPageId || '').trim();
+    const notionTested = isCurrentNotionTest(lastNotionSettings);
     const hasObsidianVault = !!String(lastObsidianSettings.vault || '').trim();
     const obsidianTested = isCurrentObsidianTest(lastObsidianSettings);
     const hasSiyuanNotebook = !!String(lastSiyuanSettings.notebookId || '').trim();
@@ -204,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const parts = [
       `墨问：${hasMowenKey ? (mowenTested ? '已配置并测试' : '已配置') : '未配置'}`,
+      `Notion：${hasNotionParent ? (notionTested ? '已配置并测试' : '已配置') : '未配置'}`,
       `Obsidian：${hasObsidianVault ? (obsidianTested ? '已配置并测试' : '已配置') : '未配置'}`,
       `思源：${hasSiyuanNotebook ? (siyuanTested ? '已配置并测试' : '已配置') : '未配置'}`
     ];
@@ -231,6 +278,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mowenFormCard) return;
     mowenFormExpanded = !!visible;
     mowenFormCard.classList.toggle('hidden', !visible);
+  }
+
+  function setNotionFormVisible(visible) {
+    if (!notionFormCard) return;
+    notionFormExpanded = !!visible;
+    notionFormCard.classList.toggle('hidden', !visible);
+    if (notionConfigEditBtn) {
+      const hasParent = !!String(lastNotionSettings && lastNotionSettings.parentPageId || '').trim();
+      notionConfigEditBtn.textContent = visible ? '收起配置' : (hasParent ? '重新配置' : '去配置');
+    }
   }
 
   function setObsidianFormVisible(visible) {
@@ -269,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsPanel.classList.toggle('hidden', !visible);
     if (!visible) {
       setMowenFormVisible(false);
+      setNotionFormVisible(false);
       setObsidianFormVisible(false);
       setSiyuanFormVisible(false);
     }
@@ -281,10 +339,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!mowenPanel) return;
     mowenPanel.open = true;
+    setNotionFormVisible(false);
     setObsidianFormVisible(false);
     setSiyuanFormVisible(false);
     closeExportMenu();
     syncMowenPanelState();
+  }
+
+  function openNotionPanel() {
+    if (settingsPanel) {
+      setSettingsPanelVisible(true);
+    }
+    if (mowenPanel) {
+      mowenPanel.open = true;
+      syncMowenPanelState();
+    }
+    setMowenFormVisible(false);
+    setNotionFormVisible(true);
+    setObsidianFormVisible(false);
+    setSiyuanFormVisible(false);
+    closeExportMenu();
   }
 
   function openObsidianPanel() {
@@ -296,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncMowenPanelState();
     }
     setMowenFormVisible(false);
+    setNotionFormVisible(false);
     setObsidianFormVisible(true);
     setSiyuanFormVisible(false);
     closeExportMenu();
@@ -310,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
       syncMowenPanelState();
     }
     setMowenFormVisible(false);
+    setNotionFormVisible(false);
     setObsidianFormVisible(false);
     setSiyuanFormVisible(true);
     closeExportMenu();
@@ -323,6 +399,17 @@ document.addEventListener('DOMContentLoaded', () => {
       mowenStatus.classList.add('is-success');
     } else if (tone === 'error') {
       mowenStatus.classList.add('is-error');
+    }
+  }
+
+  function setNotionStatus(message, tone) {
+    if (!notionStatus) return;
+    notionStatus.textContent = message || '';
+    notionStatus.classList.remove('is-success', 'is-error');
+    if (tone === 'success') {
+      notionStatus.classList.add('is-success');
+    } else if (tone === 'error') {
+      notionStatus.classList.add('is-error');
     }
   }
 
@@ -386,6 +473,53 @@ document.addEventListener('DOMContentLoaded', () => {
       setMowenFormVisible(true);
     } else if (!mowenFormExpanded) {
       setMowenFormVisible(false);
+    }
+  }
+
+  function updateNotionSummary(settings) {
+    lastNotionSettings = {
+      token: String(settings && settings.token || '').trim(),
+      parentPageId: String(settings && settings.parentPageId || '').trim(),
+      lastTestedAt: Number(settings && settings.lastTestedAt || 0),
+      lastTestedSignature: String(settings && settings.lastTestedSignature || '').trim()
+    };
+
+    const hasToken = !!lastNotionSettings.token;
+    const hasParent = !!lastNotionSettings.parentPageId;
+    const tested = isCurrentNotionTest(lastNotionSettings);
+    updateConfigSummaryMeta();
+
+    if (notionTargetStatus) {
+      if (hasToken && hasParent) {
+        notionTargetStatus.textContent = tested ? '页面已配置 · 已测试' : '页面已配置 · 待测试';
+      } else if (hasToken) {
+        notionTargetStatus.textContent = '密钥已配置 · 待填写页面';
+      } else if (hasParent) {
+        notionTargetStatus.textContent = '页面已配置 · 待填写密钥';
+      } else {
+        notionTargetStatus.textContent = '未配置';
+      }
+      notionTargetStatus.classList.toggle('export-target-status-success', hasToken && hasParent);
+      notionTargetStatus.classList.toggle('export-target-status-muted', !(hasToken && hasParent));
+    }
+
+    if (notionTargetDot) {
+      notionTargetDot.classList.toggle('export-status-dot-success', hasToken && hasParent);
+      notionTargetDot.classList.toggle('export-status-dot-muted', !(hasToken && hasParent));
+    }
+
+    if (notionTargetCard) {
+      notionTargetCard.classList.toggle('export-target-card-active', hasToken && hasParent);
+    }
+
+    if (notionConfigEditBtn) {
+      notionConfigEditBtn.textContent = hasToken && hasParent ? '重新配置' : '去配置';
+    }
+
+    if (!hasToken || !hasParent) {
+      setNotionFormVisible(true);
+    } else if (!notionFormExpanded) {
+      setNotionFormVisible(false);
     }
   }
 
@@ -532,6 +666,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  async function getNotionSettings() {
+    if (window.HighlightNotionExporter && typeof window.HighlightNotionExporter.getSettings === 'function') {
+      return window.HighlightNotionExporter.getSettings();
+    }
+
+    const result = await chrome.storage.local.get([
+      NOTION_TOKEN_KEY,
+      NOTION_PARENT_PAGE_ID_KEY,
+      NOTION_LAST_TESTED_AT_KEY,
+      NOTION_LAST_TESTED_SIGNATURE_KEY
+    ]);
+
+    return {
+      token: String(result[NOTION_TOKEN_KEY] || '').trim(),
+      parentPageId: String(result[NOTION_PARENT_PAGE_ID_KEY] || '').trim(),
+      lastTestedAt: Number(result[NOTION_LAST_TESTED_AT_KEY] || 0),
+      lastTestedSignature: String(result[NOTION_LAST_TESTED_SIGNATURE_KEY] || '').trim()
+    };
+  }
+
   async function getObsidianSettings() {
     if (window.HighlightObsidianExporter && typeof window.HighlightObsidianExporter.getSettings === 'function') {
       return window.HighlightObsidianExporter.getSettings();
@@ -590,6 +744,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function syncNotionActionState() {
+    const hasToken = !!getNotionTokenInput();
+    const hasParent = !!getNotionParentPageInput();
+
+    if (notionSaveBtn) {
+      notionSaveBtn.disabled = notionIsBusy || !hasToken || !hasParent;
+    }
+    if (notionTestBtn) {
+      notionTestBtn.disabled = notionIsBusy || !hasToken || !hasParent;
+    }
+  }
+
   function syncObsidianActionState() {
     const hasVault = !!getObsidianVaultInput();
 
@@ -622,6 +788,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mowenTagsInput) mowenTagsInput.value = settings.tags;
     updateMowenSummary(settings);
     syncMowenActionState(settings.lastTestedKey);
+  }
+
+  async function loadNotionSettings() {
+    const settings = await getNotionSettings();
+    if (notionTokenInput) notionTokenInput.value = settings.token;
+    if (notionParentPageInput) notionParentPageInput.value = settings.parentPageId;
+    updateNotionSummary(settings);
+    syncNotionActionState();
   }
 
   async function loadObsidianSettings() {
@@ -692,6 +866,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (vault) {
       setObsidianFormVisible(false);
     }
+  }
+
+  async function saveNotionSettings(options) {
+    const token = getNotionTokenInput();
+    const parentPageId = getNotionParentPageInput();
+
+    if (!token) {
+      if (!(options && options.silent)) {
+        setNotionStatus('请先填写 Notion API 集成密钥（Integration Token）。', 'error');
+      }
+      return null;
+    }
+
+    if (!parentPageId) {
+      if (!(options && options.silent)) {
+        setNotionStatus('请粘贴有效的 Notion 目标父页面链接，或填写页面 ID（Page ID）。', 'error');
+      }
+      return null;
+    }
+
+    const nextSettings = window.HighlightNotionExporter && typeof window.HighlightNotionExporter.saveSettings === 'function'
+      ? await window.HighlightNotionExporter.saveSettings({ token, parentPageId })
+      : await (async () => {
+        await chrome.storage.local.set({
+          [NOTION_TOKEN_KEY]: token,
+          [NOTION_PARENT_PAGE_ID_KEY]: parentPageId
+        });
+        return getNotionSettings();
+      })();
+
+    updateNotionSummary(nextSettings);
+    syncNotionActionState();
+    if (!(options && options.suppressSuccess)) {
+      setNotionStatus('设置已保存。建议先点“测试”，确认可以正常写入 Notion。', 'success');
+    }
+    if (!(options && options.keepOpen) && token && parentPageId) {
+      setNotionFormVisible(false);
+    }
+    return nextSettings;
   }
 
   async function saveSiyuanSettings(options) {
@@ -766,6 +979,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const latest = await getObsidianSettings();
       updateObsidianSummary(latest);
       syncObsidianActionState();
+    }
+  }
+
+  async function withNotionBusy(task) {
+    if (notionIsBusy) return;
+    notionIsBusy = true;
+    syncNotionActionState();
+    try {
+      await task();
+    } finally {
+      notionIsBusy = false;
+      const latest = await getNotionSettings();
+      updateNotionSummary(latest);
+      syncNotionActionState();
     }
   }
 
@@ -846,6 +1073,76 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.warn('导出到墨问失败', err);
         setMowenStatus('导出到墨问失败，请检查网络、配额或 API Key。', 'error');
+      }
+    });
+  }
+
+  async function testNotionExport() {
+    const savedSettings = await saveNotionSettings({ keepOpen: true, suppressSuccess: true });
+    if (!savedSettings) return;
+
+    if (!window.HighlightNotionExporter || typeof window.HighlightNotionExporter.testNotionConnection !== 'function') {
+      setNotionStatus('Notion 导出功能当前不可用。', 'error');
+      return;
+    }
+
+    await withNotionBusy(async () => {
+      setNotionStatus('正在向 Notion 创建测试页面...', '');
+      try {
+        const result = await window.HighlightNotionExporter.testNotionConnection(savedSettings);
+        if (!result.ok) {
+          setNotionStatus(result.message || '测试失败，请检查配置后重试。', 'error');
+          return;
+        }
+
+        const latest = result.settings || await getNotionSettings();
+        updateNotionSummary(latest);
+        setNotionStatus(result.url ? `测试成功，已创建测试页面：${result.url}` : (result.message || '测试成功，已在 Notion 中创建测试页面。'), 'success');
+      } catch (err) {
+        console.warn('Notion 测试失败', err);
+        setNotionStatus('测试失败，请检查 Token、页面共享权限或网络状态。', 'error');
+      }
+    });
+  }
+
+  async function exportAllToNotion() {
+    if (pagesData.length === 0) {
+      setNotionStatus('当前没有可导出的页面记录。', 'error');
+      return;
+    }
+
+    const settings = await getNotionSettings();
+    if (!settings.token) {
+      openNotionPanel();
+      setNotionStatus('请先填写 Notion API 集成密钥（Integration Token）。', 'error');
+      return;
+    }
+    if (!settings.parentPageId) {
+      openNotionPanel();
+      setNotionStatus('请先填写 Notion 目标父页面链接或页面 ID（Page ID）。', 'error');
+      return;
+    }
+    if (!isCurrentNotionTest(settings)) {
+      openNotionPanel();
+      setNotionStatus('请先测试 Notion 导出，确认配置可用后再导出。', 'error');
+      return;
+    }
+
+    await withNotionBusy(async () => {
+      setNotionStatus('正在导出全部记录到 Notion...', '');
+      try {
+        const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
+        const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
+        if (!result || !result.ok) {
+          setNotionStatus((result && result.message) || '导出到 Notion 失败。', 'error');
+          return;
+        }
+
+        updateNotionSummary(result.settings || await getNotionSettings());
+        setNotionStatus(result.url ? `导出成功，已创建 Notion 页面：${result.url}` : '导出成功，已创建 Notion 页面。', 'success');
+      } catch (err) {
+        console.warn('导出到 Notion 失败', err);
+        setNotionStatus('导出到 Notion 失败，请检查 Token、页面共享权限或网络状态。', 'error');
       }
     });
   }
@@ -1771,6 +2068,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetFormat = format || 'markdown';
     let ok = false;
 
+    if (targetFormat === 'notion') {
+      if (!window.HighlightNotionExporter || typeof window.HighlightNotionExporter.exportBundleToNotion !== 'function') {
+        alert('Notion 导出功能暂不可用');
+        return;
+      }
+
+      const settings = await getNotionSettings();
+      if (!settings.token || !settings.parentPageId) {
+        openNotionPanel();
+        setNotionStatus('请先完成 Notion 配置，再执行导出。', 'error');
+        return;
+      }
+      if (!isCurrentNotionTest(settings)) {
+        openNotionPanel();
+        setNotionStatus('请先测试 Notion 导出，确认配置可用后再导出。', 'error');
+        return;
+      }
+
+      const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
+      if (!result.ok) {
+        openNotionPanel();
+        setNotionStatus(result.message || '发送到 Notion 失败。', 'error');
+        return;
+      }
+
+      updateNotionSummary(result.settings || await getNotionSettings());
+      setNotionStatus(result.url ? `已发送到 Notion：${result.url}` : '已发送到 Notion。', 'success');
+      return;
+    }
+
     if (targetFormat === 'obsidian') {
       if (!window.HighlightObsidianExporter || typeof window.HighlightObsidianExporter.exportBundleToObsidian !== 'function') {
         alert('Obsidian 导出功能暂不可用');
@@ -1892,6 +2219,11 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
+        if (format === 'notion') {
+          exportAllToNotion();
+          return;
+        }
+
         if (format === 'siyuan') {
           exportAllToSiyuan();
         }
@@ -1914,9 +2246,23 @@ document.addEventListener('DOMContentLoaded', () => {
     mowenConfigEditBtn.addEventListener('click', () => {
       openMowenPanel();
       setMowenFormVisible(true);
+      setNotionFormVisible(false);
       setObsidianFormVisible(false);
       if (mowenApiKeyInput) {
         mowenApiKeyInput.focus();
+      }
+    });
+  }
+
+  if (notionConfigEditBtn) {
+    notionConfigEditBtn.addEventListener('click', () => {
+      if (settingsPanel && !settingsPanel.classList.contains('hidden') && notionFormCard && !notionFormCard.classList.contains('hidden')) {
+        setNotionFormVisible(false);
+        return;
+      }
+      openNotionPanel();
+      if (notionTokenInput) {
+        notionTokenInput.focus();
       }
     });
   }
@@ -1990,9 +2336,26 @@ document.addEventListener('DOMContentLoaded', () => {
   if (mowenTestBtn) {
     mowenTestBtn.addEventListener('click', () => {
       setMowenFormVisible(true);
+      setNotionFormVisible(false);
       setObsidianFormVisible(false);
       setSiyuanFormVisible(false);
       testMowenExport();
+    });
+  }
+
+  if (notionSaveBtn) {
+    notionSaveBtn.addEventListener('click', () => {
+      saveNotionSettings().catch(err => {
+        console.warn('保存 Notion 设置失败', err);
+        setNotionStatus('保存设置失败，请稍后重试。', 'error');
+      });
+    });
+  }
+
+  if (notionTestBtn) {
+    notionTestBtn.addEventListener('click', () => {
+      openNotionPanel();
+      testNotionExport();
     });
   }
 
@@ -2055,6 +2418,32 @@ document.addEventListener('DOMContentLoaded', () => {
         tags: getMowenTagsInput(),
         lastTestedKey: settings.lastTestedKey
       });
+    });
+  }
+
+  if (notionTokenInput) {
+    notionTokenInput.addEventListener('input', async () => {
+      const settings = await getNotionSettings();
+      updateNotionSummary({
+        token: getNotionTokenInput(),
+        parentPageId: getNotionParentPageInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncNotionActionState();
+    });
+  }
+
+  if (notionParentPageInput) {
+    notionParentPageInput.addEventListener('input', async () => {
+      const settings = await getNotionSettings();
+      updateNotionSummary({
+        token: getNotionTokenInput(),
+        parentPageId: getNotionParentPageInput(),
+        lastTestedAt: settings.lastTestedAt,
+        lastTestedSignature: settings.lastTestedSignature
+      });
+      syncNotionActionState();
     });
   }
 
@@ -2156,6 +2545,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadMowenSettings().catch(err => {
     console.warn('加载墨问设置失败', err);
     setMowenStatus('加载墨问设置失败。', 'error');
+  });
+  loadNotionSettings().catch(err => {
+    console.warn('加载 Notion 设置失败', err);
+    setNotionStatus('加载 Notion 设置失败。', 'error');
   });
   loadObsidianSettings().catch(err => {
     console.warn('加载 Obsidian 设置失败', err);
