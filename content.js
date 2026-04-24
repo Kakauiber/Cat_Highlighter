@@ -114,7 +114,6 @@ function initExtension() {
       ...pageContext,
       ...nextContext
     };
-    currentPageUrl = pageContext.pageUrl || currentPageUrl;
   }
 
   function getCurrentFrameKey() {
@@ -399,6 +398,7 @@ function initExtension() {
       }
       lastKnownUrl = window.location.href;
       refreshTopFramePageContextBroadcast();
+      handleUrlChange();
       debouncedRestore();
     };
 
@@ -591,6 +591,9 @@ function initExtension() {
   let highlightStorageQueue = Promise.resolve();
 
   function getCurrentPageUrl() {
+    if (isTopWindowSafe()) {
+      return window.location.href;
+    }
     return pageContext.pageUrl || window.location.href;
   }
 
@@ -600,6 +603,29 @@ function initExtension() {
 
   function getNoteStorageKey(url = getCurrentPageUrl()) {
     return NOTE_PREFIX + url;
+  }
+
+  function isKimiEntryPageUrl(url = getCurrentPageUrl()) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname || '';
+      if (!/(\.|^)(kimi\.com|moonshot\.cn)$/i.test(host)) {
+        return false;
+      }
+
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      if (segments.length === 0) {
+        return true;
+      }
+
+      return segments.length === 1 && ['chat', 'home'].includes(segments[0].toLowerCase());
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function shouldSuppressStoredHighlightsWithoutDom() {
+    return isKimiEntryPageUrl();
   }
 
   function queueHighlightStorageMutation(storageKey, mutator, onComplete) {
@@ -878,6 +904,7 @@ function initExtension() {
     currentPageUrl = nextUrl;
     lastSelection = { range: null, text: '' };
     unwrapRenderedHighlights();
+    notifyPageHighlightsChangedFromStorage(getStorageKey(nextUrl));
     return true;
   }
 
@@ -1163,6 +1190,10 @@ function initExtension() {
     const domHighlights = collectHighlightsFromDom();
 
     if (domHighlights.length === 0) {
+      if (shouldSuppressStoredHighlightsWithoutDom()) {
+        callback([]);
+        return;
+      }
       callback(stored);
       return;
     }
@@ -2042,14 +2073,23 @@ function initExtension() {
       const data = result[storageKey];
       if (Array.isArray(data) && data.length > 0) {
         applyHighlights(data);
+        const domHighlights = collectHighlightsFromDom();
+        notifyPageHighlightsChanged(
+          storageKey,
+          domHighlights.length > 0 || shouldSuppressStoredHighlightsWithoutDom() ? domHighlights : data
+        );
       } else if (!pageChanged) {
         recoverCurrentPageHighlightsFromSync((recovered) => {
           if (Array.isArray(recovered) && recovered.length > 0) {
             applyHighlights(recovered);
+            notifyPageHighlightsChanged(storageKey, recovered);
           } else {
             syncDomHighlightsToStorage();
+            notifyPageHighlightsChanged(storageKey, []);
           }
         });
+      } else {
+        notifyPageHighlightsChanged(storageKey, []);
       }
     });
   }

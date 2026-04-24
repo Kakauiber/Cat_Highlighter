@@ -141,6 +141,20 @@ body {
     stroke: #efc46b;
 }
 
+.header-btn.is-refreshing svg {
+    animation: header-refresh-spin 0.45s ease;
+}
+
+@keyframes header-refresh-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Tabs */
 .tabs {
     display: grid;

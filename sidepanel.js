@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const manageBtn = document.getElementById('manage-btn');
+    const refreshPageBtn = document.getElementById('refresh-page-btn');
     // Batch Selection Elements
     const selectModeBtn = document.getElementById('select-mode-btn');
     const batchHeader = document.getElementById('batch-header');
@@ -102,6 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Manage Button ---
     manageBtn.addEventListener('click', openManagePage);
+    if (refreshPageBtn) {
+        refreshPageBtn.addEventListener('click', () => {
+            refreshPageBtn.classList.add('is-refreshing');
+            scheduleLoadAllData(0);
+            window.setTimeout(() => {
+                refreshPageBtn.classList.remove('is-refreshing');
+            }, 450);
+        });
+    }
     if (onboardingManageBtn) {
         onboardingManageBtn.addEventListener('click', openManagePage);
     }
@@ -133,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let noteIsDirty = false;        // Whether textarea has unsaved changes
     let isNoteSaving = false;       // Guard against concurrent saves
     let noteLoadRequestToken = 0;   // Prevent stale async note loads from overwriting newer pages
+    let tabReloadTimer = null;      // Debounce SPA tab URL/status changes
     const supportsHoverInteractions = typeof window.matchMedia === 'function'
         && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     const MOWEN_API_KEY_KEY = 'mowen_api_key';
@@ -190,6 +201,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/[ \t]+\n/g, '\n')
             .replace(/\n{2,}/g, '\n')
             .trim();
+    }
+
+    function normalizePageUrlForCompare(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        try {
+            return new URL(raw).href;
+        } catch (err) {
+            return raw;
+        }
+    }
+
+    function isSamePageUrl(left, right) {
+        const a = normalizePageUrlForCompare(left);
+        const b = normalizePageUrlForCompare(right);
+        return !!a && !!b && a === b;
     }
 
     function formatHighlightForClipboard(highlight) {
@@ -274,10 +301,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (preferredActiveTabId) {
                 try {
                     const preferredTab = await chrome.tabs.get(preferredActiveTabId);
-                    if (isWebTab(preferredTab)) {
+                    if (isWebTab(preferredTab) && preferredTab.active) {
                         console.log('[SidePanel] Using preferred active tab:', preferredTab.url);
                         return preferredTab;
                     }
+                    preferredActiveTabId = null;
                 } catch (err) {
                     preferredActiveTabId = null;
                 }
@@ -447,15 +475,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await chrome.tabs.sendMessage(tab.id, { command: 'getHighlights' }, { frameId: 0 });
-            const highlights = Array.isArray(response?.highlights) ? response.highlights : [];
-            const resolvedUrl = response?.pageUrl || tab.url;
+            const responseUrl = response?.pageUrl || '';
+            const responseMatchesTab = !responseUrl || isSamePageUrl(responseUrl, tab.url);
+            const highlights = responseMatchesTab && Array.isArray(response?.highlights) ? response.highlights : [];
+            const resolvedUrl = responseMatchesTab ? (responseUrl || tab.url) : tab.url;
             const title = getBestPageTitle(
-                [response?.pageTitle].concat(highlights.map(item => item && item.pageTitle)),
+                [responseMatchesTab ? response?.pageTitle : ''].concat(highlights.map(item => item && item.pageTitle)),
                 tab.title || resolvedUrl
             );
             return {
                 tabId: tab.id,
-                key: response?.storageKey || (prefix + resolvedUrl),
+                key: responseMatchesTab && response?.storageKey ? response.storageKey : (prefix + resolvedUrl),
                 url: resolvedUrl,
                 title,
                 highlights
@@ -534,6 +564,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error('Failed to load data:', err);
         }
+    }
+
+    function scheduleLoadAllData(delay = 100) {
+        if (tabReloadTimer) {
+            clearTimeout(tabReloadTimer);
+        }
+        tabReloadTimer = setTimeout(() => {
+            tabReloadTimer = null;
+            loadAllData();
+        }, delay);
     }
 
     function applyCurrentPageHighlightChange(change) {
@@ -1845,11 +1885,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!currentPageData) {
+        const senderTabId = sender && sender.tab && sender.tab.id;
+        const senderTabUrl = sender && sender.tab && sender.tab.url;
+
+        if (message.pageUrl && senderTabUrl && !isSamePageUrl(message.pageUrl, senderTabUrl)) {
             return;
         }
 
-        const senderTabId = sender && sender.tab && sender.tab.id;
+        if (!currentPageData) {
+            if (!currentPageTabId || (senderTabId && currentPageTabId === senderTabId)) {
+                scheduleLoadAllData(50);
+            }
+            return;
+        }
+
         const matchesCurrentPage =
             (currentPageTabId && senderTabId && currentPageTabId === senderTabId) ||
             (message.storageKey && currentPageData.key === message.storageKey) ||
@@ -1860,19 +1909,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const nextHighlights = Array.isArray(message.highlights) ? message.highlights : [];
+        const nextUrl = message.pageUrl || currentPageData.url;
         const nextTitle = getBestPageTitle(
             [message.pageTitle].concat(nextHighlights.map(item => item && item.pageTitle)),
             currentPageData.title || currentPageData.url
         );
+        const previousUrl = currentPageData.url;
 
         currentPageData = {
             ...currentPageData,
             tabId: senderTabId || currentPageData.tabId,
             key: message.storageKey || currentPageData.key,
-            url: message.pageUrl || currentPageData.url,
+            url: nextUrl,
             title: nextTitle,
             highlights: nextHighlights
         };
+
+        if (nextUrl && nextUrl !== previousUrl) {
+            currentActivePageUrl = nextUrl;
+            currentPageAccessState = 'ready';
+            loadCurrentPageNote(nextUrl, nextTitle).catch(() => { });
+        }
 
         if (activeTab === 'current') {
             renderCurrentView();
@@ -1891,11 +1948,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for tab URL changes (navigation within same tab)
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-        if (changeInfo.status === 'complete' && tab.active) {
+        const isRelevantTab =
+            tab && tab.active &&
+            (!currentPageTabId || currentPageTabId === tabId || preferredActiveTabId === tabId);
+        const hasNavigationChange = Boolean(changeInfo.url || changeInfo.title || changeInfo.status === 'complete');
+
+        if (isRelevantTab && hasNavigationChange) {
             preferredActiveTabId = tabId;
             preferredWindowId = tab && tab.windowId ? tab.windowId : preferredWindowId;
             console.log('[SidePanel] Tab updated, reloading data');
-            loadAllData();
+            scheduleLoadAllData(changeInfo.url ? 50 : 150);
         }
     });
 
