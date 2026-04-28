@@ -1,8 +1,10 @@
 {
     "manifest_version": 3,
-    "name": "划线猫",
-    "description": "在任意网页上高亮或划线所选文本，支持颜色选择、批注、复制、删除、侧边栏与管理界面，并在刷新后自动恢复高亮。",
-    "version": "1.5.4",
+    "name": "__MSG_appName__",
+    "description": "__MSG_appDescription__",
+    "default_locale": "zh_CN",
+    "version": "1.0.0",
+    "version_name": "v1.0",
     "permissions": [
         "activeTab",
         "scripting",
@@ -14,7 +16,7 @@
         "<all_urls>"
     ],
     "action": {
-        "default_title": "划线猫",
+        "default_title": "__MSG_appName__",
         "default_icon": {
             "16": "icons/icon16.png",
             "32": "icons/icon32.png",

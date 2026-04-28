@@ -14,11 +14,11 @@
             <div class="brand-block">
                 <div class="brand-row">
                     <img class="brand-logo" src="icons/icon32.png" alt="划线猫 logo" />
-                    <h1 class="title">划线猫</h1>
+                    <h1 class="title" data-i18n="appName">划线猫</h1>
                 </div>
             </div>
             <div class="header-actions">
-                <button id="refresh-page-btn" class="header-btn" title="刷新当前页记录">
+                <button id="refresh-page-btn" class="header-btn" title="刷新当前页记录" data-i18n-title="refreshCurrentPage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                         stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="23 4 23 10 17 10"></polyline>
@@ -27,10 +27,10 @@
                         <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
                     </svg>
                 </button>
-                <button id="select-mode-btn" class="header-btn" title="多选">
+                <button id="select-mode-btn" class="header-btn" title="多选" data-i18n-title="selectMode">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </button>
-                <button id="manage-btn" class="header-btn" title="管理页">
+                <button id="manage-btn" class="header-btn" title="管理页" data-i18n-title="managePage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
             </div>
@@ -40,18 +40,18 @@
         <div id="batch-header" class="batch-header hidden">
             <label class="select-all-label">
                 <input type="checkbox" id="select-all-checkbox" />
-                <span id="select-count">已选 0 条（勾选前框可全选）</span>
+                <span id="select-count" data-i18n="selectedCount">已选 0 条（勾选前框可全选）</span>
             </label>
-            <button id="cancel-select-btn" class="cancel-btn">取消</button>
+            <button id="cancel-select-btn" class="cancel-btn" data-i18n="cancel">取消</button>
         </div>
 
-        <section id="onboarding-card" class="onboarding-card hidden" aria-label="新用户引导">
+        <section id="onboarding-card" class="onboarding-card hidden" aria-label="新用户引导" data-i18n-aria-label="newUserGuide">
             <div class="onboarding-card-head">
                 <div class="onboarding-title-group">
-                    <div class="onboarding-eyebrow">新手引导</div>
-                    <h2 class="onboarding-title">第一次用划线猫，可以这样开始</h2>
+                    <div class="onboarding-eyebrow" data-i18n="newUserGuide">新手引导</div>
+                    <h2 class="onboarding-title" data-i18n="onboardingTitle">第一次用划线猫，可以这样开始</h2>
                 </div>
-                <button id="onboarding-dismiss-btn" class="onboarding-dismiss-btn" type="button" title="关闭引导">
+                <button id="onboarding-dismiss-btn" class="onboarding-dismiss-btn" type="button" title="关闭引导" data-i18n-title="closeGuide">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -61,28 +61,28 @@
             <div class="onboarding-list">
                 <div class="onboarding-item">
                     <span class="onboarding-item-icon">✦</span>
-                    <span class="onboarding-item-text">拖选网页文字后，可直接高亮或划线。</span>
+                    <span class="onboarding-item-text" data-i18n="onboardingStepSelect">拖选网页文字后，可直接高亮或划线。</span>
                 </div>
                 <div class="onboarding-item">
                     <span class="onboarding-item-icon">✦</span>
-                    <span class="onboarding-item-text">在“高亮”里查看当前页记录，并可切换正序或倒序。</span>
+                    <span class="onboarding-item-text" data-i18n="onboardingStepHighlights">在“高亮”里查看当前页记录，并可切换正序或倒序。</span>
                 </div>
                 <div class="onboarding-item">
                     <span class="onboarding-item-icon">✦</span>
-                    <span class="onboarding-item-text">在“笔记”里随手记下想法、疑问和待追问点。</span>
+                    <span class="onboarding-item-text" data-i18n="onboardingStepNotes">在“笔记”里随手记下想法、疑问和待追问点。</span>
                 </div>
                 <div class="onboarding-item">
                     <span class="onboarding-item-icon">✦</span>
-                    <span class="onboarding-item-text">点击右上角「管理页」选项，可统一整理并导出到墨问、Markdown 或 HTML。</span>
+                    <span class="onboarding-item-text" data-i18n="onboardingStepManage">点击右上角「管理页」选项，可统一整理并导出到墨问、Notion、Obsidian、思源笔记、Markdown 或 HTML。</span>
                 </div>
             </div>
             <div class="onboarding-footer">
                 <div class="onboarding-page-state">
-                    <span class="onboarding-page-label">当前页面</span>
-                    <span id="onboarding-domain" class="onboarding-domain">正在识别...</span>
-                    <span id="onboarding-availability" class="onboarding-availability">检测中</span>
+                    <span class="onboarding-page-label" data-i18n="currentPage">当前页面</span>
+                    <span id="onboarding-domain" class="onboarding-domain" data-i18n="identifying">正在识别...</span>
+                    <span id="onboarding-availability" class="onboarding-availability" data-i18n="checking">检测中</span>
                 </div>
-                <button id="onboarding-manage-btn" class="onboarding-manage-btn" type="button">打开管理页</button>
+                <button id="onboarding-manage-btn" class="onboarding-manage-btn" type="button" data-i18n="openManager">打开管理页</button>
             </div>
         </section>
 
@@ -90,24 +90,24 @@
 
         <div class="tabs">
             <button class="tab-btn active" data-tab="current">
-                <span class="tab-label">高亮</span>
-                <span id="current-tab-meta" class="tab-meta">暂无高亮</span>
+                <span class="tab-label" data-i18n="highlightTab">高亮</span>
+                <span id="current-tab-meta" class="tab-meta" data-i18n="noHighlights">暂无高亮</span>
             </button>
             <button class="tab-btn" data-tab="notes">
-                <span class="tab-label">笔记</span>
-                <span id="notes-tab-meta" class="tab-meta">暂无笔记</span>
+                <span class="tab-label" data-i18n="notesTab">笔记</span>
+                <span id="notes-tab-meta" class="tab-meta" data-i18n="noNotes">暂无笔记</span>
             </button>
         </div>
 
         <div id="current-tab" class="tab-content active">
             <div class="workspace-panel">
                 <div class="workspace-panel-header">
-                    <span class="workspace-panel-title">当前页高亮</span>
+                    <span class="workspace-panel-title" data-i18n="currentPageHighlights">当前页高亮</span>
                     <div class="workspace-panel-meta">
                         <span id="highlight-section-summary" class="workspace-panel-summary"></span>
-                        <select id="highlight-sort-select" class="highlight-sort-select" title="高亮排序">
-                            <option value="asc">正序</option>
-                            <option value="desc">倒序</option>
+                        <select id="highlight-sort-select" class="highlight-sort-select" title="高亮排序" data-i18n-title="sortHighlights">
+                            <option value="asc" data-i18n="sortAsc">正序</option>
+                            <option value="desc" data-i18n="sortDesc">倒序</option>
                         </select>
                     </div>
                 </div>
@@ -119,19 +119,19 @@
             <div id="note-section" class="note-workspace">
                 <div class="note-workspace-header">
                     <div class="note-heading">
-                        <div class="note-workspace-title">当前页笔记</div>
-                        <div id="note-summary" class="note-workspace-summary">暂无笔记</div>
+                        <div class="note-workspace-title" data-i18n="currentPageNotes">当前页笔记</div>
+                        <div id="note-summary" class="note-workspace-summary" data-i18n="noNotes">暂无笔记</div>
                     </div>
                     <div class="note-status-bar">
                         <span id="note-save-status" class="note-save-status"></span>
                         <div class="note-meta">
                             <span id="note-update-time" class="note-update-time"></span>
-                            <span id="note-word-count" class="note-word-count">0 字</span>
+                            <span id="note-word-count" class="note-word-count" data-i18n="zeroWords">0 字</span>
                         </div>
                     </div>
                 </div>
                 <textarea id="note-textarea" class="note-textarea"
-                    placeholder="随手记下你的想法、疑问和待追问点"></textarea>
+                    placeholder="随手记下你的想法、疑问和待追问点" data-i18n-placeholder="notePlaceholder"></textarea>
             </div>
         </div>
     </div>
@@ -142,14 +142,15 @@
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg> 删除所选</button>
+            </svg> <span data-i18n="deleteSelected">删除所选</span></button>
         <button id="batch-copy-btn" class="batch-btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg> 合并复制</button>
+            </svg> <span data-i18n="copySelected">合并复制</span></button>
     </div>
 
+    <script src="i18n.js"></script>
     <script src="note-repo.js"></script>
     <script src="page-note-service.js"></script>
     <script src="feature-gate.js"></script>

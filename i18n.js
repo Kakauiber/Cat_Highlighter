@@ -1,0 +1,804 @@
+// Lightweight UI/export localization for the extension pages.
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'cat_ui_language';
+  const DEFAULT_LANGUAGE = 'zh_CN';
+
+  const CATALOGS = {
+    zh_CN: {
+      appName: '划线猫',
+      sidePanelTitle: '划线猫 - 侧边栏',
+      optionsTitle: '高亮与笔记管理',
+      refreshCurrentPage: '刷新当前页记录',
+      selectMode: '多选',
+      selectModeCurrentOnly: '多选（仅高亮页可用）',
+      managePage: '管理页',
+      selectedCount: '已选 {{count}} 条（勾选前框可全选）',
+      cancel: '取消',
+      newUserGuide: '新手引导',
+      onboardingTitle: '第一次用划线猫，可以这样开始',
+      closeGuide: '关闭引导',
+      onboardingStepSelect: '拖选网页文字后，可直接高亮或划线。',
+      onboardingStepHighlights: '在“高亮”里查看当前页记录，并可切换正序或倒序。',
+      onboardingStepNotes: '在“笔记”里随手记下想法、疑问和待追问点。',
+      onboardingStepManage: '点击右上角「管理页」选项，可统一整理并导出到墨问、Notion、Obsidian、思源笔记、Markdown 或 HTML。',
+      currentPage: '当前页面',
+      identifying: '正在识别...',
+      checking: '检测中',
+      openManager: '打开管理页',
+      highlightTab: '高亮',
+      notesTab: '笔记',
+      noHighlights: '暂无高亮',
+      noNotes: '暂无笔记',
+      currentPageHighlights: '当前页高亮',
+      sortHighlights: '高亮排序',
+      sortAsc: '正序',
+      sortDesc: '倒序',
+      currentPageNotes: '当前页笔记',
+      zeroWords: '0 字',
+      notePlaceholder: '随手记下你的想法、疑问和待追问点',
+      deleteSelected: '删除所选',
+      copySelected: '合并复制',
+      hostUnavailable: '未定位到网页',
+      currentWebsite: '当前网页',
+      restrictedPage: '当前页面运行在受限容器中',
+      availableOnThisPage: '可直接划线记录',
+      switchToNormalPage: '请切换到普通网页后使用',
+      highlightCount: '{{count}} 条高亮',
+      highlightCountShort: '{{count}} 条',
+      noteWordCount: '{{count}} 字笔记',
+      annotationPrefix: '批注：',
+      pageNote: '页面笔记',
+      annotations: '标注',
+      unsupportedPageTitle: '当前页面暂不支持划线',
+      unsupportedPageDescription: '当前页面运行在受限容器中。请在标准浏览器标签页中打开原链接后使用。',
+      unableToGetPage: '无法获取当前页面信息',
+      currentPageNoHighlights: '当前页面暂无高亮',
+      copy: '复制',
+      annotate: '批注',
+      addAnnotationPrompt: '添加批注:',
+      delete: '删除',
+      copyPage: '复制本页',
+      deletePage: '删除本页',
+      deletePageConfirm: '确定删除“{{title}}”的全部高亮吗？',
+      exportPage: '导出本页',
+      mowen: '墨问',
+      siyuan: '思源笔记',
+      noExportContent: '当前页面没有可导出的内容',
+      exportUnavailable: '导出功能暂不可用',
+      mowenUnavailable: '墨问导出当前不可用',
+      mowenConfigRequired: '请先在管理页配置墨问 API Key。',
+      mowenTestRequired: '请先在管理页完成一次墨问测试导出，再执行当前页导出。',
+      mowenExportFailed: '导出到墨问失败，请检查 API Key、配额或网络状态。',
+      mowenExported: '已生成墨问笔记{{noteId}}。',
+      notionUnavailable: 'Notion 导出当前不可用',
+      notionConfigRequired: '请先在管理页配置 Notion API 集成密钥和目标父页面。',
+      notionTestRequired: '请先在管理页完成一次 Notion 测试导出，再执行当前页导出。',
+      notionExportFailed: '导出到 Notion 失败，请检查 Token、页面权限或网络状态。',
+      notionExported: '已创建 Notion 页面{{url}}。',
+      obsidianUnavailable: 'Obsidian 导出当前不可用',
+      obsidianConfigRequired: '请先在管理页配置 Obsidian Vault。',
+      obsidianExportFailed: '发送到 Obsidian 失败，请检查配置或剪贴板权限。',
+      siyuanUnavailable: '思源导出当前不可用',
+      siyuanTokenRequired: '请先在管理页配置思源 API Token。',
+      siyuanNotebookRequired: '请先在管理页选择思源目标笔记本。',
+      siyuanExportFailed: '发送到思源失败，请检查配置或思源运行状态。',
+      noCopyContent: '当前页面没有可复制的内容',
+      copied: '已复制',
+      copyFailed: '复制失败',
+      conversation: '对话',
+      newConversation: '新对话',
+      noteRecorded: '已记录 {{count}} 字',
+      lastUpdatedNow: '最后更新：刚刚',
+      lastUpdatedMinutes: '最后更新：{{count}} 分钟前',
+      lastUpdatedHours: '最后更新：{{count}} 小时前',
+      lastUpdatedDate: '最后更新：{{date}}',
+      saving: '保存中...',
+      saved: '已保存',
+      saveFailed: '保存失败',
+      retrySave: '重试保存',
+      chooseHighlightsToDelete: '请先选择要删除的高亮',
+      deleteSelectedConfirm: '确定删除选中的 {{count}} 条高亮吗？',
+      chooseHighlightsToCopy: '请先选择要复制的高亮',
+      copiedWithIcon: '✅ 已复制!',
+      deleteSelectedHighlights: '删除高亮',
+      copyHighlights: '复制高亮',
+      copyNote: '复制笔记',
+      deleteNote: '删除笔记',
+      deleteHighlightConfirm: '删除此高亮吗？',
+      deleteAllHighlightsConfirm: '确定删除此页面的全部高亮吗？',
+      deleteNoteConfirm: '确定删除此页面笔记吗？',
+      deletePageRecordConfirm: '确定删除“{{title}}”的整页记录吗？这会删除该页的高亮和页面笔记。',
+      highlightContent: '高亮内容',
+      containsAnnotation: '含批注',
+
+      settings: '设置',
+      exportAll: '导出全部',
+      subtitle: '为网页阅读与大模型对话标记重点、记录思考',
+      configPanel: '设置',
+      exportConfig: '导出配置',
+      apiKeyNotConfigured: '未配置 API Key',
+      expand: '展开',
+      collapse: '收起',
+      apiConfigured: 'API 已配置',
+      notConfigured: '未配置',
+      configure: '去配置',
+      reconfigure: '重新配置',
+      collapseConfig: '收起配置',
+      test: '测试',
+      configured: '已配置',
+      configuredAndTested: '已配置并测试',
+      configuredPendingTest: '已配置 · 待测试',
+      apiConfiguredTested: 'API 已配置 · 测试已通过',
+      apiConfiguredPendingTest: 'API 已配置 · 待测试',
+      pageConfiguredTested: '页面已配置 · 已测试',
+      pageConfiguredPendingTest: '页面已配置 · 待测试',
+      tokenConfiguredNeedsPage: '密钥已配置 · 待填写页面',
+      pageConfiguredNeedsToken: '页面已配置 · 待填写密钥',
+      vaultConfiguredTested: '仓库已配置 · 已测试',
+      vaultConfigured: '仓库已配置',
+      notebookConfiguredTested: '笔记本已配置 · 已测试',
+      notebookConfiguredPendingTest: '笔记本已配置 · 待测试',
+      tokenConfiguredNeedsNotebook: 'Token 已配置 · 待选择笔记本',
+      mowenSettingsTitle: '墨问导出设置',
+      mowenSettingsDesc: '完成配置与测试后，即可从“导出全部”中直接导出到墨问。',
+      apiKey: 'API Key',
+      mowenApiPlaceholder: '输入墨问 API Key',
+      defaultTags: '默认标签',
+      mowenTagsPlaceholder: '划线猫, 私密笔记',
+      saveSettings: '保存设置',
+      obsidianSettingsTitle: 'Obsidian 导出设置',
+      obsidianSettingsDesc: '按官方剪藏工具思路：先写入剪贴板，再调用 Obsidian App 把内容直接创建到指定仓库。',
+      obsidianVault: '仓库名称 / Vault ID',
+      obsidianVaultPlaceholder: '可直接填写仓库名称；如需更稳，也可填写 Vault ID',
+      targetFolder: '目标文件夹',
+      targetFolderPlaceholder: '例如：Clippings/划线猫（可留空）',
+      obsidianHelpTitle: '不知道怎么获取 Vault ID？',
+      obsidianHelpText: '可直接填写仓库名称；如果需要获取 Vault ID，请按下面步骤操作：',
+      obsidianHelpStep1: '打开 Obsidian 桌面版。',
+      obsidianHelpStep2: '找到左下角的仓库切换器并切换至目标仓库。',
+      obsidianHelpStep3: '右键点击目标仓库区域，在弹出菜单栏中点击“复制路径”。',
+      obsidianHelpTip: '官方文档说明：`vault` 参数既可以用仓库名称，也可以用 Vault ID；Vault ID 更稳定。',
+      notionSettingsTitle: 'Notion 导出设置',
+      notionSettingsDesc: '通过 Notion 官方 API，在目标父页面下创建新的子页面。',
+      notionToken: 'API 集成密钥（Integration Token）',
+      notionTokenPlaceholder: '输入 Notion API 集成密钥',
+      notionParent: '目标父页面链接 / ID（Page ID）',
+      notionParentPlaceholder: '粘贴 Notion 父页面链接，或填写 Page ID',
+      notionHelpTitle: '不知道怎么配置 Notion？',
+      notionHelpStep1: '打开 Notion 设置页，点击上方「连接」。',
+      notionHelpStep2: '点击「开发或管理集成」，再点击「创建新集成」。',
+      notionHelpStep3: '填写「集成名称」，并在「安装范围（Installation scope）」处选择目标父页面。',
+      notionHelpStep4: '创建完成后，复制「API 集成密钥（Integration Token）」并粘贴到这里。',
+      notionHelpStep5: '复制目标父页面链接，粘贴到「目标父页面链接 / ID（Page ID）」处即可。',
+      notionHelpTip: '测试会在目标父页面下创建一篇「划线猫 Notion 测试」子页面。正式导出前，建议先完成一次测试。',
+      siyuanSettingsTitle: '思源导出设置',
+      siyuanSettingsDesc: '按官方 API 直连思源本地服务，保存后可直接把高亮和笔记写入指定笔记本。',
+      endpoint: '服务地址',
+      siyuanEndpointPlaceholder: '默认：http://127.0.0.1:6806',
+      siyuanTokenPlaceholder: '输入思源 API Token',
+      targetNotebook: '目标笔记本',
+      chooseTargetNotebook: '请选择目标笔记本',
+      refreshNotebooksFirst: '请先刷新笔记本列表',
+      refreshNotebook: '刷新笔记本',
+      notebookClosed: '{{name}}（已关闭）',
+      notebookSaved: '{{name}}（已保存）',
+      siyuanFolderPlaceholder: '例如：Clippings/划线猫（可留空）',
+      siyuanHelpTitle: '不知道怎么获取思源 API Token？',
+      siyuanHelpStep1: '打开思源桌面版。',
+      siyuanHelpStep2: '进入「设置」→「关于」。',
+      siyuanHelpStep3: '复制页面中的 API Token，并粘贴到这里。',
+      siyuanHelpTip: '默认服务地址是 `http://127.0.0.1:6806`。测试或正式导出前，请先确认思源桌面版正在运行。',
+      blacklistTitle: '黑名单管理',
+      blacklistDesc: '这些网站已被排除在划线和高亮之外。',
+      noBlacklistedSites: '暂无禁用网站',
+      remove: '移除',
+      overview: '记录概览',
+      pages: '页面',
+      highlights: '条高亮',
+      notes: '条笔记',
+      filterToolbar: '记录筛选工具',
+      filterAll: '全部',
+      filterWithNotes: '有笔记',
+      select: '多选',
+      searchPlaceholder: '搜索页面、笔记或高亮内容...',
+      updatedDesc: '最近更新',
+      updatedAsc: '最早更新',
+      listEnd: '已展示全部记录',
+      noMatchingRecords: '没有匹配的记录',
+      justNowUpdated: '刚刚更新',
+      minutesUpdated: '{{count}} 分钟前更新',
+      hoursUpdated: '{{count}} 小时前更新',
+      daysUpdated: '{{count}} 天前更新',
+      dateUpdated: '{{date}} 更新',
+      today: '今天',
+      yesterday: '昨天',
+      earlier: '更早',
+      language: '语言',
+      languageAuto: '自动',
+      languageChinese: '中文',
+      languageEnglish: 'English',
+      settingsSavedRetestMowen: '设置已保存。若 API Key 有变化，请先重新测试导出。',
+      settingsSavedTestObsidian: '设置已保存。建议先点“测试”，确认可以正常写入 Obsidian。',
+      fillNotionToken: '请先填写 Notion API 集成密钥（Integration Token）。',
+      fillNotionParent: '请粘贴有效的 Notion 目标父页面链接，或填写页面 ID（Page ID）。',
+      settingsSavedTestNotion: '设置已保存。建议先点“测试”，确认可以正常写入 Notion。',
+      fillSiyuanToken: '请先填写思源 API Token。',
+      refreshAndChooseSiyuanNotebook: '请先刷新并选择目标笔记本。',
+      settingsSavedTestSiyuan: '设置已保存。建议先点“测试”，确认可以正常写入思源。',
+      fillMowenApiKey: '请先填写墨问 API Key。',
+      testingMowen: '正在测试导出到墨问...',
+      testExportFailedMowen: '测试导出失败，请检查 API Key 或网络状态。',
+      mowenTestSucceeded: '测试成功，已创建测试私密笔记{{noteId}}。',
+      exportNoPages: '当前没有可导出的页面记录。',
+      completeTestBeforeExport: '请先完成一次测试导出，再执行正式导出。',
+      exportingAllMowen: '正在导出全部记录到墨问...',
+      mowenExportFailedShort: '导出到墨问失败。',
+      mowenExportSucceeded: '导出成功，已创建私密笔记{{noteId}}。',
+      notionExportFeatureUnavailable: 'Notion 导出功能当前不可用。',
+      testingNotion: '正在向 Notion 创建测试页面...',
+      testFailedRetry: '测试失败，请检查配置后重试。',
+      notionTestSucceeded: '测试成功，已在 Notion 中创建测试页面。',
+      notionTestSucceededWithUrl: '测试成功，已创建测试页面：{{url}}',
+      notionTestFailed: '测试失败，请检查 Token、页面共享权限或网络状态。',
+      notionTokenInvalid: 'Notion API 集成密钥（Integration Token）无效或已失效，请重新检查。',
+      notionNoPermission: 'Notion 集成没有权限写入该页面，请检查安装范围（Installation scope）或页面权限。',
+      notionPageNotFound: '找不到目标 Notion 页面，或该页面尚未加入集成的安装范围（Installation scope）。',
+      notionValidationFailed: 'Notion 参数校验失败，请检查目标父页面链接或页面 ID（Page ID）。',
+      notionNetworkFailed: '无法连接 Notion API。请检查网络，或稍后重试。',
+      fillNotionTokenForExport: '请先填写 Notion API 集成密钥（Integration Token）。',
+      fillNotionParentForExport: '请先填写 Notion 目标父页面链接或页面 ID（Page ID）。',
+      testNotionBeforeExport: '请先测试 Notion 导出，确认配置可用后再导出。',
+      exportingAllNotion: '正在导出全部记录到 Notion...',
+      notionExportFailedShort: '导出到 Notion 失败。',
+      notionExportSucceeded: '导出成功，已创建 Notion 页面。',
+      notionExportSucceededWithUrl: '导出成功，已创建 Notion 页面：{{url}}',
+      fillObsidianVault: '请先填写 Obsidian Vault ID 或名称。',
+      obsidianFeatureUnavailable: 'Obsidian 导出功能当前不可用。',
+      testingObsidian: '正在向 Obsidian 发送测试笔记...',
+      obsidianTestSent: '已发送测试请求，请切换到 Obsidian 确认。',
+      obsidianTestFailed: '测试失败，请检查 Obsidian 是否已安装并已允许处理 obsidian:// 链接。',
+      siyuanFeatureUnavailable: '思源导出功能当前不可用。',
+      fillSiyuanTokenBeforeRefresh: '请先填写思源 API Token，再刷新笔记本列表。',
+      loadingSiyuanNotebooks: '正在读取思源笔记本列表...',
+      loadSiyuanNotebooksFailed: '读取思源笔记本失败。',
+      siyuanNotebooksLoaded: '已获取 {{count}} 个笔记本，请确认导出目标。',
+      noSiyuanNotebooks: '未获取到可用笔记本。',
+      loadSiyuanNotebooksFailedLong: '读取思源笔记本失败，请检查服务地址、Token 或思源是否已启动。',
+      testingSiyuan: '正在向思源写入测试文档...',
+      siyuanTestSucceeded: '测试成功，已在思源中创建测试文档。',
+      siyuanTestFailed: '测试失败，请检查思源服务地址、Token 或桌面版运行状态。',
+      siyuanConnectionFailed: '无法连接到思源服务。请确认思源桌面版已启动，且服务地址可访问。',
+      siyuanApiFailed: '思源接口返回失败',
+      fillSiyuanNotebook: '请先选择目标笔记本。',
+      exportingAllSiyuan: '正在导出全部记录到思源...',
+      siyuanExportFailedShort: '导出到思源失败。',
+      siyuanExportSucceeded: '导出成功，已创建文档：{{path}}',
+      completeMowenConfigBeforeExport: '请先完成墨问配置，再执行导出。',
+      testMowenBeforeExport: '请先测试墨问导出，确认配置可用后再导出。',
+      completeNotionConfigBeforeExport: '请先完成 Notion 配置，再执行导出。',
+      completeObsidianConfigBeforeExport: '请先完成 Obsidian 配置，再执行导出。',
+      completeSiyuanConfigBeforeExport: '请先完成思源配置，再执行导出。',
+      chooseSiyuanNotebookBeforeExport: '请先选择思源目标笔记本，再执行导出。',
+      sentToNotion: '已发送到 Notion。',
+      sentToNotionWithUrl: '已发送到 Notion：{{url}}',
+      sentToObsidian: '已发送到 Obsidian：{{path}}',
+      sentToSiyuan: '已发送到思源：{{path}}',
+      saveSettingsFailed: '保存设置失败，请稍后重试。',
+      loadMowenSettingsFailed: '加载墨问设置失败。',
+      loadNotionSettingsFailed: '加载 Notion 设置失败。',
+      loadObsidianSettingsFailed: '加载 Obsidian 设置失败。',
+      loadSiyuanSettingsFailed: '加载思源设置失败。',
+
+      unnamedPage: '未命名页面',
+      unnamedPageWithIndex: '未命名页面 {{index}}',
+      link: '链接',
+      originalLink: '原文链接',
+      exportTitle: '划线猫导出',
+      exportTitleWithCount: '划线猫导出（{{count}} 页）',
+      exportTime: '导出时间',
+      exportPageCount: '导出页面数',
+      source: '来源',
+      underlineLabel: '划线',
+      highlightYellowLabel: '高亮/黄',
+      highlightBlueLabel: '高亮/蓝',
+      highlightRedLabel: '高亮/红',
+      sourceName: '划线猫',
+      mowenApiTestTitle: '划线猫 API 测试',
+      mowenApiTestNote: '这是一篇用于验证墨问 API Key 是否可用的私密测试笔记。',
+      mowenApiTestSuccess: '如果你能在墨问中看到这篇笔记，说明连接成功。',
+      notionTestTitle: '划线猫 Notion 测试',
+      notionTestNote: '这是一条测试笔记，用于确认划线猫可以通过 Notion API 创建私密页面。',
+      obsidianTestTitle: '划线猫 Obsidian 测试',
+      obsidianTestNote: '这是一条测试笔记，用于确认划线猫可以把内容直接发送到 Obsidian 仓库。',
+      siyuanTestTitle: '划线猫 思源测试',
+      siyuanTestNote: '这是一条测试笔记，用于确认划线猫可以直接写入思源笔记。',
+      exportTestHighlight: '如果你在 {{target}} 中看到了这段内容，说明导出链路已经打通。',
+      exportTestAnnotation: '测试成功后即可开始正式导出。',
+      testExportTag: '测试导出',
+      noClipboardContent: '没有可写入剪贴板的内容。'
+    },
+
+    en: {
+      appName: 'Cat Highlighter',
+      sidePanelTitle: 'Cat Highlighter - Side Panel',
+      optionsTitle: 'Highlight and Notes Manager',
+      refreshCurrentPage: 'Refresh Current Page Records',
+      selectMode: 'Select',
+      selectModeCurrentOnly: 'Select (Highlights Only)',
+      managePage: 'Manager',
+      selectedCount: '{{countLabel}} Selected (check the box to select all)',
+      cancel: 'Cancel',
+      newUserGuide: 'Quick Start',
+      onboardingTitle: 'Start With Cat Highlighter In A Minute',
+      closeGuide: 'Close Guide',
+      onboardingStepSelect: 'Select text on a web page, then highlight or underline it.',
+      onboardingStepHighlights: 'Review current-page highlights and switch between original or reverse order.',
+      onboardingStepNotes: 'Use Notes to capture your thoughts, questions, and follow-up prompts.',
+      onboardingStepManage: 'Open Manager from the top-right to organize records and export to Mowen, Notion, Obsidian, SiYuan, Markdown, or HTML.',
+      currentPage: 'Current Page',
+      identifying: 'Identifying...',
+      checking: 'Checking',
+      openManager: 'Open Manager',
+      highlightTab: 'Highlights',
+      notesTab: 'Notes',
+      noHighlights: 'No highlights yet',
+      noNotes: 'No notes yet',
+      currentPageHighlights: 'Current Page Highlights',
+      sortHighlights: 'Sort Highlights',
+      sortAsc: 'Original',
+      sortDesc: 'Reverse',
+      currentPageNotes: 'Current Page Notes',
+      zeroWords: '0 Words',
+      notePlaceholder: 'Jot down ideas, questions, and follow-ups',
+      deleteSelected: 'Delete Selected',
+      copySelected: 'Copy Selected',
+      hostUnavailable: 'No page detected yet',
+      currentWebsite: 'Current Page',
+      restrictedPage: 'This page runs in a restricted container',
+      availableOnThisPage: 'Ready to highlight',
+      switchToNormalPage: 'Switch to a regular web page to use it',
+      highlightCount: '{{countLabel}}',
+      highlightCountShort: '{{countLabel}}',
+      noteWordCount: '{{countLabel}}',
+      annotationPrefix: 'Annotation: ',
+      pageNote: 'Page Note',
+      annotations: 'Highlights',
+      unsupportedPageTitle: 'Highlighting is not available on this page',
+      unsupportedPageDescription: 'This page runs in a restricted container. Open the original link in a standard browser tab to use highlighting.',
+      unableToGetPage: 'Unable to access this page',
+      currentPageNoHighlights: 'No highlights yet',
+      copy: 'Copy',
+      annotate: 'Annotate',
+      addAnnotationPrompt: 'Add annotation:',
+      delete: 'Delete',
+      copyPage: 'Copy Page',
+      deletePage: 'Delete Page',
+      deletePageConfirm: 'Delete all highlights from “{{title}}”?',
+      exportPage: 'Export Page',
+      mowen: 'Mowen',
+      siyuan: 'SiYuan',
+      noExportContent: 'There is nothing to export on this page',
+      exportUnavailable: 'Export is not available',
+      mowenUnavailable: 'Mowen export is not available',
+      mowenConfigRequired: 'Set up your Mowen API Key in Manager first.',
+      mowenTestRequired: 'Run a Mowen test export in Manager before exporting this page.',
+      mowenExportFailed: 'Failed to export to Mowen. Check your API key, quota, or network.',
+      mowenExported: 'Mowen note created{{noteId}}.',
+      notionUnavailable: 'Notion export is not available',
+      notionConfigRequired: 'Set up your Notion integration token and parent page in Manager first.',
+      notionTestRequired: 'Run a Notion test export in Manager before exporting this page.',
+      notionExportFailed: 'Failed to export to Notion. Check your token, page permission, or network.',
+      notionExported: 'Notion page created{{url}}.',
+      obsidianUnavailable: 'Obsidian export is not available',
+      obsidianConfigRequired: 'Set up your Obsidian vault in Manager first.',
+      obsidianExportFailed: 'Failed to send to Obsidian. Check your configuration or clipboard permission.',
+      siyuanUnavailable: 'SiYuan export is not available',
+      siyuanTokenRequired: 'Set up your SiYuan API Token in Manager first.',
+      siyuanNotebookRequired: 'Choose a SiYuan target notebook in Manager first.',
+      siyuanExportFailed: 'Failed to send to SiYuan. Check your configuration or whether SiYuan is running.',
+      noCopyContent: 'There is nothing to copy on this page',
+      copied: 'Copied',
+      copyFailed: 'Copy failed',
+      conversation: 'Conversation',
+      newConversation: 'New conversation',
+      noteRecorded: '{{countLabel}} Recorded',
+      lastUpdatedNow: 'Last updated: just now',
+      lastUpdatedMinutes: 'Last updated: {{countLabel}} ago',
+      lastUpdatedHours: 'Last updated: {{countLabel}} ago',
+      lastUpdatedDate: 'Last updated: {{date}}',
+      saving: 'Saving...',
+      saved: 'Saved',
+      saveFailed: 'Save failed',
+      retrySave: 'Retry',
+      chooseHighlightsToDelete: 'Select highlights to delete first',
+      deleteSelectedConfirm: 'Delete {{countLabel}}?',
+      chooseHighlightsToCopy: 'Select highlights to copy first',
+      copiedWithIcon: '✅ Copied!',
+      deleteSelectedHighlights: 'Delete Highlights',
+      copyHighlights: 'Copy Highlights',
+      copyNote: 'Copy Note',
+      deleteNote: 'Delete Note',
+      deleteHighlightConfirm: 'Delete this highlight?',
+      deleteAllHighlightsConfirm: 'Delete all highlights on this page?',
+      deleteNoteConfirm: 'Delete this page note?',
+      deletePageRecordConfirm: 'Delete all records for “{{title}}”? This will delete both highlights and the page note.',
+      highlightContent: 'Highlights',
+      containsAnnotation: 'Has Annotation',
+
+      settings: 'Settings',
+      exportAll: 'Export All',
+      subtitle: 'Highlight what matters and capture your thoughts across web pages and AI chats',
+      configPanel: 'Settings',
+      exportConfig: 'Export Settings',
+      apiKeyNotConfigured: 'API Key not set up',
+      expand: 'Expand',
+      collapse: 'Collapse',
+      apiConfigured: 'API set up',
+      notConfigured: 'Not set up',
+      configure: 'Set Up',
+      reconfigure: 'Set Up',
+      collapseConfig: 'Collapse',
+      test: 'Test Connection',
+      configured: 'Set up',
+      configuredAndTested: 'Set up and tested',
+      configuredPendingTest: 'Set up · test pending',
+      apiConfiguredTested: 'API set up · test passed',
+      apiConfiguredPendingTest: 'API set up · test pending',
+      pageConfiguredTested: 'Page set up · tested',
+      pageConfiguredPendingTest: 'Page set up · test pending',
+      tokenConfiguredNeedsPage: 'Token set up · page required',
+      pageConfiguredNeedsToken: 'Page set up · token required',
+      vaultConfiguredTested: 'Vault set up · tested',
+      vaultConfigured: 'Vault set up',
+      notebookConfiguredTested: 'Notebook set up · tested',
+      notebookConfiguredPendingTest: 'Notebook set up · test pending',
+      tokenConfiguredNeedsNotebook: 'Token set up · choose notebook',
+      mowenSettingsTitle: 'Mowen Export Settings',
+      mowenSettingsDesc: 'After setup and a successful test, you can export directly to Mowen from “Export All”.',
+      apiKey: 'API Key',
+      mowenApiPlaceholder: 'Enter Mowen API Key',
+      defaultTags: 'Default Tags',
+      mowenTagsPlaceholder: 'Cat Highlighter, private note',
+      saveSettings: 'Save Settings',
+      obsidianSettingsTitle: 'Obsidian Export Settings',
+      obsidianSettingsDesc: 'Write content to the clipboard first, then call Obsidian to create a note in your target vault.',
+      obsidianVault: 'Vault Name / Vault ID',
+      obsidianVaultPlaceholder: 'Enter the vault name, or use Vault ID for better stability',
+      targetFolder: 'Target Folder',
+      targetFolderPlaceholder: 'Example: Clippings/Cat Highlighter (optional)',
+      obsidianHelpTitle: 'How do I get the Vault ID?',
+      obsidianHelpText: 'You can use the vault name directly. If you need Vault ID, follow these steps:',
+      obsidianHelpStep1: 'Open Obsidian desktop.',
+      obsidianHelpStep2: 'Use the vault switcher in the lower-left corner and switch to the target vault.',
+      obsidianHelpStep3: 'Right-click the target vault area and choose “Copy path” from the menu.',
+      obsidianHelpTip: 'Obsidian accepts either vault name or Vault ID in the `vault` parameter. Vault ID is more stable.',
+      notionSettingsTitle: 'Notion Export Settings',
+      notionSettingsDesc: 'Use the official Notion API to create a child page under your target parent page.',
+      notionToken: 'Integration Token',
+      notionTokenPlaceholder: 'Enter Notion integration token',
+      notionParent: 'Target Parent Page Link / ID',
+      notionParentPlaceholder: 'Paste a Notion parent page link, or enter Page ID',
+      notionHelpTitle: 'How Do I Set Up Notion?',
+      notionHelpStep1: 'Open Notion settings and click “Connections”.',
+      notionHelpStep2: 'Click “Develop or manage integrations”, then “Create new integration”.',
+      notionHelpStep3: 'Enter an integration name, and choose the target parent page under “Installation scope”.',
+      notionHelpStep4: 'After creation, copy the Integration Token and paste it here.',
+      notionHelpStep5: 'Copy the target parent page link and paste it into “Target parent page link / ID”.',
+      notionHelpTip: 'The test creates a “Cat Highlighter Notion Test” child page under the target parent page. Run a test before formal export.',
+      siyuanSettingsTitle: 'SiYuan Export Settings',
+      siyuanSettingsDesc: 'Connect to your local SiYuan API and write highlights and notes into the target notebook.',
+      endpoint: 'Endpoint',
+      siyuanEndpointPlaceholder: 'Default: http://127.0.0.1:6806',
+      siyuanTokenPlaceholder: 'Enter SiYuan API Token',
+      targetNotebook: 'Target Notebook',
+      chooseTargetNotebook: 'Choose a target notebook',
+      refreshNotebooksFirst: 'Refresh notebook list first',
+      refreshNotebook: 'Refresh Notebooks',
+      notebookClosed: '{{name}} (closed)',
+      notebookSaved: '{{name}} (saved)',
+      siyuanFolderPlaceholder: 'Example: Clippings/Cat Highlighter (optional)',
+      siyuanHelpTitle: 'How do I get SiYuan API Token?',
+      siyuanHelpStep1: 'Open SiYuan desktop.',
+      siyuanHelpStep2: 'Go to Settings → About.',
+      siyuanHelpStep3: 'Copy the API Token and paste it here.',
+      siyuanHelpTip: 'The default endpoint is `http://127.0.0.1:6806`. Make sure SiYuan desktop is running before testing or exporting.',
+      blacklistTitle: 'Blocked Sites',
+      blacklistDesc: 'These sites are excluded from highlighting.',
+      noBlacklistedSites: 'No blocked sites',
+      remove: 'Remove',
+      overview: 'Record Overview',
+      pages: 'Pages',
+      highlights: 'Highlights',
+      notes: 'Notes',
+      filterToolbar: 'Record Filters',
+      filterAll: 'All',
+      filterWithNotes: 'With Notes',
+      select: 'Select',
+      searchPlaceholder: 'Search pages, notes, or highlights...',
+      updatedDesc: 'Recently Updated',
+      updatedAsc: 'Oldest Updated',
+      listEnd: 'All Records Shown',
+      noMatchingRecords: 'No matching records yet',
+      justNowUpdated: 'Updated just now',
+      updatedAgo: 'Updated {{time}} ago',
+      minutesUpdated: 'Updated {{countLabel}} ago',
+      hoursUpdated: 'Updated {{countLabel}} ago',
+      daysUpdated: 'Updated {{countLabel}} ago',
+      dateUpdated: 'Updated {{date}}',
+      today: 'Today',
+      yesterday: 'Yesterday',
+      earlier: 'Earlier',
+      language: 'Language',
+      languageAuto: 'Auto',
+      languageChinese: '中文',
+      languageEnglish: 'English',
+      settingsSavedRetestMowen: 'Settings saved. If the API Key changed, run the export test again.',
+      settingsSavedTestObsidian: 'Settings saved. Run a test to confirm Obsidian can receive the note.',
+      fillNotionToken: 'Enter the Notion Integration Token first.',
+      fillNotionParent: 'Paste a valid Notion parent page link, or enter a Page ID.',
+      settingsSavedTestNotion: 'Settings saved. Run a test to confirm Notion can receive the page.',
+      fillSiyuanToken: 'Enter the SiYuan API Token first.',
+      refreshAndChooseSiyuanNotebook: 'Refresh and choose a target notebook first.',
+      settingsSavedTestSiyuan: 'Settings saved. Run a test to confirm SiYuan can receive the document.',
+      fillMowenApiKey: 'Enter the Mowen API Key first.',
+      testingMowen: 'Testing export to Mowen...',
+      testExportFailedMowen: 'Test export failed. Check your API Key or network.',
+      mowenTestSucceeded: 'Test succeeded. A private test note was created{{noteId}}.',
+      exportNoPages: 'No page records to export.',
+      completeTestBeforeExport: 'Run one test export before formal export.',
+      exportingAllMowen: 'Exporting all records to Mowen...',
+      mowenExportFailedShort: 'Failed to export to Mowen.',
+      mowenExportSucceeded: 'Export succeeded. Private note created{{noteId}}.',
+      notionExportFeatureUnavailable: 'Notion export is not available.',
+      testingNotion: 'Creating a test page in Notion...',
+      testFailedRetry: 'Test failed. Check your settings and try again.',
+      notionTestSucceeded: 'Test succeeded. A test page was created in Notion.',
+      notionTestSucceededWithUrl: 'Test succeeded. Test page created: {{url}}',
+      notionTestFailed: 'Test failed. Check token, page sharing permission, or network.',
+      notionTokenInvalid: 'The Notion Integration Token is invalid or expired. Check it again.',
+      notionNoPermission: 'The Notion integration does not have permission to write to this page. Check installation scope or page permissions.',
+      notionPageNotFound: 'The target Notion page was not found, or it is not included in the integration installation scope.',
+      notionValidationFailed: 'Notion validation failed. Check the target parent page link or Page ID.',
+      notionNetworkFailed: 'Unable to connect to the Notion API. Check your network and try again later.',
+      fillNotionTokenForExport: 'Enter the Notion Integration Token first.',
+      fillNotionParentForExport: 'Enter the Notion parent page link or Page ID first.',
+      testNotionBeforeExport: 'Test Notion export before formal export.',
+      exportingAllNotion: 'Exporting all records to Notion...',
+      notionExportFailedShort: 'Failed to export to Notion.',
+      notionExportSucceeded: 'Export succeeded. Notion page created.',
+      notionExportSucceededWithUrl: 'Export succeeded. Notion page created: {{url}}',
+      fillObsidianVault: 'Enter an Obsidian Vault ID or name first.',
+      obsidianFeatureUnavailable: 'Obsidian export is not available.',
+      testingObsidian: 'Sending a test note to Obsidian...',
+      obsidianTestSent: 'Test request sent. Switch to Obsidian to confirm.',
+      obsidianTestFailed: 'Test failed. Check whether Obsidian is installed and allowed to handle obsidian:// links.',
+      siyuanFeatureUnavailable: 'SiYuan export is not available.',
+      fillSiyuanTokenBeforeRefresh: 'Enter the SiYuan API Token before refreshing notebooks.',
+      loadingSiyuanNotebooks: 'Loading SiYuan notebooks...',
+      loadSiyuanNotebooksFailed: 'Failed to load SiYuan notebooks.',
+      siyuanNotebooksLoaded: '{{countLabel}} loaded. Confirm the export target.',
+      noSiyuanNotebooks: 'No available notebooks yet.',
+      loadSiyuanNotebooksFailedLong: 'Failed to load SiYuan notebooks. Check endpoint, token, or whether SiYuan is running.',
+      testingSiyuan: 'Writing a test document to SiYuan...',
+      siyuanTestSucceeded: 'Test succeeded. A test document was created in SiYuan.',
+      siyuanTestFailed: 'Test failed. Check endpoint, token, or whether SiYuan desktop is running.',
+      siyuanConnectionFailed: 'Unable to connect to SiYuan. Make sure SiYuan desktop is running and the endpoint is reachable.',
+      siyuanApiFailed: 'SiYuan API returned an error.',
+      fillSiyuanNotebook: 'Choose a target notebook first.',
+      exportingAllSiyuan: 'Exporting all records to SiYuan...',
+      siyuanExportFailedShort: 'Failed to export to SiYuan.',
+      siyuanExportSucceeded: 'Export succeeded. Document created: {{path}}',
+      completeMowenConfigBeforeExport: 'Complete Mowen setup before export.',
+      testMowenBeforeExport: 'Test Mowen export before formal export.',
+      completeNotionConfigBeforeExport: 'Complete Notion setup before export.',
+      completeObsidianConfigBeforeExport: 'Complete Obsidian setup before export.',
+      completeSiyuanConfigBeforeExport: 'Complete SiYuan setup before export.',
+      chooseSiyuanNotebookBeforeExport: 'Choose a SiYuan target notebook before export.',
+      sentToNotion: 'Sent to Notion.',
+      sentToNotionWithUrl: 'Sent to Notion: {{url}}',
+      sentToObsidian: 'Sent to Obsidian: {{path}}',
+      sentToSiyuan: 'Sent to SiYuan: {{path}}',
+      saveSettingsFailed: 'Failed to save settings. Try again later.',
+      loadMowenSettingsFailed: 'Failed to load Mowen settings.',
+      loadNotionSettingsFailed: 'Failed to load Notion settings.',
+      loadObsidianSettingsFailed: 'Failed to load Obsidian settings.',
+      loadSiyuanSettingsFailed: 'Failed to load SiYuan settings.',
+
+      unnamedPage: 'Untitled page',
+      unnamedPageWithIndex: 'Untitled page {{index}}',
+      link: 'Link',
+      originalLink: 'Original Link',
+      exportTitle: 'Cat Highlighter Export',
+      exportTitleWithCount: 'Cat Highlighter Export ({{countLabel}})',
+      exportTime: 'Export Time',
+      exportPageCount: 'Exported Pages',
+      source: 'Source',
+      underlineLabel: 'Underline',
+      highlightYellowLabel: 'Highlight/Yellow',
+      highlightBlueLabel: 'Highlight/Blue',
+      highlightRedLabel: 'Highlight/Red',
+      sourceName: 'Cat Highlighter',
+      mowenApiTestTitle: 'Cat Highlighter API Test',
+      mowenApiTestNote: 'This is a private test note for verifying whether your Mowen API Key works.',
+      mowenApiTestSuccess: 'If you can see this note in Mowen, the connection is working.',
+      notionTestTitle: 'Cat Highlighter Notion Test',
+      notionTestNote: 'This test note confirms Cat Highlighter can create a private page through the Notion API.',
+      obsidianTestTitle: 'Cat Highlighter Obsidian Test',
+      obsidianTestNote: 'This test note confirms Cat Highlighter can send content directly to your Obsidian vault.',
+      siyuanTestTitle: 'Cat Highlighter SiYuan Test',
+      siyuanTestNote: 'This test note confirms Cat Highlighter can write directly into SiYuan.',
+      exportTestHighlight: 'If you can see this content in {{target}}, the export flow is working.',
+      exportTestAnnotation: 'After the test succeeds, you can start formal exports.',
+      testExportTag: 'Test Export',
+      noClipboardContent: 'There is no content to write to the clipboard.'
+    }
+  };
+
+  let currentLanguage = DEFAULT_LANGUAGE;
+  let preferredLanguage = 'auto';
+
+  function normalizeLanguage(language) {
+    const value = String(language || '').replace('-', '_').toLowerCase();
+    if (value === 'en' || value.startsWith('en_')) return 'en';
+    if (value === 'zh' || value.startsWith('zh_')) return 'zh_CN';
+    return DEFAULT_LANGUAGE;
+  }
+
+  function getBrowserLanguage() {
+    if (typeof chrome !== 'undefined' && chrome.i18n && typeof chrome.i18n.getUILanguage === 'function') {
+      return chrome.i18n.getUILanguage();
+    }
+    if (typeof navigator !== 'undefined') {
+      return navigator.language || (navigator.languages && navigator.languages[0]) || DEFAULT_LANGUAGE;
+    }
+    return DEFAULT_LANGUAGE;
+  }
+
+  function resolveLanguage(preference) {
+    if (preference && preference !== 'auto') {
+      return normalizeLanguage(preference);
+    }
+    return normalizeLanguage(getBrowserLanguage());
+  }
+
+  function t(key, params, fallback) {
+    const catalog = CATALOGS[currentLanguage] || CATALOGS[DEFAULT_LANGUAGE];
+    const fallbackCatalog = CATALOGS[DEFAULT_LANGUAGE];
+    let template = catalog[key] || fallbackCatalog[key] || fallback || key;
+
+    if (params && typeof params === 'object') {
+      Object.keys(params).forEach(name => {
+        template = template.replace(new RegExp(`{{\\s*${name}\\s*}}`, 'g'), String(params[name]));
+      });
+    }
+
+    return template;
+  }
+
+  function formatCount(count, type) {
+    const numeric = Number.isFinite(Number(count)) ? Number(count) : 0;
+    const normalizedType = String(type || '').toLowerCase();
+
+    if (currentLanguage === 'en') {
+      const labels = {
+        page: ['Page', 'Pages'],
+        highlight: ['Highlight', 'Highlights'],
+        note: ['Note', 'Notes'],
+        word: ['Word', 'Words'],
+        notebook: ['Notebook', 'Notebooks'],
+        minute: ['Minute', 'Minutes'],
+        hour: ['Hour', 'Hours'],
+        day: ['Day', 'Days']
+      };
+      const pair = labels[normalizedType] || ['', ''];
+      const label = numeric === 1 ? pair[0] : pair[1];
+      return label ? `${numeric} ${label}` : String(numeric);
+    }
+
+    const zhLabels = {
+      page: '页',
+      highlight: '条高亮',
+      note: '条笔记',
+      word: '字',
+      notebook: '个笔记本',
+      minute: '分钟',
+      hour: '小时',
+      day: '天'
+    };
+    const label = zhLabels[normalizedType];
+    return label ? `${numeric} ${label}` : String(numeric);
+  }
+
+  function applyToDocument(root) {
+    const targetRoot = root || document;
+    if (!targetRoot) return;
+
+    if (targetRoot.documentElement) {
+      targetRoot.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
+    }
+
+    targetRoot.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.dataset.i18n, null, el.textContent);
+    });
+
+    targetRoot.querySelectorAll('[data-i18n-title]').forEach(el => {
+      el.setAttribute('title', t(el.dataset.i18nTitle, null, el.getAttribute('title') || ''));
+    });
+
+    targetRoot.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder, null, el.getAttribute('placeholder') || ''));
+    });
+
+    targetRoot.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+      el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel, null, el.getAttribute('aria-label') || ''));
+    });
+  }
+
+  function updateDocumentTitle(key) {
+    if (typeof document !== 'undefined') {
+      document.title = t(key || 'appName');
+    }
+  }
+
+  function setCurrentLanguage(nextPreference) {
+    preferredLanguage = nextPreference || 'auto';
+    currentLanguage = resolveLanguage(preferredLanguage);
+    if (typeof document !== 'undefined') {
+      applyToDocument(document);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cat:i18n-ready', {
+        detail: {
+          language: currentLanguage,
+          preference: preferredLanguage
+        }
+      }));
+    }
+  }
+
+  function saveLanguagePreference(nextPreference) {
+    const value = nextPreference || 'auto';
+    setCurrentLanguage(value);
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ [STORAGE_KEY]: value });
+    }
+  }
+
+  function applyLanguagePreference(nextPreference) {
+    setCurrentLanguage(nextPreference || 'auto');
+  }
+
+  function init() {
+    return new Promise(resolve => {
+      if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+        setCurrentLanguage('auto');
+        resolve(currentLanguage);
+        return;
+      }
+
+      chrome.storage.local.get([STORAGE_KEY], result => {
+        setCurrentLanguage(result && result[STORAGE_KEY] ? result[STORAGE_KEY] : 'auto');
+        resolve(currentLanguage);
+      });
+    });
+  }
+
+  const rootWindow = typeof window !== 'undefined' ? window : globalThis;
+
+  rootWindow.CatI18n = {
+    STORAGE_KEY,
+    t,
+    applyToDocument,
+    updateDocumentTitle,
+    getLanguage: () => currentLanguage,
+    getPreference: () => preferredLanguage,
+    setLanguage: saveLanguagePreference,
+    applyLanguagePreference,
+    formatCount,
+    getCatalog: () => CATALOGS[currentLanguage] || CATALOGS[DEFAULT_LANGUAGE],
+    ready: init()
+  };
+})();

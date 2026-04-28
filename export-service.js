@@ -13,6 +13,43 @@
     siyuan: 'export.siyuan'
   };
 
+  function t(key, params, fallback) {
+    return window.CatI18n && typeof window.CatI18n.t === 'function'
+      ? window.CatI18n.t(key, params, fallback)
+      : (fallback || key);
+  }
+
+  function formatCount(count, type) {
+    return window.CatI18n && typeof window.CatI18n.formatCount === 'function'
+      ? window.CatI18n.formatCount(count, type)
+      : String(count);
+  }
+
+  function countParams(count, type) {
+    return {
+      count,
+      countLabel: formatCount(count, type)
+    };
+  }
+
+  function getExportLocale() {
+    return window.CatI18n && typeof window.CatI18n.getLanguage === 'function' && window.CatI18n.getLanguage() === 'en'
+      ? 'en-US'
+      : 'zh-CN';
+  }
+
+  function getHtmlLang() {
+    return getExportLocale() === 'en-US' ? 'en' : 'zh-CN';
+  }
+
+  function labelSeparator() {
+    return getExportLocale() === 'en-US' ? ': ' : '：';
+  }
+
+  function getAnnotationLabel() {
+    return t('annotationPrefix', null, '批注：').replace(/[:：]\s*$/, '');
+  }
+
   function normalizeText(value) {
     if (typeof value !== 'string') return '';
     return value.replace(/\r\n/g, '\n').trim();
@@ -47,17 +84,17 @@
 
   function getHighlightStyleLabel(item) {
     if (item.type === 'underline') {
-      return '[划线]';
+      return `[${t('underlineLabel', null, '划线')}]`;
     }
 
     switch (item.color) {
       case 'blue':
-        return '[高亮/蓝]';
+        return `[${t('highlightBlueLabel', null, '高亮/蓝')}]`;
       case 'red':
-        return '[高亮/红]';
+        return `[${t('highlightRedLabel', null, '高亮/红')}]`;
       case 'yellow':
       default:
-        return '[高亮/黄]';
+        return `[${t('highlightYellowLabel', null, '高亮/黄')}]`;
     }
   }
 
@@ -65,7 +102,7 @@
     const text = normalizeMarkdownDisplayText(item.text);
     const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
     if (item.annotation) {
-      lines.push(`  批注：${normalizeMarkdownDisplayText(item.annotation)}`);
+      lines.push(`  ${t('annotationPrefix', null, '批注：')}${normalizeMarkdownDisplayText(item.annotation)}`);
     }
     return lines;
   }
@@ -134,20 +171,20 @@
 
   function renderPageMarkdown(page) {
     const lines = [];
-    lines.push(`## ${page.title || page.url || '未命名页面'}`);
+    lines.push(`## ${page.title || page.url || t('unnamedPage', null, '未命名页面')}`);
     if (page.url) {
-      lines.push(`链接：${page.url}`);
+      lines.push(`${t('link', null, '链接')}${labelSeparator()}${page.url}`);
     }
 
     if (page.note) {
       lines.push('');
-      lines.push('### 页面笔记');
+      lines.push(`### ${t('pageNote', null, '页面笔记')}`);
       lines.push(normalizeMarkdownDisplayText(page.note));
     }
 
     if (page.highlights.length > 0) {
       lines.push('');
-      lines.push('### 标注');
+      lines.push(`### ${t('annotations', null, '标注')}`);
       page.highlights.forEach(item => {
         lines.push(...renderHighlightMarkdownLines(item));
       });
@@ -174,32 +211,32 @@
 
     const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
     if (item.annotation) {
-      lines.push(`  - 【批注】${normalizeMarkdownDisplayText(item.annotation)}`);
+      lines.push(`  - 【${getAnnotationLabel()}】${normalizeMarkdownDisplayText(item.annotation)}`);
     }
     return lines;
   }
 
   function renderPageNotion(page, index, isSinglePage) {
     const lines = [];
-    const heading = page.title || page.url || `未命名页面 ${index + 1}`;
+    const heading = page.title || page.url || t('unnamedPageWithIndex', { index: index + 1 }, `未命名页面 ${index + 1}`);
 
     if (!isSinglePage) {
       lines.push(`## ${heading}`);
     }
 
     if (page.url) {
-      lines.push(`[原文链接](${page.url})`);
+      lines.push(`[${t('originalLink', null, '原文链接')}](${page.url})`);
     }
 
     if (page.note) {
       lines.push('');
-      lines.push(isSinglePage ? '## 页面笔记' : '### 页面笔记');
+      lines.push(`${isSinglePage ? '##' : '###'} ${t('pageNote', null, '页面笔记')}`);
       lines.push(normalizeMarkdownDisplayText(page.note));
     }
 
     if (page.highlights.length > 0) {
       lines.push('');
-      lines.push(isSinglePage ? '## 标注' : '### 标注');
+      lines.push(`${isSinglePage ? '##' : '###'} ${t('annotations', null, '标注')}`);
       page.highlights.forEach(item => {
         lines.push(...renderHighlightNotionLines(item));
       });
@@ -215,13 +252,13 @@
 
     const isSinglePage = bundle.pages.length === 1;
     const title = isSinglePage
-      ? (bundle.pages[0].title || bundle.pages[0].url || '划线猫导出')
-      : `划线猫导出（${bundle.pageCount || bundle.pages.length} 页）`;
+      ? (bundle.pages[0].title || bundle.pages[0].url || t('exportTitle', null, '划线猫导出'))
+      : t('exportTitleWithCount', countParams(bundle.pageCount || bundle.pages.length, 'page'), `划线猫导出（${bundle.pageCount || bundle.pages.length} 页）`);
     const lines = [
       `# ${normalizeMarkdownDisplayText(title)}`,
       '',
-      `导出时间：${new Date(bundle.exportedAt || Date.now()).toLocaleString('zh-CN')}`,
-      '来源：划线猫'
+      `${t('exportTime', null, '导出时间')}${labelSeparator()}${new Date(bundle.exportedAt || Date.now()).toLocaleString(getExportLocale())}`,
+      `${t('source', null, '来源')}${labelSeparator()}${t('sourceName', null, '划线猫')}`
     ];
 
     const body = bundle.pages
@@ -266,7 +303,7 @@
     if (!text) return [];
 
     const lines = text.split('\n');
-    return ['> [!note] 页面笔记'].concat(lines.map(line => `> ${line}`));
+    return [`> [!note] ${t('pageNote', null, '页面笔记')}`].concat(lines.map(line => `> ${line}`));
   }
 
   function renderHighlightObsidianLines(item) {
@@ -275,18 +312,18 @@
 
     const lines = [`- ${getHighlightStyleLabel(item)} ${text}`];
     if (item.annotation) {
-      lines.push(`  - 【批注】${normalizeObsidianText(item.annotation)}`);
+      lines.push(`  - 【${getAnnotationLabel()}】${normalizeObsidianText(item.annotation)}`);
     }
     return lines;
   }
 
   function renderPageObsidian(page, index) {
     const lines = [];
-    const heading = page.title || page.url || `未命名页面 ${index + 1}`;
+    const heading = page.title || page.url || t('unnamedPageWithIndex', { index: index + 1 }, `未命名页面 ${index + 1}`);
     lines.push(`## ${heading}`);
 
     if (page.url) {
-      lines.push(`[原文链接](${page.url})`);
+      lines.push(`[${t('originalLink', null, '原文链接')}](${page.url})`);
     }
 
     if (page.note) {
@@ -296,7 +333,7 @@
 
     if (page.highlights.length > 0) {
       lines.push('');
-      lines.push('### 标注');
+      lines.push(`### ${t('annotations', null, '标注')}`);
       page.highlights.forEach(item => {
         lines.push(...renderHighlightObsidianLines(item));
       });
@@ -311,17 +348,17 @@
     }
 
     const title = bundle.pageCount === 1
-      ? (bundle.pages[0].title || bundle.pages[0].url || '划线猫导出')
-      : `划线猫导出（${bundle.pageCount} 页）`;
+      ? (bundle.pages[0].title || bundle.pages[0].url || t('exportTitle', null, '划线猫导出'))
+      : t('exportTitleWithCount', countParams(bundle.pageCount, 'page'), `划线猫导出（${bundle.pageCount} 页）`);
 
     const frontmatter = [
       '---',
       `title: "${escapeYamlString(title)}"`,
-      'source: "划线猫"',
+      `source: "${escapeYamlString(t('sourceName', null, '划线猫'))}"`,
       `exported_at: "${formatObsidianDateTime(bundle.exportedAt)}"`,
       `page_count: ${bundle.pageCount || 0}`,
       'tags:',
-      '  - 划线猫',
+      `  - ${t('sourceName', null, '划线猫')}`,
       '  - Obsidian',
       '---'
     ];
@@ -340,7 +377,7 @@
     ];
 
     if (item.annotation) {
-      parts.push(`  <div class="highlight-annotation">批注：${formatMultilineHtml(item.annotation)}</div>`);
+      parts.push(`  <div class="highlight-annotation">${escapeHtml(t('annotationPrefix', null, '批注：'))}${formatMultilineHtml(item.annotation)}</div>`);
     }
 
     parts.push('</div>');
@@ -350,7 +387,7 @@
   function renderPageHtml(page) {
     const parts = [
       '<section class="page-block">',
-      `  <h2>${escapeHtml(page.title || page.url || '未命名页面')}</h2>`
+      `  <h2>${escapeHtml(page.title || page.url || t('unnamedPage', null, '未命名页面'))}</h2>`
     ];
 
     if (page.url) {
@@ -359,14 +396,14 @@
 
     if (page.note) {
       parts.push('  <section class="page-section">');
-      parts.push('    <h3>页面笔记</h3>');
+      parts.push(`    <h3>${escapeHtml(t('pageNote', null, '页面笔记'))}</h3>`);
       parts.push(`    <div class="page-note">${formatMultilineHtml(page.note)}</div>`);
       parts.push('  </section>');
     }
 
     if (page.highlights.length > 0) {
       parts.push('  <section class="page-section">');
-      parts.push('    <h3>标注</h3>');
+      parts.push(`    <h3>${escapeHtml(t('annotations', null, '标注'))}</h3>`);
       parts.push('    <div class="highlights-list">');
       page.highlights.forEach(item => {
         parts.push(renderHighlightHtml(item));
@@ -387,11 +424,11 @@
     const pageHtml = bundle.pages.map(renderPageHtml).join('\n\n');
     return [
       '<!DOCTYPE html>',
-      '<html lang="zh-CN">',
+      `<html lang="${getHtmlLang()}">`,
       '<head>',
       '  <meta charset="utf-8">',
       '  <meta name="viewport" content="width=device-width, initial-scale=1">',
-      '  <title>划线猫导出</title>',
+      `  <title>${escapeHtml(t('exportTitle', null, '划线猫导出'))}</title>`,
       '  <style>',
       '    :root { color-scheme: light; }',
       '    body { margin: 0; padding: 32px; font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2937; background: #f8fafc; }',
@@ -421,8 +458,8 @@
       '<body>',
       '  <div class="export-shell">',
       '    <header class="export-header">',
-      '      <h1>划线猫导出</h1>',
-      `      <div class="export-meta">导出页面数：${bundle.pageCount || 0} · 导出时间：${escapeHtml(new Date(bundle.exportedAt || Date.now()).toLocaleString('zh-CN'))}</div>`,
+      `      <h1>${escapeHtml(t('exportTitle', null, '划线猫导出'))}</h1>`,
+      `      <div class="export-meta">${escapeHtml(t('exportPageCount', null, '导出页面数'))}${escapeHtml(labelSeparator())}${bundle.pageCount || 0} · ${escapeHtml(t('exportTime', null, '导出时间'))}${escapeHtml(labelSeparator())}${escapeHtml(new Date(bundle.exportedAt || Date.now()).toLocaleString(getExportLocale()))}</div>`,
       '    </header>',
       pageHtml,
       '  </div>',

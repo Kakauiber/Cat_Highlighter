@@ -24,6 +24,13 @@
   --danger-strong: #a74444;
   --shadow-sm: 0 1px 2px rgba(71, 53, 43, 0.04), 0 10px 24px rgba(71, 53, 43, 0.06);
   --shadow-md: 0 14px 34px rgba(71, 53, 43, 0.1);
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+:root:lang(en) {
+  --font-body: Inter, 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', Inter, 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 * {
@@ -37,12 +44,23 @@ body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-body);
   background:
     radial-gradient(circle at top left, rgba(181, 139, 128, 0.16), transparent 34%),
     radial-gradient(circle at top right, rgba(104, 126, 167, 0.14), transparent 28%),
     linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
   color: var(--text-primary);
+}
+
+:root:lang(en) .header-copy h1,
+:root:lang(en) .config-summary-title,
+:root:lang(en) .settings-panel .settings-section-head h2,
+:root:lang(en) .page-group-title,
+:root:lang(en) .page-title,
+:root:lang(en) .obsidian-help-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 button,
@@ -125,6 +143,31 @@ textarea {
   flex-wrap: nowrap;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+.language-select-shell {
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.72);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.language-select {
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
 }
 
 .top-action-btn {

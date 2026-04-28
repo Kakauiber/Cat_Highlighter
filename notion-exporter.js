@@ -11,6 +11,12 @@
   const NOTION_LAST_TESTED_AT_KEY = 'notion_last_tested_at';
   const NOTION_LAST_TESTED_SIGNATURE_KEY = 'notion_last_tested_signature';
 
+  function t(key, params, fallback) {
+    return window.CatI18n && typeof window.CatI18n.t === 'function'
+      ? window.CatI18n.t(key, params, fallback)
+      : (fallback || key);
+  }
+
   function normalizeText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -78,15 +84,15 @@
 
   function buildDefaultNoteTitle(bundle, explicitTitle) {
     if (explicitTitle) {
-      return normalizeText(explicitTitle).split('\n')[0] || '划线猫导出';
+      return normalizeText(explicitTitle).split('\n')[0] || t('exportTitle', null, '划线猫导出');
     }
 
     if (bundle && Array.isArray(bundle.pages) && bundle.pages.length === 1) {
       const page = bundle.pages[0];
-      return normalizeText(page && (page.title || page.url)).split('\n')[0] || '划线猫导出';
+      return normalizeText(page && (page.title || page.url)).split('\n')[0] || t('exportTitle', null, '划线猫导出');
     }
 
-    return '划线猫导出';
+    return t('exportTitle', null, '划线猫导出');
   }
 
   async function getSettings() {
@@ -141,19 +147,19 @@
     const message = data && data.message ? data.message : '';
 
     if (status === 401) {
-      return 'Notion API 集成密钥（Integration Token）无效或已失效，请重新检查。';
+      return t('notionTokenInvalid', null, 'Notion API 集成密钥（Integration Token）无效或已失效，请重新检查。');
     }
     if (status === 403) {
-      return 'Notion 集成没有权限写入该页面，请检查安装范围（Installation scope）或页面权限。';
+      return t('notionNoPermission', null, 'Notion 集成没有权限写入该页面，请检查安装范围（Installation scope）或页面权限。');
     }
     if (status === 404 || code === 'object_not_found') {
-      return '找不到目标 Notion 页面，或该页面尚未加入集成的安装范围（Installation scope）。';
+      return t('notionPageNotFound', null, '找不到目标 Notion 页面，或该页面尚未加入集成的安装范围（Installation scope）。');
     }
     if (status === 400 || code === 'validation_error') {
-      return message || 'Notion 参数校验失败，请检查目标父页面链接或页面 ID（Page ID）。';
+      return message || t('notionValidationFailed', null, 'Notion 参数校验失败，请检查目标父页面链接或页面 ID（Page ID）。');
     }
 
-    return message || `Notion 请求失败（HTTP ${status || '未知'}）。`;
+    return message || `Notion HTTP ${status || 'unknown'}`;
   }
 
   async function createPage(settings, payload) {
@@ -162,13 +168,13 @@
     const markdown = normalizeText(payload && payload.markdown);
 
     if (!token) {
-      return { ok: false, message: '请先填写 Notion API 集成密钥（Integration Token）。', code: 'missing_token' };
+      return { ok: false, message: t('fillNotionToken', null, '请先填写 Notion API 集成密钥（Integration Token）。'), code: 'missing_token' };
     }
     if (!parentPageId) {
-      return { ok: false, message: '请先填写有效的 Notion 目标父页面链接或页面 ID（Page ID）。', code: 'missing_parent_page' };
+      return { ok: false, message: t('fillNotionParent', null, '请先填写有效的 Notion 目标父页面链接或页面 ID（Page ID）。'), code: 'missing_parent_page' };
     }
     if (!markdown) {
-      return { ok: false, message: '没有可导出的内容。', code: 'empty_markdown' };
+      return { ok: false, message: t('noExportContent', null, '没有可导出的内容。'), code: 'empty_markdown' };
     }
 
     let response;
@@ -188,7 +194,7 @@
     } catch (err) {
       return {
         ok: false,
-        message: '无法连接 Notion API。请检查网络，或稍后重试。',
+        message: t('notionNetworkFailed', null, '无法连接 Notion API。请检查网络，或稍后重试。'),
         code: 'network_error',
         error: err
       };
@@ -221,13 +227,13 @@
 
   async function exportBundleToNotion(bundle, options) {
     if (!window.HighlightExport || typeof window.HighlightExport.exportBundleToNotion !== 'function') {
-      return { ok: false, message: 'Notion 导出能力尚未准备好。' };
+      return { ok: false, message: t('notionExportFeatureUnavailable', null, 'Notion 导出能力尚未准备好。') };
     }
 
     const settings = options && options.settings ? options.settings : await getSettings();
     const content = window.HighlightExport.exportBundleToNotion(bundle);
     if (!content) {
-      return { ok: false, message: '没有可导出的内容。', code: 'empty_bundle' };
+      return { ok: false, message: t('noExportContent', null, '没有可导出的内容。'), code: 'empty_bundle' };
     }
 
     const result = await createPage(settings, {
@@ -256,17 +262,17 @@
       pageCount: 1,
       pages: [
         {
-          title: '划线猫 Notion 测试',
+          title: t('notionTestTitle', null, '划线猫 Notion 测试'),
           url: '',
-          note: '这是一条测试笔记，用于确认划线猫可以通过 Notion API 创建私密页面。',
+          note: t('notionTestNote', null, '这是一条测试笔记，用于确认划线猫可以通过 Notion API 创建私密页面。'),
           noteWordCount: 0,
           highlights: [
             {
               id: 'notion-test-highlight',
-              text: '如果你在 Notion 中看到了这段内容，说明导出链路已经打通。',
+              text: t('exportTestHighlight', { target: 'Notion' }, '如果你在 Notion 中看到了这段内容，说明导出链路已经打通。'),
               type: 'highlight',
               color: 'yellow',
-              annotation: '测试成功后即可开始正式导出。',
+              annotation: t('exportTestAnnotation', null, '测试成功后即可开始正式导出。'),
               timestamp: now
             }
           ]
@@ -276,7 +282,7 @@
 
     const result = await exportBundleToNotion(bundle, {
       settings,
-      noteTitle: `划线猫 Notion 测试 ${formatDateStamp(now)} ${formatTimeStamp(now)}`
+      noteTitle: `${t('notionTestTitle', null, '划线猫 Notion 测试')} ${formatDateStamp(now)} ${formatTimeStamp(now)}`
     });
 
     if (!result.ok) {
@@ -288,7 +294,7 @@
       pageId: result.pageId,
       url: result.url,
       settings: result.settings,
-      message: '测试成功，已在 Notion 中创建测试页面。'
+      message: t('notionTestSucceeded', null, '测试成功，已在 Notion 中创建测试页面。')
     };
   }
 

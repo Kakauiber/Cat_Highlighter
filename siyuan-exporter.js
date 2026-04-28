@@ -13,6 +13,12 @@
   const SIYUAN_LAST_TESTED_AT_KEY = 'siyuan_last_tested_at';
   const SIYUAN_LAST_TESTED_SIGNATURE_KEY = 'siyuan_last_tested_signature';
 
+  function t(key, params, fallback) {
+    return window.CatI18n && typeof window.CatI18n.t === 'function'
+      ? window.CatI18n.t(key, params, fallback)
+      : (fallback || key);
+  }
+
   function normalizeText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -45,7 +51,7 @@
       .trim()
       .replace(/\.+$/g, '');
 
-    return cleaned || (fallback || '未命名文档');
+    return cleaned || (fallback || t('unnamedPage', null, '未命名文档'));
   }
 
   function normalizeFolder(value) {
@@ -83,21 +89,21 @@
 
   function buildDefaultNoteTitle(bundle, explicitTitle) {
     if (explicitTitle) {
-      return sanitizePathSegment(explicitTitle, '划线猫导出');
+      return sanitizePathSegment(explicitTitle, t('exportTitle', null, '划线猫导出'));
     }
 
     if (bundle && Array.isArray(bundle.pages) && bundle.pages.length === 1) {
       const page = bundle.pages[0];
-      return sanitizePathSegment(page && (page.title || page.url), '划线猫导出');
+      return sanitizePathSegment(page && (page.title || page.url), t('exportTitle', null, '划线猫导出'));
     }
 
-    return '划线猫导出';
+    return t('exportTitle', null, '划线猫导出');
   }
 
   function buildDocPath(settings, noteTitle, timestamp) {
     const folder = normalizeFolder(settings && settings.folder || '');
     const stamp = `${formatDateStamp(timestamp)} ${formatTimeStamp(timestamp)}`;
-    const name = sanitizePathSegment(`${noteTitle} ${stamp}`, '划线猫导出');
+    const name = sanitizePathSegment(`${noteTitle} ${stamp}`, t('exportTitle', null, '划线猫导出'));
     return folder ? `/${folder}/${name}` : `/${name}`;
   }
 
@@ -108,7 +114,7 @@
   async function request(endpoint, token, apiPath, body) {
     const apiToken = String(token || '').trim();
     if (!apiToken) {
-      return { ok: false, message: '请先填写思源 API Token。', code: 'missing_token' };
+      return { ok: false, message: t('fillSiyuanToken', null, '请先填写思源 API Token。'), code: 'missing_token' };
     }
 
     let response;
@@ -124,7 +130,7 @@
     } catch (err) {
       return {
         ok: false,
-        message: '无法连接到思源服务。请确认思源桌面版已启动，且服务地址可访问。',
+        message: t('siyuanConnectionFailed', null, '无法连接到思源服务。请确认思源桌面版已启动，且服务地址可访问。'),
         code: 'network_error',
         error: err
       };
@@ -140,7 +146,7 @@
     if (!response.ok) {
       return {
         ok: false,
-        message: (data && (data.msg || data.message)) || `请求失败（HTTP ${response.status}）`,
+        message: (data && (data.msg || data.message)) || `HTTP ${response.status}`,
         code: 'http_error',
         status: response.status,
         data
@@ -150,7 +156,7 @@
     if (data && typeof data.code === 'number' && data.code !== 0) {
       return {
         ok: false,
-        message: data.msg || data.message || '思源接口返回失败',
+        message: data.msg || data.message || t('siyuanApiFailed', null, '思源接口返回失败'),
         code: 'api_error',
         data
       };
@@ -255,12 +261,12 @@
   async function createDocWithMarkdown(settings, payload) {
     const notebookId = String(settings && settings.notebookId || '').trim();
     if (!notebookId) {
-      return { ok: false, message: '请先选择目标笔记本。', code: 'missing_notebook' };
+      return { ok: false, message: t('fillSiyuanNotebook', null, '请先选择目标笔记本。'), code: 'missing_notebook' };
     }
 
     const markdown = normalizeText(payload && payload.markdown);
     if (!markdown) {
-      return { ok: false, message: '没有可导出的内容。', code: 'empty_markdown' };
+      return { ok: false, message: t('noExportContent', null, '没有可导出的内容。'), code: 'empty_markdown' };
     }
 
     return request(settings && settings.endpoint, settings && settings.token, '/api/filetree/createDocWithMd', {
@@ -272,20 +278,20 @@
 
   async function exportBundleToSiyuan(bundle, options) {
     if (!window.HighlightExport || typeof window.HighlightExport.exportBundleToSiyuan !== 'function') {
-      return { ok: false, message: '思源导出能力尚未准备好。' };
+      return { ok: false, message: t('siyuanFeatureUnavailable', null, '思源导出能力尚未准备好。') };
     }
 
     const settings = options && options.settings ? options.settings : await getSettings();
     if (!String(settings && settings.token || '').trim()) {
-      return { ok: false, message: '请先配置思源 API Token。', code: 'missing_token' };
+      return { ok: false, message: t('fillSiyuanToken', null, '请先配置思源 API Token。'), code: 'missing_token' };
     }
     if (!String(settings && settings.notebookId || '').trim()) {
-      return { ok: false, message: '请先选择目标笔记本。', code: 'missing_notebook' };
+      return { ok: false, message: t('fillSiyuanNotebook', null, '请先选择目标笔记本。'), code: 'missing_notebook' };
     }
 
     const content = window.HighlightExport.exportBundleToSiyuan(bundle);
     if (!content) {
-      return { ok: false, message: '没有可导出的内容。', code: 'empty_bundle' };
+      return { ok: false, message: t('noExportContent', null, '没有可导出的内容。'), code: 'empty_bundle' };
     }
 
     const exportedAt = bundle && bundle.exportedAt ? bundle.exportedAt : Date.now();
@@ -317,17 +323,17 @@
       pageCount: 1,
       pages: [
         {
-          title: '划线猫 思源测试',
+          title: t('siyuanTestTitle', null, '划线猫 思源测试'),
           url: '',
-          note: '这是一条测试笔记，用于确认划线猫可以直接写入思源笔记。',
+          note: t('siyuanTestNote', null, '这是一条测试笔记，用于确认划线猫可以直接写入思源笔记。'),
           noteWordCount: 0,
           highlights: [
             {
               id: 'siyuan-test-highlight',
-              text: '如果你在思源中看到了这段内容，说明导出链路已经打通。',
+              text: t('exportTestHighlight', { target: t('siyuan', null, '思源') }, '如果你在思源中看到了这段内容，说明导出链路已经打通。'),
               type: 'highlight',
               color: 'yellow',
-              annotation: '测试成功后即可开始正式导出。',
+              annotation: t('exportTestAnnotation', null, '测试成功后即可开始正式导出。'),
               timestamp: now
             }
           ]
@@ -337,7 +343,7 @@
 
     const result = await exportBundleToSiyuan(bundle, {
       settings,
-      noteTitle: `划线猫 思源测试 ${formatDateStamp(now)} ${formatTimeStamp(now)}`
+      noteTitle: `${t('siyuanTestTitle', null, '划线猫 思源测试')} ${formatDateStamp(now)} ${formatTimeStamp(now)}`
     });
 
     if (!result.ok) {
@@ -349,7 +355,7 @@
       docId: result.docId,
       docPath: result.docPath,
       settings: result.settings,
-      message: '测试成功，已在思源中创建测试文档。'
+      message: t('siyuanTestSucceeded', null, '测试成功，已在思源中创建测试文档。')
     };
   }
 

@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Cat Highlighter"
+  },
+  "appDescription": {
+    "message": "Highlight, underline, annotate, take page notes, and export web reading records to Markdown, HTML, Mowen, Notion, Obsidian, and SiYuan."
+  },
+  "sidePanelTitle": {
+    "message": "Cat Highlighter - Side Panel"
+  },
+  "optionsTitle": {
+    "message": "Highlight and Notes Manager"
+  }
+}

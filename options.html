@@ -16,11 +16,19 @@
           <img src="icons/icon48.png" alt="划线猫 logo" />
         </div>
         <div class="header-copy">
-          <h1>划线猫</h1>
-          <p class="header-subtitle">为网页阅读与大模型对话标记重点、记录思考</p>
+          <h1 data-i18n="appName">划线猫</h1>
+          <p class="header-subtitle" data-i18n="subtitle">为网页阅读与大模型对话标记重点、记录思考</p>
         </div>
       </div>
       <div class="header-actions">
+        <label class="language-select-shell" for="language-select">
+          <span data-i18n="language">语言</span>
+          <select id="language-select" class="language-select">
+            <option value="auto" data-i18n="languageAuto">自动</option>
+            <option value="zh_CN" data-i18n="languageChinese">中文</option>
+            <option value="en" data-i18n="languageEnglish">English</option>
+          </select>
+        </label>
         <button id="mowen-config-toggle" class="top-action-btn" type="button" aria-expanded="false"
           aria-controls="settings-panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -30,7 +38,7 @@
               d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
             </path>
           </svg>
-          <span>设置</span>
+          <span data-i18n="settings">设置</span>
         </button>
         <div id="export-menu" class="export-menu">
           <button id="export-menu-trigger" class="top-action-btn top-action-btn-primary" type="button"
@@ -41,23 +49,23 @@
               <path d="M7 8l5-5 5 5"></path>
               <path d="M5 21h14"></path>
             </svg>
-            <span>导出全部</span>
+            <span data-i18n="exportAll">导出全部</span>
             <span class="top-action-chevron" aria-hidden="true"></span>
           </button>
           <div id="export-menu-popover" class="export-menu-popover" role="menu">
-            <button class="export-menu-option" type="button" data-format="mowen" role="menuitem">墨问</button>
+            <button class="export-menu-option" type="button" data-format="mowen" role="menuitem" data-i18n="mowen">墨问</button>
             <button class="export-menu-option" type="button" data-format="notion" role="menuitem">Notion</button>
+            <button class="export-menu-option" type="button" data-format="obsidian" role="menuitem">Obsidian</button>
+            <button class="export-menu-option" type="button" data-format="siyuan" role="menuitem" data-i18n="siyuan">思源</button>
             <button class="export-menu-option" type="button" data-format="markdown" role="menuitem">Markdown</button>
             <button class="export-menu-option" type="button" data-format="html" role="menuitem">HTML</button>
-            <button class="export-menu-option" type="button" data-format="obsidian" role="menuitem">Obsidian</button>
-            <button class="export-menu-option" type="button" data-format="siyuan" role="menuitem">思源</button>
           </div>
         </div>
       </div>
     </header>
 
-    <section id="settings-panel" class="settings-panel hidden" aria-label="设置">
-      <details id="mowen-panel" class="config-panel" aria-label="导出配置" open>
+    <section id="settings-panel" class="settings-panel hidden" aria-label="设置" data-i18n-aria-label="configPanel">
+      <details id="mowen-panel" class="config-panel" aria-label="导出配置" data-i18n-aria-label="exportConfig" open>
         <summary class="config-summary">
           <div class="config-summary-main">
             <span class="config-summary-icon" aria-hidden="true">
@@ -68,12 +76,12 @@
               </svg>
             </span>
             <div class="config-summary-copy">
-              <div class="config-summary-title">导出配置</div>
-              <div id="mowen-summary-meta" class="config-summary-meta">未配置 API Key</div>
+              <div class="config-summary-title" data-i18n="exportConfig">导出配置</div>
+              <div id="mowen-summary-meta" class="config-summary-meta" data-i18n="apiKeyNotConfigured">未配置 API Key</div>
             </div>
           </div>
           <div class="config-summary-right">
-            <span id="config-summary-toggle-text" class="config-summary-toggle-text">展开</span>
+            <span id="config-summary-toggle-text" class="config-summary-toggle-text" data-i18n="expand">展开</span>
             <span class="config-summary-chevron" aria-hidden="true"></span>
           </div>
         </summary>
@@ -83,13 +91,13 @@
               <div class="export-target-top">
                 <div class="export-target-name-wrap">
                   <span id="mowen-target-dot" class="export-status-dot export-status-dot-success" aria-hidden="true"></span>
-                  <span class="export-target-name">墨问</span>
+                  <span class="export-target-name" data-i18n="mowen">墨问</span>
                 </div>
-                <span id="mowen-target-status" class="export-target-status export-target-status-success">API 已配置</span>
+                <span id="mowen-target-status" class="export-target-status export-target-status-success" data-i18n="apiConfigured">API 已配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="mowen-config-edit-btn" class="target-action-btn" type="button">重新配置</button>
-                <button id="mowen-test-btn" class="target-action-btn" type="button">测试</button>
+                <button id="mowen-config-edit-btn" class="target-action-btn" type="button" data-i18n="reconfigure">重新配置</button>
+                <button id="mowen-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
 
@@ -99,11 +107,11 @@
                   <span id="notion-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
                   <span class="export-target-name">Notion</span>
                 </div>
-                <span id="notion-target-status" class="export-target-status export-target-status-muted">未配置</span>
+                <span id="notion-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="notion-config-edit-btn" class="target-action-btn" type="button">去配置</button>
-                <button id="notion-test-btn" class="target-action-btn" type="button">测试</button>
+                <button id="notion-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="notion-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
 
@@ -113,11 +121,11 @@
                   <span id="obsidian-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
                   <span class="export-target-name">Obsidian</span>
                 </div>
-                <span id="obsidian-target-status" class="export-target-status export-target-status-muted">未配置</span>
+                <span id="obsidian-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="obsidian-config-edit-btn" class="target-action-btn" type="button">去配置</button>
-                <button id="obsidian-test-btn" class="target-action-btn" type="button">测试</button>
+                <button id="obsidian-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="obsidian-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
 
@@ -125,13 +133,13 @@
               <div class="export-target-top">
                 <div class="export-target-name-wrap">
                   <span id="siyuan-target-dot" class="export-status-dot export-status-dot-muted" aria-hidden="true"></span>
-                  <span class="export-target-name">思源</span>
+                  <span class="export-target-name" data-i18n="siyuan">思源</span>
                 </div>
-                <span id="siyuan-target-status" class="export-target-status export-target-status-muted">未配置</span>
+                <span id="siyuan-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="siyuan-config-edit-btn" class="target-action-btn" type="button">去配置</button>
-                <button id="siyuan-test-btn" class="target-action-btn" type="button">测试</button>
+                <button id="siyuan-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="siyuan-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
           </div>
@@ -139,22 +147,22 @@
           <div id="mowen-form-card" class="mowen-form-card hidden">
             <div class="mowen-form-head">
               <div>
-                <h2>墨问导出设置</h2>
-                <p>完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
+                <h2 data-i18n="mowenSettingsTitle">墨问导出设置</h2>
+                <p data-i18n="mowenSettingsDesc">完成配置与测试后，即可从“导出全部”中直接导出到墨问。</p>
               </div>
             </div>
             <div class="mowen-form">
               <label class="mowen-field">
-                <span>API Key</span>
-                <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" autocomplete="off" />
+                <span data-i18n="apiKey">API Key</span>
+                <input id="mowen-api-key" type="password" placeholder="输入墨问 API Key" data-i18n-placeholder="mowenApiPlaceholder" autocomplete="off" />
               </label>
               <label class="mowen-field">
-                <span>默认标签</span>
-                <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" />
+                <span data-i18n="defaultTags">默认标签</span>
+                <input id="mowen-tags" type="text" placeholder="划线猫, 私密笔记" data-i18n-placeholder="mowenTagsPlaceholder" />
               </label>
             </div>
             <div class="mowen-actions">
-              <button id="mowen-save-btn" type="button">保存设置</button>
+              <button id="mowen-save-btn" type="button" data-i18n="saveSettings">保存设置</button>
             </div>
             <div id="mowen-status" class="mowen-status" aria-live="polite"></div>
           </div>
@@ -162,32 +170,32 @@
           <div id="obsidian-form-card" class="mowen-form-card hidden">
             <div class="mowen-form-head">
               <div>
-                <h2>Obsidian 导出设置</h2>
-                <p>按官方剪藏工具思路：先写入剪贴板，再调用 Obsidian App 把内容直接创建到指定仓库。</p>
+                <h2 data-i18n="obsidianSettingsTitle">Obsidian 导出设置</h2>
+                <p data-i18n="obsidianSettingsDesc">按官方剪藏工具思路：先写入剪贴板，再调用 Obsidian App 把内容直接创建到指定仓库。</p>
               </div>
             </div>
             <div class="mowen-form">
               <label class="mowen-field">
-                <span>仓库名称 / Vault ID</span>
-                <input id="obsidian-vault" type="text" placeholder="可直接填写仓库名称；如需更稳，也可填写 Vault ID" autocomplete="off" />
+                <span data-i18n="obsidianVault">仓库名称 / Vault ID</span>
+                <input id="obsidian-vault" type="text" placeholder="可直接填写仓库名称；如需更稳，也可填写 Vault ID" data-i18n-placeholder="obsidianVaultPlaceholder" autocomplete="off" />
               </label>
               <label class="mowen-field">
-                <span>目标文件夹</span>
-                <input id="obsidian-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" autocomplete="off" />
+                <span data-i18n="targetFolder">目标文件夹</span>
+                <input id="obsidian-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" data-i18n-placeholder="targetFolderPlaceholder" autocomplete="off" />
               </label>
             </div>
             <div class="obsidian-help-card">
-              <div class="obsidian-help-title">不知道怎么获取 Vault ID？</div>
-              <div class="obsidian-help-text">可直接填写仓库名称；如果需要获取 Vault ID，请按下面步骤操作：</div>
+              <div class="obsidian-help-title" data-i18n="obsidianHelpTitle">不知道怎么获取 Vault ID？</div>
+              <div class="obsidian-help-text" data-i18n="obsidianHelpText">可直接填写仓库名称；如果需要获取 Vault ID，请按下面步骤操作：</div>
               <ol class="obsidian-help-list">
-                <li>打开 Obsidian 桌面版。</li>
-                <li>找到左下角的仓库切换器并切换至目标仓库。</li>
-                <li>右键点击目标仓库区域，在弹出菜单栏中点击“复制路径”。</li>
+                <li data-i18n="obsidianHelpStep1">打开 Obsidian 桌面版。</li>
+                <li data-i18n="obsidianHelpStep2">找到左下角的仓库切换器并切换至目标仓库。</li>
+                <li data-i18n="obsidianHelpStep3">右键点击目标仓库区域，在弹出菜单栏中点击“复制路径”。</li>
               </ol>
-              <div class="obsidian-help-tip">官方文档说明：`vault` 参数既可以用仓库名称，也可以用 Vault ID；Vault ID 更稳定。</div>
+              <div class="obsidian-help-tip" data-i18n="obsidianHelpTip">官方文档说明：`vault` 参数既可以用仓库名称，也可以用 Vault ID；Vault ID 更稳定。</div>
             </div>
             <div class="mowen-actions">
-              <button id="obsidian-save-btn" type="button">保存设置</button>
+              <button id="obsidian-save-btn" type="button" data-i18n="saveSettings">保存设置</button>
             </div>
             <div id="obsidian-status" class="mowen-status" aria-live="polite"></div>
           </div>
@@ -195,33 +203,33 @@
           <div id="notion-form-card" class="mowen-form-card hidden">
             <div class="mowen-form-head">
               <div>
-                <h2>Notion 导出设置</h2>
-                <p>通过 Notion 官方 API，在目标父页面下创建新的子页面。</p>
+                <h2 data-i18n="notionSettingsTitle">Notion 导出设置</h2>
+                <p data-i18n="notionSettingsDesc">通过 Notion 官方 API，在目标父页面下创建新的子页面。</p>
               </div>
             </div>
             <div class="mowen-form">
               <label class="mowen-field">
-                <span>API 集成密钥（Integration Token）</span>
-                <input id="notion-token" type="password" placeholder="输入 Notion API 集成密钥" autocomplete="off" />
+                <span data-i18n="notionToken">API 集成密钥（Integration Token）</span>
+                <input id="notion-token" type="password" placeholder="输入 Notion API 集成密钥" data-i18n-placeholder="notionTokenPlaceholder" autocomplete="off" />
               </label>
               <label class="mowen-field">
-                <span>目标父页面链接 / ID（Page ID）</span>
-                <input id="notion-parent-page" type="text" placeholder="粘贴 Notion 父页面链接，或填写 Page ID" autocomplete="off" />
+                <span data-i18n="notionParent">目标父页面链接 / ID（Page ID）</span>
+                <input id="notion-parent-page" type="text" placeholder="粘贴 Notion 父页面链接，或填写 Page ID" data-i18n-placeholder="notionParentPlaceholder" autocomplete="off" />
               </label>
             </div>
             <div class="obsidian-help-card">
-              <div class="obsidian-help-title">不知道怎么配置 Notion？</div>
+              <div class="obsidian-help-title" data-i18n="notionHelpTitle">不知道怎么配置 Notion？</div>
               <ol class="obsidian-help-list">
-                <li>打开 Notion 设置页，点击上方「连接」。</li>
-                <li>点击「开发或管理集成」，再点击「创建新集成」。</li>
-                <li>填写「集成名称」，并在「安装范围（Installation scope）」处选择目标父页面。</li>
-                <li>创建完成后，复制「API 集成密钥（Integration Token）」并粘贴到这里。</li>
-                <li>复制目标父页面链接，粘贴到「目标父页面链接 / ID（Page ID）」处即可。</li>
+                <li data-i18n="notionHelpStep1">打开 Notion 设置页，点击上方「连接」。</li>
+                <li data-i18n="notionHelpStep2">点击「开发或管理集成」，再点击「创建新集成」。</li>
+                <li data-i18n="notionHelpStep3">填写「集成名称」，并在「安装范围（Installation scope）」处选择目标父页面。</li>
+                <li data-i18n="notionHelpStep4">创建完成后，复制「API 集成密钥（Integration Token）」并粘贴到这里。</li>
+                <li data-i18n="notionHelpStep5">复制目标父页面链接，粘贴到「目标父页面链接 / ID（Page ID）」处即可。</li>
               </ol>
-              <div class="obsidian-help-tip">测试会在目标父页面下创建一篇「划线猫 Notion 测试」子页面。正式导出前，建议先完成一次测试。</div>
+              <div class="obsidian-help-tip" data-i18n="notionHelpTip">测试会在目标父页面下创建一篇「划线猫 Notion 测试」子页面。正式导出前，建议先完成一次测试。</div>
             </div>
             <div class="mowen-actions">
-              <button id="notion-save-btn" type="button">保存设置</button>
+              <button id="notion-save-btn" type="button" data-i18n="saveSettings">保存设置</button>
             </div>
             <div id="notion-status" class="mowen-status" aria-live="polite"></div>
           </div>
@@ -229,44 +237,44 @@
           <div id="siyuan-form-card" class="mowen-form-card hidden">
             <div class="mowen-form-head">
               <div>
-                <h2>思源导出设置</h2>
-                <p>按官方 API 直连思源本地服务，保存后可直接把高亮和笔记写入指定笔记本。</p>
+                <h2 data-i18n="siyuanSettingsTitle">思源导出设置</h2>
+                <p data-i18n="siyuanSettingsDesc">按官方 API 直连思源本地服务，保存后可直接把高亮和笔记写入指定笔记本。</p>
               </div>
             </div>
             <div class="mowen-form">
               <label class="mowen-field">
-                <span>服务地址</span>
-                <input id="siyuan-endpoint" type="text" placeholder="默认：http://127.0.0.1:6806" autocomplete="off" />
+                <span data-i18n="endpoint">服务地址</span>
+                <input id="siyuan-endpoint" type="text" placeholder="默认：http://127.0.0.1:6806" data-i18n-placeholder="siyuanEndpointPlaceholder" autocomplete="off" />
               </label>
               <label class="mowen-field">
                 <span>API Token</span>
-                <input id="siyuan-token" type="password" placeholder="输入思源 API Token" autocomplete="off" />
+                <input id="siyuan-token" type="password" placeholder="输入思源 API Token" data-i18n-placeholder="siyuanTokenPlaceholder" autocomplete="off" />
               </label>
               <label class="mowen-field">
-                <span>目标笔记本</span>
+                <span data-i18n="targetNotebook">目标笔记本</span>
                 <div class="inline-field-row">
                   <select id="siyuan-notebook">
-                    <option value="">请先刷新笔记本列表</option>
+                    <option value="" data-i18n="refreshNotebooksFirst">请先刷新笔记本列表</option>
                   </select>
-                  <button id="siyuan-refresh-btn" class="inline-field-btn" type="button">刷新笔记本</button>
+                  <button id="siyuan-refresh-btn" class="inline-field-btn" type="button" data-i18n="refreshNotebook">刷新笔记本</button>
                 </div>
               </label>
               <label class="mowen-field">
-                <span>目标目录</span>
-                <input id="siyuan-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" autocomplete="off" />
+                <span data-i18n="targetFolder">目标目录</span>
+                <input id="siyuan-folder" type="text" placeholder="例如：Clippings/划线猫（可留空）" data-i18n-placeholder="siyuanFolderPlaceholder" autocomplete="off" />
               </label>
             </div>
             <div class="obsidian-help-card">
-              <div class="obsidian-help-title">不知道怎么获取思源 API Token？</div>
+              <div class="obsidian-help-title" data-i18n="siyuanHelpTitle">不知道怎么获取思源 API Token？</div>
               <ol class="obsidian-help-list">
-                <li>打开思源桌面版。</li>
-                <li>进入「设置」→「关于」。</li>
-                <li>复制页面中的 API Token，并粘贴到这里。</li>
+                <li data-i18n="siyuanHelpStep1">打开思源桌面版。</li>
+                <li data-i18n="siyuanHelpStep2">进入「设置」→「关于」。</li>
+                <li data-i18n="siyuanHelpStep3">复制页面中的 API Token，并粘贴到这里。</li>
               </ol>
-              <div class="obsidian-help-tip">默认服务地址是 `http://127.0.0.1:6806`。测试或正式导出前，请先确认思源桌面版正在运行。</div>
+              <div class="obsidian-help-tip" data-i18n="siyuanHelpTip">默认服务地址是 `http://127.0.0.1:6806`。测试或正式导出前，请先确认思源桌面版正在运行。</div>
             </div>
             <div class="mowen-actions">
-              <button id="siyuan-save-btn" type="button">保存设置</button>
+              <button id="siyuan-save-btn" type="button" data-i18n="saveSettings">保存设置</button>
             </div>
             <div id="siyuan-status" class="mowen-status" aria-live="polite"></div>
           </div>
@@ -276,33 +284,33 @@
       <section id="blacklist-section" class="settings-section">
         <div class="settings-section-head">
           <div>
-            <h2>黑名单管理</h2>
-            <p>这些网站已被排除在划线和高亮之外。</p>
+            <h2 data-i18n="blacklistTitle">黑名单管理</h2>
+            <p data-i18n="blacklistDesc">这些网站已被排除在划线和高亮之外。</p>
           </div>
         </div>
         <div id="blacklist-container" class="blacklist-container"></div>
       </section>
     </section>
 
-    <section class="overview-grid" aria-label="记录概览">
+    <section class="overview-grid" aria-label="记录概览" data-i18n-aria-label="overview">
       <article class="overview-card">
         <div id="overview-pages" class="overview-number">0</div>
-        <div class="overview-label">页面</div>
+        <div class="overview-label" data-i18n="pages">页面</div>
       </article>
       <article class="overview-card">
         <div id="overview-highlights" class="overview-number">0</div>
-        <div class="overview-label">条高亮</div>
+        <div class="overview-label" data-i18n="highlights">条高亮</div>
       </article>
       <article class="overview-card">
         <div id="overview-notes" class="overview-number">0</div>
-        <div class="overview-label">条笔记</div>
+        <div class="overview-label" data-i18n="notes">条笔记</div>
       </article>
     </section>
 
-    <section class="list-toolbar" aria-label="记录筛选工具">
+    <section class="list-toolbar" aria-label="记录筛选工具" data-i18n-aria-label="filterToolbar">
       <div id="view-filters" class="view-filters">
-        <button class="filter-chip active" data-filter="all">全部</button>
-        <button class="filter-chip" data-filter="with-notes">有笔记</button>
+        <button class="filter-chip active" data-filter="all" data-i18n="filterAll">全部</button>
+        <button class="filter-chip" data-filter="with-notes" data-i18n="filterWithNotes">有笔记</button>
       </div>
       <label class="search-field">
         <span class="search-icon" aria-hidden="true">
@@ -312,15 +320,15 @@
             <path d="M21 21l-4.35-4.35"></path>
           </svg>
         </span>
-        <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." />
+        <input id="search-input" type="text" placeholder="搜索页面、笔记或高亮内容..." data-i18n-placeholder="searchPlaceholder" />
       </label>
       <label class="sort-shell" for="sort-select">
         <select id="sort-select" class="sort-select">
-          <option value="updated-desc">最近更新</option>
-          <option value="updated-asc">最早更新</option>
+          <option value="updated-desc" data-i18n="updatedDesc">最近更新</option>
+          <option value="updated-asc" data-i18n="updatedAsc">最早更新</option>
         </select>
       </label>
-      <button id="select-mode-btn" class="tool-mode-btn" type="button">多选</button>
+      <button id="select-mode-btn" class="tool-mode-btn" type="button" data-i18n="select">多选</button>
     </section>
 
     <div id="batch-header" class="batch-header hidden">
@@ -328,12 +336,12 @@
         <input type="checkbox" id="select-all-checkbox" />
         <span id="select-count">已选 0 条（勾选前框可全选）</span>
       </label>
-      <button id="cancel-select-btn" class="cancel-btn">取消</button>
+      <button id="cancel-select-btn" class="cancel-btn" data-i18n="cancel">取消</button>
     </div>
 
     <div id="pages-list" class="pages-list"></div>
     <div id="list-end-marker" class="list-end-marker hidden" aria-hidden="true">
-      <span>已展示全部记录</span>
+      <span data-i18n="listEnd">已展示全部记录</span>
     </div>
 
   </div>
@@ -345,7 +353,7 @@
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
       </svg>
-      <span>删除所选</span>
+      <span data-i18n="deleteSelected">删除所选</span>
     </button>
     <button id="batch-copy-btn" class="batch-btn primary" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -353,10 +361,11 @@
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
       </svg>
-      <span>合并复制</span>
+      <span data-i18n="copySelected">合并复制</span>
     </button>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="note-repo.js"></script>
   <script src="page-note-service.js"></script>
   <script src="feature-gate.js"></script>

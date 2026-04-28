@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "划线猫"
+  },
+  "appDescription": {
+    "message": "网页高亮、划线、批注和页面笔记工具，支持导出到 Markdown、HTML、墨问、Notion、Obsidian 和思源笔记。"
+  },
+  "sidePanelTitle": {
+    "message": "划线猫 - 侧边栏"
+  },
+  "optionsTitle": {
+    "message": "高亮与笔记管理"
+  }
+}

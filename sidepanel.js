@@ -45,6 +45,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const noteUpdateTime = document.getElementById('note-update-time');
     const noteWordCount = document.getElementById('note-word-count');
 
+    function t(key, params, fallback) {
+        return window.CatI18n && typeof window.CatI18n.t === 'function'
+            ? window.CatI18n.t(key, params, fallback)
+            : (fallback || key);
+    }
+
+    function formatCount(count, type) {
+        return window.CatI18n && typeof window.CatI18n.formatCount === 'function'
+            ? window.CatI18n.formatCount(count, type)
+            : String(count);
+    }
+
+    function countParams(count, type) {
+        return {
+            count,
+            countLabel: formatCount(count, type)
+        };
+    }
+
+    function applyLocalizedChrome() {
+        if (window.CatI18n && typeof window.CatI18n.applyToDocument === 'function') {
+            window.CatI18n.applyToDocument(document);
+            window.CatI18n.updateDocumentTitle('sidePanelTitle');
+        }
+        syncTabChrome();
+        updateTabMeta();
+        updateNoteSummary();
+        updateNoteWordCount();
+        updateNoteUpdateTime();
+        updateOnboardingCard();
+        renderCurrentView();
+    }
+
     function openManagePage() {
         if (chrome.runtime.openOptionsPage) {
             chrome.runtime.openOptionsPage();
@@ -54,11 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getPageHostLabel(url) {
-        if (!url) return '未定位到网页';
+        if (!url) return t('hostUnavailable', null, '未定位到网页');
         try {
-            return new URL(url).hostname.replace(/^www\./i, '') || '当前网页';
+            return new URL(url).hostname.replace(/^www\./i, '') || t('currentWebsite', null, '当前网页');
         } catch (err) {
-            return '当前网页';
+            return t('currentWebsite', null, '当前网页');
         }
     }
 
@@ -70,10 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasActivePage = Boolean(currentActivePageUrl);
         onboardingDomain.textContent = getPageHostLabel(currentActivePageUrl);
         if (currentPageAccessState === 'restricted') {
-            onboardingAvailability.textContent = '当前页面运行在受限容器中';
+            onboardingAvailability.textContent = t('restrictedPage', null, '当前页面运行在受限容器中');
             onboardingAvailability.classList.remove('is-muted');
         } else {
-            onboardingAvailability.textContent = hasActivePage ? '可直接划线记录' : '请切换到普通网页后使用';
+            onboardingAvailability.textContent = hasActivePage
+                ? t('availableOnThisPage', null, '可直接划线记录')
+                : t('switchToNormalPage', null, '请切换到普通网页后使用');
             onboardingAvailability.classList.toggle('is-muted', !hasActivePage);
         }
         onboardingCard.classList.toggle('hidden', onboardingDismissed || isSelectionMode);
@@ -158,7 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
         notesTab.classList.toggle('active', activeTab === 'notes');
         selectModeBtn.classList.remove('hidden');
         selectModeBtn.disabled = activeTab !== 'current';
-        selectModeBtn.title = activeTab === 'current' ? '多选' : '多选（仅高亮页可用）';
+        selectModeBtn.title = activeTab === 'current'
+            ? t('selectMode', null, '多选')
+            : t('selectModeCurrentOnly', null, '多选（仅高亮页可用）');
         syncSelectionModeUI();
     }
 
@@ -184,14 +221,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const highlightCount = currentPageData && Array.isArray(currentPageData.highlights)
                 ? currentPageData.highlights.length
                 : 0;
-            currentTabMeta.textContent = highlightCount > 0 ? `${highlightCount} 条高亮` : '暂无高亮';
+            currentTabMeta.textContent = highlightCount > 0
+                ? t('highlightCount', countParams(highlightCount, 'highlight'), `${highlightCount} 条高亮`)
+                : t('noHighlights', null, '暂无高亮');
         }
 
         if (notesTabMeta) {
             const noteWordTotal = currentNoteRecord && currentNoteRecord.content
                 ? (currentNoteRecord.wordCount || window.PageNotes.countWords(currentNoteRecord.content))
                 : 0;
-            notesTabMeta.textContent = noteWordTotal > 0 ? `${noteWordTotal} 字笔记` : '暂无笔记';
+            notesTabMeta.textContent = noteWordTotal > 0
+                ? t('noteWordCount', countParams(noteWordTotal, 'word'), `${noteWordTotal} 字笔记`)
+                : t('noNotes', null, '暂无笔记');
         }
     }
 
@@ -223,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = normalizeClipboardText((highlight && highlight.text) || '');
         if (!text) return '';
         const annotation = normalizeClipboardText((highlight && highlight.annotation) || '');
-        return annotation ? `${text}\n批注：${annotation}` : text;
+        return annotation ? `${text}\n${t('annotationPrefix', null, '批注：')}${annotation}` : text;
     }
 
     function formatPageForClipboard(page) {
@@ -239,11 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(Boolean);
 
         if (note) {
-            sections.push(`页面笔记\n${note}`);
+            sections.push(`${t('pageNote', null, '页面笔记')}\n${note}`);
         }
 
         if (highlightTexts.length > 0) {
-            sections.push(`标注\n${highlightTexts.join('\n\n')}`);
+            sections.push(`${t('annotations', null, '标注')}\n${highlightTexts.join('\n\n')}`);
         }
 
         return sections.join('\n\n').trim();
@@ -628,13 +669,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showEmptyState(
                     currentHighlights,
-                    '当前页面暂不支持划线',
-                    '当前页面运行在受限容器中。请在标准浏览器标签页中打开原链接后使用。',
+                    t('unsupportedPageTitle', null, '当前页面暂不支持划线'),
+                    t('unsupportedPageDescription', null, '当前页面运行在受限容器中。请在标准浏览器标签页中打开原链接后使用。'),
                     '🧩'
                 );
             } else {
                 currentPageInfo.classList.add('page-info-hidden');
-                showEmptyState(currentHighlights, '无法获取当前页面信息');
+                showEmptyState(currentHighlights, t('unableToGetPage', null, '无法获取当前页面信息'));
             }
             return;
         }
@@ -645,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPageInfo.appendChild(titleEl);
 
         // Update highlight section summary for collapsed state
-        highlightSectionSummary.textContent = `${currentPageData.highlights.length} 条`;
+        highlightSectionSummary.textContent = t('highlightCountShort', countParams(currentPageData.highlights.length, 'highlight'), `${currentPageData.highlights.length} 条`);
         updateTabMeta();
 
         if (!isSelectionMode) {
@@ -653,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!currentPageData.highlights || currentPageData.highlights.length === 0) {
-            showEmptyState(currentHighlights, '当前页面暂无高亮');
+            showEmptyState(currentHighlights, t('currentPageNoHighlights', null, '当前页面暂无高亮'));
             return;
         }
 
@@ -782,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
             copyBtn.className = 'action-btn';
             // Line-style copy icon matching the toolbar
             copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-            copyBtn.title = '复制';
+            copyBtn.title = t('copy', null, '复制');
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 navigator.clipboard.writeText(formatHighlightForClipboard(h)).catch(console.warn);
@@ -794,10 +835,10 @@ document.addEventListener('DOMContentLoaded', () => {
             annotateBtn.className = 'action-btn';
             // Line-style annotation/edit icon
             annotateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-            annotateBtn.title = '批注';
+            annotateBtn.title = t('annotate', null, '批注');
             annotateBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const note = prompt('添加批注:', h.annotation || '');
+                const note = prompt(t('addAnnotationPrompt', null, '添加批注:'), h.annotation || '');
                 if (note !== null) {
                     updateHighlightAnnotation(page.key, h.id, note);
                 }
@@ -808,7 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteBtn.className = 'action-btn';
             // Line-style delete/trash icon matching the toolbar
             deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-            deleteBtn.title = '删除';
+            deleteBtn.title = t('delete', null, '删除');
             deleteBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 deleteHighlight(page.key, h.id);
@@ -876,7 +917,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const copyBtn = document.createElement('button');
         copyBtn.className = 'page-meta-btn';
-        copyBtn.textContent = '复制本页';
+        copyBtn.textContent = t('copyPage', null, '复制本页');
         copyBtn.disabled = page.highlights.length === 0;
         copyBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -886,11 +927,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'page-meta-btn danger';
-        deleteBtn.textContent = '删除本页';
+        deleteBtn.textContent = t('deletePage', null, '删除本页');
         deleteBtn.disabled = page.highlights.length === 0;
         deleteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (confirm(`确定删除“${page.title}”的全部高亮吗？`)) {
+            if (confirm(t('deletePageConfirm', { title: page.title }, `确定删除“${page.title}”的全部高亮吗？`))) {
                 await deletePageHighlights(page);
             }
         });
@@ -904,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exportTrigger.className = 'page-meta-btn page-export-trigger';
         exportTrigger.disabled = !exportPage || (exportPage.highlights.length === 0 && !(exportPage.note && exportPage.note.content));
         exportTrigger.innerHTML = `
-            <span class="page-export-trigger-label">导出本页</span>
+            <span class="page-export-trigger-label">${escapeHtml(t('exportPage', null, '导出本页'))}</span>
             <span class="page-export-trigger-chevron" aria-hidden="true"></span>
         `;
         exportTrigger.addEventListener('click', (e) => {
@@ -923,10 +964,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         [
-            { value: 'mowen', label: '墨问' },
+            { value: 'mowen', label: t('mowen', null, '墨问') },
             { value: 'notion', label: 'Notion' },
             { value: 'obsidian', label: 'Obsidian' },
-            { value: 'siyuan', label: '思源笔记' },
+            { value: 'siyuan', label: t('siyuan', null, '思源笔记') },
             { value: 'markdown', label: 'Markdown' },
             { value: 'html', label: 'HTML' }
         ].forEach(option => {
@@ -1052,12 +1093,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function exportCurrentPage(page, format, triggerControl) {
         const exportPage = getCurrentPageExportSource(page);
         if (!exportPage || (exportPage.highlights.length === 0 && !(exportPage.note && exportPage.note.content))) {
-            alert('当前页面没有可导出的内容');
+            alert(t('noExportContent', null, '当前页面没有可导出的内容'));
             return;
         }
 
         if (!window.HighlightExport || typeof window.HighlightExport.buildExportBundle !== 'function') {
-            alert('导出功能暂不可用');
+            alert(t('exportUnavailable', null, '导出功能暂不可用'));
             return;
         }
 
@@ -1067,18 +1108,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (targetFormat === 'mowen') {
             if (!window.HighlightMowenExporter || typeof window.HighlightMowenExporter.exportBundleToMowen !== 'function') {
-                alert('墨问导出当前不可用');
+                alert(t('mowenUnavailable', null, '墨问导出当前不可用'));
                 return;
             }
 
             const settings = await getMowenSettings();
             if (!settings.apiKey) {
-                alert('请先在管理页配置墨问 API Key。');
+                alert(t('mowenConfigRequired', null, '请先在管理页配置墨问 API Key。'));
                 return;
             }
 
             if (settings.lastTestedKey !== settings.apiKey) {
-                alert('请先在管理页完成一次墨问测试导出，再执行当前页导出。');
+                alert(t('mowenTestRequired', null, '请先在管理页完成一次墨问测试导出，再执行当前页导出。'));
                 return;
             }
 
@@ -1092,14 +1133,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags: settings.tags
                 });
                 if (!result || !result.ok) {
-                    alert((result && result.message) || '导出到墨问失败，请检查 API Key、配额或网络状态。');
+                    alert((result && result.message) || t('mowenExportFailed', null, '导出到墨问失败，请检查 API Key、配额或网络状态。'));
                     return;
                 }
-                alert(`已生成墨问笔记${result.noteId ? `（${result.noteId}）` : ''}。`);
+                alert(t('mowenExported', { noteId: result.noteId ? `（${result.noteId}）` : '' }, `已生成墨问笔记${result.noteId ? `（${result.noteId}）` : ''}。`));
                 ok = true;
             } catch (err) {
                 console.error('[SidePanel] Export to Mowen failed:', err);
-                alert('导出到墨问失败，请检查网络、配额或 API Key。');
+                alert(t('mowenExportFailed', null, '导出到墨问失败，请检查网络、配额或 API Key。'));
                 return;
             } finally {
                 if (triggerControl) {
@@ -1108,17 +1149,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (targetFormat === 'notion') {
             if (!window.HighlightNotionExporter || typeof window.HighlightNotionExporter.exportBundleToNotion !== 'function') {
-                alert('Notion 导出当前不可用');
+                alert(t('notionUnavailable', null, 'Notion 导出当前不可用'));
                 return;
             }
 
             const settings = await getNotionSettings();
             if (!settings.token || !settings.parentPageId) {
-                alert('请先在管理页配置 Notion API 集成密钥和目标父页面。');
+                alert(t('notionConfigRequired', null, '请先在管理页配置 Notion API 集成密钥和目标父页面。'));
                 return;
             }
             if (!isCurrentNotionTest(settings)) {
-                alert('请先在管理页完成一次 Notion 测试导出，再执行当前页导出。');
+                alert(t('notionTestRequired', null, '请先在管理页完成一次 Notion 测试导出，再执行当前页导出。'));
                 return;
             }
 
@@ -1129,14 +1170,14 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
                 if (!result || !result.ok) {
-                    alert((result && result.message) || '导出到 Notion 失败，请检查 Token、页面权限或网络状态。');
+                    alert((result && result.message) || t('notionExportFailed', null, '导出到 Notion 失败，请检查 Token、页面权限或网络状态。'));
                     return;
                 }
-                alert(result.url ? `已创建 Notion 页面：${result.url}` : '已创建 Notion 页面。');
+                alert(t('notionExported', { url: result.url ? `：${result.url}` : '' }, result.url ? `已创建 Notion 页面：${result.url}` : '已创建 Notion 页面。'));
                 ok = true;
             } catch (err) {
                 console.error('[SidePanel] Export to Notion failed:', err);
-                alert('导出到 Notion 失败，请检查 Token、页面权限或网络状态。');
+                alert(t('notionExportFailed', null, '导出到 Notion 失败，请检查 Token、页面权限或网络状态。'));
                 return;
             } finally {
                 if (triggerControl) {
@@ -1145,42 +1186,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else if (targetFormat === 'obsidian') {
             if (!window.HighlightObsidianExporter || typeof window.HighlightObsidianExporter.exportBundleToObsidian !== 'function') {
-                alert('Obsidian 导出当前不可用');
+                alert(t('obsidianUnavailable', null, 'Obsidian 导出当前不可用'));
                 return;
             }
 
             const settings = await getObsidianSettings();
             if (!settings.vault) {
-                alert('请先在管理页配置 Obsidian Vault。');
+                alert(t('obsidianConfigRequired', null, '请先在管理页配置 Obsidian Vault。'));
                 return;
             }
 
             const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings });
             if (!result.ok) {
-                alert(result.message || '发送到 Obsidian 失败，请检查配置或剪贴板权限。');
+                alert(result.message || t('obsidianExportFailed', null, '发送到 Obsidian 失败，请检查配置或剪贴板权限。'));
                 return;
             }
 
             ok = true;
         } else if (targetFormat === 'siyuan') {
             if (!window.HighlightSiyuanExporter || typeof window.HighlightSiyuanExporter.exportBundleToSiyuan !== 'function') {
-                alert('思源导出当前不可用');
+                alert(t('siyuanUnavailable', null, '思源导出当前不可用'));
                 return;
             }
 
             const settings = await getSiyuanSettings();
             if (!settings.token) {
-                alert('请先在管理页配置思源 API Token。');
+                alert(t('siyuanTokenRequired', null, '请先在管理页配置思源 API Token。'));
                 return;
             }
             if (!settings.notebookId) {
-                alert('请先在管理页选择思源目标笔记本。');
+                alert(t('siyuanNotebookRequired', null, '请先在管理页选择思源目标笔记本。'));
                 return;
             }
 
             const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
             if (!result.ok) {
-                alert(result.message || '发送到思源失败，请检查配置或思源运行状态。');
+                alert(result.message || t('siyuanExportFailed', null, '发送到思源失败，请检查配置或思源运行状态。'));
                 return;
             }
 
@@ -1192,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!ok) {
-            alert('当前页面没有可导出的内容');
+            alert(t('noExportContent', null, '当前页面没有可导出的内容'));
             return;
         }
 
@@ -1252,7 +1293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = formatPageForClipboard(page);
 
         if (!text) {
-            alert('当前页面没有可复制的内容');
+            alert(t('noCopyContent', null, '当前页面没有可复制的内容'));
             return;
         }
 
@@ -1260,14 +1301,14 @@ document.addEventListener('DOMContentLoaded', () => {
             await navigator.clipboard.writeText(text);
             if (triggerBtn) {
                 const originalText = triggerBtn.textContent;
-                triggerBtn.textContent = '已复制';
+                triggerBtn.textContent = t('copied', null, '已复制');
                 setTimeout(() => {
                     triggerBtn.textContent = originalText;
                 }, 1200);
             }
         } catch (err) {
             console.warn('Copy failed:', err);
-            alert('复制失败');
+            alert(t('copyFailed', null, '复制失败'));
         }
     }
 
@@ -1380,8 +1421,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentNoteRecord = null;
             noteIsDirty = false;
             noteTextarea.value = '';
-            noteSummary.textContent = '暂无笔记';
-            noteWordCount.textContent = '0 字';
+            noteSummary.textContent = t('noNotes', null, '暂无笔记');
+            noteWordCount.textContent = formatCount(0, 'word');
             noteUpdateTime.textContent = '';
             setSaveStatusUI('idle');
             updatePageInfoNoteStatus();
@@ -1434,8 +1475,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentNoteUrl = null;
         noteIsDirty = false;
         noteTextarea.value = '';
-        noteSummary.textContent = '暂无笔记';
-        noteWordCount.textContent = '0 字';
+        noteSummary.textContent = t('noNotes', null, '暂无笔记');
+        noteWordCount.textContent = formatCount(0, 'word');
         noteUpdateTime.textContent = '';
         setSaveStatusUI('idle');
         updateTabMeta();
@@ -1450,9 +1491,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateNoteSummary() {
         if (currentNoteRecord && currentNoteRecord.content) {
             const wc = currentNoteRecord.wordCount || window.PageNotes.countWords(currentNoteRecord.content);
-            noteSummary.textContent = `已记录 ${wc} 字`;
+            noteSummary.textContent = t('noteRecorded', countParams(wc, 'word'), `已记录 ${wc} 字`);
         } else {
-            noteSummary.textContent = '暂无笔记';
+            noteSummary.textContent = t('noNotes', null, '暂无笔记');
         }
         updateTabMeta();
     }
@@ -1461,7 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateNoteWordCount() {
         const content = noteTextarea.value;
         const wc = window.PageNotes.countWords(content);
-        noteWordCount.textContent = `${wc} 字`;
+        noteWordCount.textContent = formatCount(wc, 'word');
     }
 
     /** Update the last-updated time display. */
@@ -1472,14 +1513,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const diff = Date.now() - currentNoteRecord.updatedAt;
         if (diff < 60000) {
-            noteUpdateTime.textContent = '最后更新：刚刚';
+            noteUpdateTime.textContent = t('lastUpdatedNow', null, '最后更新：刚刚');
         } else if (diff < 3600000) {
-            noteUpdateTime.textContent = `最后更新：${Math.floor(diff / 60000)} 分钟前`;
+            const count = Math.floor(diff / 60000);
+            noteUpdateTime.textContent = t('lastUpdatedMinutes', countParams(count, 'minute'), `最后更新：${count} 分钟前`);
         } else if (diff < 86400000) {
-            noteUpdateTime.textContent = `最后更新：${Math.floor(diff / 3600000)} 小时前`;
+            const count = Math.floor(diff / 3600000);
+            noteUpdateTime.textContent = t('lastUpdatedHours', countParams(count, 'hour'), `最后更新：${count} 小时前`);
         } else {
             const d = new Date(currentNoteRecord.updatedAt);
-            noteUpdateTime.textContent = `最后更新：${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+            noteUpdateTime.textContent = t(
+                'lastUpdatedDate',
+                { date: `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}` },
+                `最后更新：${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+            );
         }
     }
 
@@ -1492,20 +1539,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         switch (status) {
             case 'saving':
-                noteSaveStatus.textContent = '保存中...';
+                noteSaveStatus.textContent = t('saving', null, '保存中...');
                 noteSaveStatus.classList.add('saving');
                 break;
             case 'saved':
-                noteSaveStatus.textContent = '已保存';
+                noteSaveStatus.textContent = t('saved', null, '已保存');
                 noteSaveStatus.classList.add('saved');
                 break;
             case 'error':
-                noteSaveStatus.textContent = '保存失败';
+                noteSaveStatus.textContent = t('saveFailed', null, '保存失败');
                 noteSaveStatus.classList.add('error');
                 // Insert retry link after the status text
                 const retryLink = document.createElement('button');
                 retryLink.className = 'note-retry-link';
-                retryLink.textContent = '重试保存';
+                retryLink.textContent = t('retrySave', null, '重试保存');
                 retryLink.addEventListener('click', (e) => {
                     e.stopPropagation();
                     saveCurrentNote();
@@ -1659,7 +1706,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update the select count display
     function updateSelectCount() {
         const count = selectedIds.size;
-        selectCount.textContent = `已选 ${count} 条（勾选前框可全选）`;
+        selectCount.textContent = t('selectedCount', countParams(count, 'highlight'), `已选 ${count} 条（勾选前框可全选）`);
 
         // Update select all checkbox state
         const totalCount = getTotalHighlightCount();
@@ -1721,11 +1768,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Batch delete selected highlights
     async function batchDeleteSelected() {
         if (selectedIds.size === 0) {
-            alert('请先选择要删除的高亮');
+            alert(t('chooseHighlightsToDelete', null, '请先选择要删除的高亮'));
             return;
         }
 
-        if (!confirm(`确定删除选中的 ${selectedIds.size} 条高亮吗？`)) {
+        if (!confirm(t('deleteSelectedConfirm', countParams(selectedIds.size, 'highlight'), `确定删除选中的 ${selectedIds.size} 条高亮吗？`))) {
             return;
         }
 
@@ -1761,7 +1808,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Merge copy selected highlights
     function mergeCopySelected() {
         if (selectedIds.size === 0) {
-            alert('请先选择要复制的高亮');
+            alert(t('chooseHighlightsToCopy', null, '请先选择要复制的高亮'));
             return;
         }
 
@@ -1785,13 +1832,13 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.clipboard.writeText(mergedText).then(() => {
             // Show brief feedback
             const originalText = batchCopyBtn.textContent;
-            batchCopyBtn.textContent = '✅ 已复制!';
+            batchCopyBtn.textContent = t('copiedWithIcon', null, '✅ 已复制!');
             setTimeout(() => {
                 batchCopyBtn.textContent = originalText;
             }, 1500);
         }).catch(err => {
             console.error('Copy failed:', err);
-            alert('复制失败');
+            alert(t('copyFailed', null, '复制失败'));
         });
     }
 
@@ -1839,9 +1886,24 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') {
             const changedKeys = Object.keys(changes);
+            const i18nStorageKey = window.CatI18n && window.CatI18n.STORAGE_KEY;
+            const hasLanguageChange = Boolean(i18nStorageKey && changedKeys.includes(i18nStorageKey));
             const hasOnboardingChanges = changedKeys.includes(ONBOARDING_DISMISSED_KEY);
-            const hasHighlightChanges = changedKeys.some(k => !k.startsWith('page_notes_') && k !== ONBOARDING_DISMISSED_KEY);
+            const hasHighlightChanges = changedKeys.some(k =>
+                !k.startsWith('page_notes_') &&
+                k !== ONBOARDING_DISMISSED_KEY &&
+                k !== i18nStorageKey
+            );
             const hasNoteChanges = changedKeys.some(k => k.startsWith('page_notes_'));
+
+            if (hasLanguageChange) {
+                const nextPreference = changes[i18nStorageKey].newValue || 'auto';
+                if (window.CatI18n && typeof window.CatI18n.applyLanguagePreference === 'function') {
+                    window.CatI18n.applyLanguagePreference(nextPreference);
+                } else {
+                    applyLocalizedChrome();
+                }
+            }
 
             if (hasOnboardingChanges) {
                 onboardingDismissed = Boolean(changes[ONBOARDING_DISMISSED_KEY].newValue);
@@ -1990,6 +2052,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial load
+    window.addEventListener('cat:i18n-ready', applyLocalizedChrome);
+    if (window.CatI18n && window.CatI18n.ready && typeof window.CatI18n.ready.then === 'function') {
+        window.CatI18n.ready.then(applyLocalizedChrome).catch(() => { });
+    }
     syncTabChrome();
     updateBatchActionVisibility();
     loadOnboardingState();

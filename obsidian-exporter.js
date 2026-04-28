@@ -9,6 +9,12 @@
   const OBSIDIAN_LAST_TESTED_AT_KEY = 'obsidian_last_tested_at';
   const OBSIDIAN_LAST_TESTED_SIGNATURE_KEY = 'obsidian_last_tested_signature';
 
+  function t(key, params, fallback) {
+    return window.CatI18n && typeof window.CatI18n.t === 'function'
+      ? window.CatI18n.t(key, params, fallback)
+      : (fallback || key);
+  }
+
   function normalizeText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -39,7 +45,7 @@
       .trim()
       .replace(/\.+$/g, '');
 
-    return cleaned || (fallback || '未命名笔记');
+    return cleaned || (fallback || t('unnamedPage', null, '未命名笔记'));
   }
 
   function normalizeFolder(value) {
@@ -59,28 +65,28 @@
 
   function buildDefaultNoteTitle(bundle, explicitTitle) {
     if (explicitTitle) {
-      return sanitizePathSegment(explicitTitle, '划线猫导出');
+      return sanitizePathSegment(explicitTitle, t('exportTitle', null, '划线猫导出'));
     }
 
     if (bundle && Array.isArray(bundle.pages) && bundle.pages.length === 1) {
       const page = bundle.pages[0];
-      return sanitizePathSegment(page && (page.title || page.url), '划线猫导出');
+      return sanitizePathSegment(page && (page.title || page.url), t('exportTitle', null, '划线猫导出'));
     }
 
     const stamp = `${formatDateStamp(bundle && bundle.exportedAt)} ${formatTimeStamp(bundle && bundle.exportedAt)}`;
-    return sanitizePathSegment(`划线猫导出 ${stamp}`, '划线猫导出');
+    return sanitizePathSegment(`${t('exportTitle', null, '划线猫导出')} ${stamp}`, t('exportTitle', null, '划线猫导出'));
   }
 
   function buildTargetFilePath(settings, noteTitle) {
     const folder = normalizeFolder(settings && settings.folder || '');
-    const filename = `${sanitizePathSegment(noteTitle, '划线猫导出')}.md`;
+    const filename = `${sanitizePathSegment(noteTitle, t('exportTitle', null, '划线猫导出'))}.md`;
     return folder ? `${folder}/${filename}` : filename;
   }
 
   function buildObsidianUri(params) {
     const url = new URL('obsidian://new');
     url.searchParams.set('vault', String(params.vault || '').trim());
-    url.searchParams.set('file', params.file || '划线猫导出.md');
+    url.searchParams.set('file', params.file || `${t('exportTitle', null, '划线猫导出')}.md`);
 
     if (params.clipboard) {
       url.searchParams.set('clipboard', 'true');
@@ -104,7 +110,7 @@
   async function writeClipboardText(text) {
     const normalized = normalizeText(text);
     if (!normalized) {
-      return { ok: false, message: '没有可写入剪贴板的内容。' };
+      return { ok: false, message: t('noClipboardContent', null, '没有可写入剪贴板的内容。') };
     }
 
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -137,7 +143,7 @@
 
     return {
       ok: false,
-      message: '写入剪贴板失败。请检查浏览器权限，或稍后重试。'
+      message: t('copyFailed', null, '写入剪贴板失败。请检查浏览器权限，或稍后重试。')
     };
   }
 
@@ -198,17 +204,17 @@
 
   async function exportBundleToObsidian(bundle, options) {
     if (!window.HighlightExport || typeof window.HighlightExport.exportBundleToObsidian !== 'function') {
-      return { ok: false, message: 'Obsidian 导出能力尚未准备好。' };
+      return { ok: false, message: t('obsidianFeatureUnavailable', null, 'Obsidian 导出能力尚未准备好。') };
     }
 
     const settings = options && options.settings ? options.settings : await getSettings();
     if (!settings.vault) {
-      return { ok: false, message: '请先配置 Obsidian Vault ID 或名称。', code: 'missing_vault' };
+      return { ok: false, message: t('fillObsidianVault', null, '请先配置 Obsidian Vault ID 或名称。'), code: 'missing_vault' };
     }
 
     const content = window.HighlightExport.exportBundleToObsidian(bundle);
     if (!content) {
-      return { ok: false, message: '没有可导出的内容。', code: 'empty_bundle' };
+      return { ok: false, message: t('noExportContent', null, '没有可导出的内容。'), code: 'empty_bundle' };
     }
 
     const noteTitle = buildDefaultNoteTitle(bundle, options && options.noteTitle);
@@ -241,17 +247,17 @@
       pageCount: 1,
       pages: [
         {
-          title: '划线猫 Obsidian 测试',
+          title: t('obsidianTestTitle', null, '划线猫 Obsidian 测试'),
           url: '',
-          note: '这是一条测试笔记，用于确认划线猫可以把内容直接发送到 Obsidian 仓库。',
+          note: t('obsidianTestNote', null, '这是一条测试笔记，用于确认划线猫可以把内容直接发送到 Obsidian 仓库。'),
           noteWordCount: 0,
           highlights: [
             {
               id: 'obsidian-test-highlight',
-              text: '如果你在 Obsidian 中看到了这条内容，说明发送链路已经打通。',
+              text: t('exportTestHighlight', { target: 'Obsidian' }, '如果你在 Obsidian 中看到了这条内容，说明发送链路已经打通。'),
               type: 'highlight',
               color: 'yellow',
-              annotation: '测试完成后可直接删除此笔记。',
+              annotation: t('exportTestAnnotation', null, '测试完成后可直接删除此笔记。'),
               timestamp: Date.now()
             }
           ]
@@ -261,7 +267,7 @@
 
     const result = await exportBundleToObsidian(bundle, {
       settings,
-      noteTitle: `划线猫 Obsidian 测试 ${formatDateStamp(Date.now())} ${formatTimeStamp(Date.now())}`
+      noteTitle: `${t('obsidianTestTitle', null, '划线猫 Obsidian 测试')} ${formatDateStamp(Date.now())} ${formatTimeStamp(Date.now())}`
     });
 
     if (!result.ok) {
@@ -274,7 +280,7 @@
       noteTitle: result.noteTitle,
       filePath: result.filePath,
       settings: latestSettings,
-      message: '已发出测试创建请求，请切换到 Obsidian 确认是否生成测试笔记。'
+      message: t('obsidianTestSent', null, '已发出测试创建请求，请切换到 Obsidian 确认是否生成测试笔记。')
     };
   }
 

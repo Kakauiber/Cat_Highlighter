@@ -6,6 +6,16 @@
 
   const CREATE_NOTE_URL = 'https://open.mowen.cn/api/open/api/v1/note/create';
 
+  function t(key, params, fallback) {
+    return window.CatI18n && typeof window.CatI18n.t === 'function'
+      ? window.CatI18n.t(key, params, fallback)
+      : (fallback || key);
+  }
+
+  function getAnnotationLabel() {
+    return t('annotationPrefix', null, '批注：').replace(/[:：]\s*$/, '');
+  }
+
   function normalizeText(value) {
     return String(value || '')
       .replace(/\r\n/g, '\n')
@@ -71,7 +81,7 @@
     if (!href) return null;
 
     return buildParagraphNode([
-      buildTextNode(label || '【原文链接】', [
+      buildTextNode(label || `【${t('originalLink', null, '原文链接')}】`, [
         {
           type: 'link',
           attrs: {
@@ -96,7 +106,9 @@
     if (window.HighlightExport && typeof window.HighlightExport.getHighlightStyleLabel === 'function') {
       return window.HighlightExport.getHighlightStyleLabel(item).replace(/^\[|\]$/g, '');
     }
-    return item && item.type === 'underline' ? '划线' : '高亮';
+    return item && item.type === 'underline'
+      ? t('underlineLabel', null, '划线')
+      : t('highlightYellowLabel', null, '高亮/黄');
   }
 
   function pushMultilineParagraphs(target, text, firstPrefix, restPrefix) {
@@ -124,25 +136,25 @@
     if (!bundle || !Array.isArray(bundle.pages)) return content;
 
     bundle.pages.forEach((page, pageIndex) => {
-      const title = normalizeText(page.title || page.url || '未命名页面');
+      const title = normalizeText(page.title || page.url || t('unnamedPage', null, '未命名页面'));
       const url = normalizeText(page.url);
       const note = normalizeText(page.note);
       const highlights = Array.isArray(page.highlights) ? page.highlights : [];
 
       content.push(buildParagraphNode(title));
       if (url) {
-        content.push(buildLinkParagraphNode('【原文链接】', url));
+        content.push(buildLinkParagraphNode(`【${t('originalLink', null, '原文链接')}】`, url));
       }
 
       if (note) {
         content.push(buildEmptyParagraphNode());
-        pushSectionTitle(content, '【页面笔记】');
+        pushSectionTitle(content, `【${t('pageNote', null, '页面笔记')}】`);
         pushMultilineParagraphs(content, note, '', '');
       }
 
       if (highlights.length > 0) {
         content.push(buildEmptyParagraphNode());
-        pushSectionTitle(content, '【标注】');
+        pushSectionTitle(content, `【${t('annotations', null, '标注')}】`);
         highlights.forEach((item, itemIndex) => {
           if (itemIndex > 0) {
             content.push(buildEmptyParagraphNode());
@@ -150,7 +162,7 @@
           const label = getHighlightLabel(item);
           pushMultilineParagraphs(content, item.text, `【${label}】 `, '');
           if (item.annotation) {
-            pushMultilineParagraphs(content, item.annotation, '【批注】 ', '');
+            pushMultilineParagraphs(content, item.annotation, `【${getAnnotationLabel()}】 `, '');
           }
         });
       }
@@ -189,16 +201,16 @@
   function buildTestPayload(options) {
     const tags = normalizeTags(options && options.tags);
     const lines = [
-      '划线猫 API 测试',
-      '这是一篇用于验证墨问 API Key 是否可用的私密测试笔记。',
-      '如果你能在墨问中看到这篇笔记，说明连接成功。'
+      t('mowenApiTestTitle', null, '划线猫 API 测试'),
+      t('mowenApiTestNote', null, '这是一篇用于验证墨问 API Key 是否可用的私密测试笔记。'),
+      t('mowenApiTestSuccess', null, '如果你能在墨问中看到这篇笔记，说明连接成功。')
     ];
 
     return {
       body: buildDocFromContent(lines.map(buildParagraphNode)),
       settings: {
         autoPublish: false,
-        tags: tags.length > 0 ? tags : ['划线猫', '测试导出']
+        tags: tags.length > 0 ? tags : [t('sourceName', null, '划线猫'), t('testExportTag', null, '测试导出')]
       }
     };
   }
@@ -213,7 +225,7 @@
   async function createNoteRequest(apiKey, requestBody) {
     const key = String(apiKey || '').trim();
     if (!key) {
-      return { ok: false, reason: 'missing_api_key', message: '请先填写墨问 API Key' };
+      return { ok: false, reason: 'missing_api_key', message: t('fillMowenApiKey', null, '请先填写墨问 API Key') };
     }
 
     const response = await fetch(CREATE_NOTE_URL, {
@@ -233,7 +245,7 @@
     }
 
     if (!response.ok) {
-      const message = (data && (data.message || data.msg || data.error)) || `请求失败（HTTP ${response.status}）`;
+      const message = (data && (data.message || data.msg || data.error)) || `HTTP ${response.status}`;
       return {
         ok: false,
         reason: 'request_failed',
@@ -252,12 +264,12 @@
 
   async function exportBundleToMowen(bundle, options) {
     if (!canExportToMowen()) {
-      return { ok: false, reason: 'feature_locked', message: '墨问导出当前不可用' };
+      return { ok: false, reason: 'feature_locked', message: t('mowenUnavailable', null, '墨问导出当前不可用') };
     }
 
     const payload = buildMowenPayload(bundle, options);
     if (!payload) {
-      return { ok: false, reason: 'invalid_bundle', message: '没有可导出的内容' };
+      return { ok: false, reason: 'invalid_bundle', message: t('noExportContent', null, '没有可导出的内容') };
     }
 
     return createNoteRequest(options && options.apiKey, payload);
@@ -265,7 +277,7 @@
 
   async function testMowenConnection(apiKey, options) {
     if (!canExportToMowen()) {
-      return { ok: false, reason: 'feature_locked', message: '墨问导出当前不可用' };
+      return { ok: false, reason: 'feature_locked', message: t('mowenUnavailable', null, '墨问导出当前不可用') };
     }
 
     const payload = buildTestPayload(options);
