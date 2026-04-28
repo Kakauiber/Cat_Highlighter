@@ -4,6 +4,16 @@
 
 插件重点适配 ChatGPT、Gemini、Kimi、DeepSeek、Perplexity / Comet 等大模型对话页面。不同对话页面会按页面地址分别保存，刷新或重新打开页面后仍可恢复高亮记录。
 
+<p align="center">
+  <img src="docs/assets/promo-marquee-1400x560.png" alt="划线猫：网页高亮、页面笔记与知识导出工具" width="760">
+</p>
+
+<p align="center">
+  <img src="docs/assets/01-toolbar-highlight.png" alt="在网页中选中文字后快速高亮、划线和批注" width="30%">
+  <img src="docs/assets/02-sidepanel-current-page.png" alt="在侧边栏查看当前页高亮和页面笔记" width="30%">
+  <img src="docs/assets/04-management-page.png" alt="在管理页统一整理、筛选和导出全部记录" width="30%">
+</p>
+
 ## 核心功能
 
 - 网页文字高亮、划线与颜色标记。
@@ -182,4 +192,4 @@ Chrome Web Store 上架前请检查：
 
 ## License
 
-暂未添加 License。
+MIT License. See [LICENSE](LICENSE).
