@@ -32,6 +32,10 @@
 
 Public，但首次提交建议选择审核通过后手动发布。
 
+隐私政策网址：
+
+https://github.com/Kakauiber/Cat_Highlighter/blob/main/PRIVACY.md
+
 ## 详细描述
 
 划线猫是一款面向网页阅读、资料研究和大模型对话场景的标注与笔记工具。
@@ -55,6 +59,8 @@ Public，但首次提交建议选择审核通过后手动发布。
 数据与隐私：
 
 划线猫默认把高亮、批注、页面笔记和配置保存在浏览器本地。插件没有自建服务器，不会主动上传你的网页内容。只有当你主动点击导出到墨问、Notion 或思源笔记时，相关内容才会发送到你选择的第三方服务。导出到 Obsidian 使用本地 Obsidian 协议和剪贴板完成，不会发送到划线猫服务器。
+
+隐私政策：https://github.com/Kakauiber/Cat_Highlighter/blob/main/PRIVACY.md
 
 ## 单一用途说明
 

@@ -1,5 +1,11 @@
 # 划线猫 Cat Highlighter
 
+中文 | [English](README_EN.md)
+
+隐私说明：[PRIVACY.md](PRIVACY.md)
+
+问题反馈：[GitHub Issues](https://github.com/Kakauiber/Cat_Highlighter/issues)
+
 划线猫是一款面向网页阅读、资料研究和大模型对话场景的浏览器标注工具。你可以在网页上高亮、划线、添加批注，随手记录页面笔记，并把内容整理导出到 Markdown、HTML、墨问、Notion、Obsidian 或思源笔记。
 
 插件重点适配 ChatGPT、Gemini、Kimi、DeepSeek、Perplexity / Comet 等大模型对话页面。不同对话页面会按页面地址分别保存，刷新或重新打开页面后仍可恢复高亮记录。
@@ -23,6 +29,8 @@
 - 页面笔记：为当前网页或大模型对话单独记录想法、疑问和后续追问点。
 - 刷新恢复：页面刷新后自动恢复已保存高亮。
 - 导出格式：Markdown、HTML、墨问私密笔记、Notion 页面、Obsidian 仓库、思源笔记文档。
+
+发布记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 本地安装
 
