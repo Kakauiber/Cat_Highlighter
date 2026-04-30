@@ -2,6 +2,19 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
+## v1.1.0 - 2026-04-30
+
+### Added
+
+- English UI support and improved bilingual text consistency for Chrome Web Store international users.
+- Direct toolbar actions from existing highlights: click a saved highlight or underline to copy, annotate, delete, recolor, or convert it without selecting the text again.
+
+### Improved
+
+- Unified export success feedback for Mowen and SiYuan exports to reduce duplicate exports caused by unclear completion status.
+- Manager page page-level export now uses the same export choices as the side panel.
+- Full-export note titles are unified across supported note destinations.
+
 ## v1.0.0 - 2026-04-28
 
 Initial public release.
