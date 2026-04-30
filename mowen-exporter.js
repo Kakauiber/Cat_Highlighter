@@ -131,9 +131,15 @@
     target.push(buildParagraphNode(title));
   }
 
-  function buildBundleContent(bundle) {
+  function buildBundleContent(bundle, noteTitle) {
     const content = [];
     if (!bundle || !Array.isArray(bundle.pages)) return content;
+
+    const exportTitle = normalizeText(noteTitle);
+    if (exportTitle) {
+      content.push(buildParagraphNode(exportTitle));
+      content.push(buildEmptyParagraphNode());
+    }
 
     bundle.pages.forEach((page, pageIndex) => {
       const title = normalizeText(page.title || page.url || t('unnamedPage', null, '未命名页面'));
@@ -183,7 +189,7 @@
     }
 
     const tags = normalizeTags(options && options.tags);
-    const body = buildDocFromContent(buildBundleContent(bundle));
+    const body = buildDocFromContent(buildBundleContent(bundle, options && options.noteTitle));
 
     if (!body.content || body.content.length === 0) {
       return null;

@@ -101,6 +101,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return label || t(fallbackKey, null, '');
   }
 
+  function formatExportDateStamp(timestamp) {
+    const date = new Date(timestamp || Date.now());
+    const year = String(date.getFullYear());
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}${month}${day}`;
+  }
+
+  function getFullExportNoteTitle(timestamp) {
+    return `${t('fullExportTitle', null, '划线猫全部导出')}_${formatExportDateStamp(timestamp)}`;
+  }
+
   function labelSeparator() {
     return window.CatI18n && typeof window.CatI18n.getLanguage === 'function' && window.CatI18n.getLanguage() === 'en'
       ? ': '
@@ -318,10 +330,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openExportMenu() {
     if (!exportMenu) return;
+    closePageExportMenus();
     exportMenu.classList.add('open');
     if (exportMenuTrigger) {
       exportMenuTrigger.setAttribute('aria-expanded', 'true');
     }
+  }
+
+  function getExportTargetOptions() {
+    return [
+      { value: 'mowen', label: t('mowen', null, '墨问') },
+      { value: 'notion', label: 'Notion' },
+      { value: 'obsidian', label: 'Obsidian' },
+      { value: 'siyuan', label: t('siyuan', null, '思源笔记') },
+      { value: 'markdown', label: 'Markdown' },
+      { value: 'html', label: 'HTML' }
+    ];
+  }
+
+  function closePageExportMenus(exceptMenu) {
+    document.querySelectorAll('.page-action-export-menu.open').forEach(menu => {
+      if (menu === exceptMenu) return;
+      menu.classList.remove('open');
+      const pageCard = menu.closest('details');
+      if (pageCard) {
+        pageCard.classList.remove('export-menu-open');
+      }
+      const trigger = menu.querySelector('.page-action-export-trigger');
+      if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 
   function setMowenFormVisible(visible) {
@@ -1120,12 +1159,18 @@ document.addEventListener('DOMContentLoaded', () => {
       setMowenStatus(t('exportingAllMowen', null, '正在导出全部记录到墨问...'), '');
       try {
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
-        const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, { apiKey, tags });
+        const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, {
+          apiKey,
+          tags,
+          noteTitle: getFullExportNoteTitle(bundle.exportedAt)
+        });
         if (!result.ok) {
           setMowenStatus(result.message || t('mowenExportFailedShort', null, '导出到墨问失败。'), 'error');
           return;
         }
-        setMowenStatus(t('mowenExportSucceeded', { noteId: result.noteId ? `（${result.noteId}）` : '' }, `导出成功，已创建私密笔记${result.noteId ? `（${result.noteId}）` : ''}。`), 'success');
+        const message = t('mowenExportSucceeded', { noteId: result.noteId ? `（${result.noteId}）` : '' }, `导出成功，已创建私密笔记${result.noteId ? `（${result.noteId}）` : ''}。`);
+        setMowenStatus(message, 'success');
+        alert(message);
       } catch (err) {
         console.warn('导出到墨问失败', err);
         setMowenStatus(t('mowenExportFailed', null, '导出到墨问失败，请检查网络、配额或 API Key。'), 'error');
@@ -1193,19 +1238,21 @@ document.addEventListener('DOMContentLoaded', () => {
       setNotionStatus(t('exportingAllNotion', null, '正在导出全部记录到 Notion...'), '');
       try {
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
-        const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
+        const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, {
+          settings,
+          noteTitle: getFullExportNoteTitle(bundle.exportedAt)
+        });
         if (!result || !result.ok) {
           setNotionStatus((result && result.message) || t('notionExportFailedShort', null, '导出到 Notion 失败。'), 'error');
           return;
         }
 
         updateNotionSummary(result.settings || await getNotionSettings());
-        setNotionStatus(
-          result.url
-            ? t('notionExportSucceededWithUrl', { url: result.url }, `导出成功，已创建 Notion 页面：${result.url}`)
-            : t('notionExportSucceeded', null, '导出成功，已创建 Notion 页面。'),
-          'success'
-        );
+        const message = result.url
+          ? t('notionExportSucceededWithUrl', { url: result.url }, `导出成功，已创建 Notion 页面：${result.url}`)
+          : t('notionExportSucceeded', null, '导出成功，已创建 Notion 页面。');
+        setNotionStatus(message, 'success');
+        alert(message);
       } catch (err) {
         console.warn('导出到 Notion 失败', err);
         setNotionStatus(t('notionExportFailed', null, '导出到 Notion 失败，请检查 Token、页面共享权限或网络状态。'), 'error');
@@ -1378,14 +1425,19 @@ document.addEventListener('DOMContentLoaded', () => {
       setSiyuanStatus(t('exportingAllSiyuan', null, '正在导出全部记录到思源...'), '');
       try {
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
-        const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
+        const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, {
+          settings,
+          noteTitle: getFullExportNoteTitle(bundle.exportedAt)
+        });
         if (!result || !result.ok) {
           setSiyuanStatus((result && result.message) || t('siyuanExportFailedShort', null, '导出到思源失败。'), 'error');
           return;
         }
 
         updateSiyuanSummary(result.settings || await getSiyuanSettings());
-        setSiyuanStatus(t('siyuanExportSucceeded', { path: result.docPath || '' }, `导出成功，已创建文档：${result.docPath}`), 'success');
+        const message = t('siyuanExportSucceeded', { path: result.docPath || '' }, `导出成功，已创建文档：${result.docPath}`);
+        setSiyuanStatus(message, 'success');
+        alert(message);
       } catch (err) {
         console.warn('导出到思源失败', err);
         setSiyuanStatus(t('siyuanExportFailed', null, '导出到思源失败，请检查服务地址、Token 或思源运行状态。'), 'error');
@@ -1939,16 +1991,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         actionWrap.appendChild(copyBtn);
 
+        const exportMenu = document.createElement('div');
+        exportMenu.className = 'page-action-export-menu';
+
         const exportBtn = document.createElement('button');
         exportBtn.type = 'button';
-        exportBtn.className = 'summary-action-btn';
-        exportBtn.textContent = t('exportPage', null, '导出');
+        exportBtn.className = 'summary-action-btn page-action-export-trigger';
+        exportBtn.setAttribute('aria-expanded', 'false');
+        exportBtn.setAttribute('aria-haspopup', 'menu');
+        exportBtn.innerHTML = `<span>${t('exportPage', null, '导出本页')}</span><span class="top-action-chevron" aria-hidden="true"></span>`;
         exportBtn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          exportPages([page]);
+          const nextOpen = !exportMenu.classList.contains('open');
+          closeExportMenu();
+          closePageExportMenus(nextOpen ? exportMenu : null);
+          exportMenu.classList.toggle('open', nextOpen);
+          details.classList.toggle('export-menu-open', nextOpen);
+          exportBtn.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
         });
-        actionWrap.appendChild(exportBtn);
+        exportMenu.appendChild(exportBtn);
+
+        const exportDropdown = document.createElement('div');
+        exportDropdown.className = 'page-action-export-popover';
+        exportDropdown.setAttribute('role', 'menu');
+        exportDropdown.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+
+        getExportTargetOptions().forEach(option => {
+          const optionBtn = document.createElement('button');
+          optionBtn.type = 'button';
+          optionBtn.className = 'page-action-export-option';
+          optionBtn.setAttribute('role', 'menuitem');
+          optionBtn.textContent = option.label;
+          optionBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            exportMenu.classList.remove('open');
+            details.classList.remove('export-menu-open');
+            exportBtn.setAttribute('aria-expanded', 'false');
+            await exportPages([page], option.value);
+          });
+          exportDropdown.appendChild(optionBtn);
+        });
+
+        exportMenu.appendChild(exportDropdown);
+        actionWrap.appendChild(exportMenu);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
@@ -2147,15 +2236,55 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
-  async function exportPages(pages, format) {
+  async function exportPages(pages, format, options) {
     if (!pages || pages.length === 0) {
       alert(t('noExportContent', null, '没有可导出的内容'));
       return;
     }
 
     const bundle = window.HighlightExport.buildExportBundle(pages, { source: 'options' });
+    const noteTitle = options && options.fullExport ? getFullExportNoteTitle(bundle.exportedAt) : (options && options.noteTitle);
     const targetFormat = format || 'markdown';
     let ok = false;
+
+    if (targetFormat === 'mowen') {
+      if (!window.HighlightMowenExporter || typeof window.HighlightMowenExporter.exportBundleToMowen !== 'function') {
+        alert(t('mowenUnavailable', null, '墨问导出当前不可用'));
+        return;
+      }
+
+      const settings = await getMowenSettings();
+      const apiKey = String(settings.apiKey || '').trim();
+      if (!apiKey) {
+        openMowenPanel();
+        setMowenStatus(t('completeMowenConfigBeforeExport', null, '请先完成墨问配置，再执行导出。'), 'error');
+        setMowenFormVisible(true);
+        return;
+      }
+
+      if (String(settings.lastTestedKey || '').trim() !== apiKey) {
+        openMowenPanel();
+        setMowenStatus(t('testMowenBeforeExport', null, '请先测试墨问导出，确认配置可用后再导出。'), 'error');
+        return;
+      }
+
+      const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, {
+        apiKey,
+        tags: String(settings.tags || '').trim(),
+        noteTitle
+      });
+      if (!result || !result.ok) {
+        openMowenPanel();
+        setMowenStatus((result && result.message) || t('mowenExportFailedShort', null, '发送到墨问失败。'), 'error');
+        return;
+      }
+
+      updateMowenSummary(settings);
+      const message = t('mowenExportSucceeded', { noteId: result.noteId ? `（${result.noteId}）` : '' }, `导出成功，已创建私密笔记${result.noteId ? `（${result.noteId}）` : ''}。`);
+      setMowenStatus(message, 'success');
+      alert(message);
+      return;
+    }
 
     if (targetFormat === 'notion') {
       if (!window.HighlightNotionExporter || typeof window.HighlightNotionExporter.exportBundleToNotion !== 'function') {
@@ -2175,7 +2304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings });
+      const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, { settings, noteTitle });
       if (!result.ok) {
         openNotionPanel();
         setNotionStatus(result.message || t('notionExportFailedShort', null, '发送到 Notion 失败。'), 'error');
@@ -2183,12 +2312,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       updateNotionSummary(result.settings || await getNotionSettings());
-      setNotionStatus(
-        result.url
-          ? t('sentToNotionWithUrl', { url: result.url }, `已发送到 Notion：${result.url}`)
-          : t('sentToNotion', null, '已发送到 Notion。'),
-        'success'
-      );
+      const message = result.url
+        ? t('notionExportSucceededWithUrl', { url: result.url }, `导出成功，已创建 Notion 页面：${result.url}`)
+        : t('notionExportSucceeded', null, '导出成功，已创建 Notion 页面。');
+      setNotionStatus(message, 'success');
+      alert(message);
       return;
     }
 
@@ -2205,7 +2333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings });
+      const result = await window.HighlightObsidianExporter.exportBundleToObsidian(bundle, { settings, noteTitle });
       if (!result.ok) {
         openObsidianPanel();
         setObsidianStatus(result.message || t('obsidianExportFailed', null, '发送到 Obsidian 失败。'), 'error');
@@ -2235,7 +2363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings });
+      const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, { settings, noteTitle });
       if (!result.ok) {
         openSiyuanPanel();
         setSiyuanStatus(result.message || t('siyuanExportFailedShort', null, '发送到思源失败。'), 'error');
@@ -2243,7 +2371,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       updateSiyuanSummary(result.settings || await getSiyuanSettings());
-      setSiyuanStatus(t('sentToSiyuan', { path: result.docPath || '' }, `已发送到思源：${result.docPath}`), 'success');
+      const message = t('siyuanExportSucceeded', { path: result.docPath || '' }, `导出成功，已创建文档：${result.docPath}`);
+      setSiyuanStatus(message, 'success');
+      alert(message);
       return;
     }
 
@@ -2286,8 +2416,13 @@ document.addEventListener('DOMContentLoaded', () => {
         closeExportMenu();
         if (!format) return;
 
-        if (format === 'markdown' || format === 'html' || format === 'obsidian') {
+        if (format === 'markdown' || format === 'html') {
           await exportPages(pagesData, format);
+          return;
+        }
+
+        if (format === 'obsidian') {
+          await exportPages(pagesData, format, { fullExport: true });
           return;
         }
 
@@ -2391,11 +2526,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('click', () => {
     closeExportMenu();
+    closePageExportMenus();
   });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeExportMenu();
+      closePageExportMenus();
     }
   });
 

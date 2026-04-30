@@ -1098,15 +1098,20 @@ textarea {
 }
 
 #pages-list details {
+  position: relative;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(191, 181, 171, 0.56);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  overflow: visible;
 }
 
 #pages-list details[open] {
   box-shadow: 0 14px 30px rgba(71, 53, 43, 0.08);
+}
+
+#pages-list details.export-menu-open {
+  z-index: 30;
 }
 
 #pages-list summary {
@@ -1205,6 +1210,64 @@ textarea {
   gap: 6px;
   flex-wrap: nowrap;
   flex-shrink: 0;
+}
+
+.page-action-export-menu {
+  position: relative;
+}
+
+.page-action-export-menu.open {
+  z-index: 18;
+}
+
+.page-action-export-trigger {
+  gap: 8px;
+}
+
+.page-action-export-menu.open .top-action-chevron {
+  transform: rotate(225deg);
+  margin-top: 2px;
+}
+
+.page-action-export-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 146px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 250, 244, 0.98);
+  box-shadow: var(--shadow-md);
+  display: none;
+  z-index: 20;
+}
+
+.page-action-export-menu.open .page-action-export-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-action-export-option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.page-action-export-option:hover,
+.page-action-export-option:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  outline: none;
 }
 
 .summary-action-btn,

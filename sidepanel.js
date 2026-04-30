@@ -1225,6 +1225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            alert(t('siyuanExportSucceeded', { path: result.docPath || '' }, `导出成功，已创建文档：${result.docPath}`));
             ok = true;
         } else {
             ok = targetFormat === 'html'
