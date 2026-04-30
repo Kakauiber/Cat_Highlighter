@@ -2,6 +2,8 @@
 
 中文 | [English](README_EN.md)
 
+Chrome 应用商店：[安装划线猫](https://chromewebstore.google.com/detail/%E5%88%92%E7%BA%BF%E7%8C%AB/ihhfjhcehkggejpggnddmgpfdbkbobpd)
+
 隐私说明：[PRIVACY.md](PRIVACY.md)
 
 问题反馈：[GitHub Issues](https://github.com/Kakauiber/Cat_Highlighter/issues)

@@ -2,6 +2,8 @@
 
 [中文](README.md) | English
 
+Chrome Web Store: [Install Cat Highlighter](https://chromewebstore.google.com/detail/%E5%88%92%E7%BA%BF%E7%8C%AB/ihhfjhcehkggejpggnddmgpfdbkbobpd)
+
 Privacy Policy: [PRIVACY.md](PRIVACY.md)
 
 Support: [GitHub Issues](https://github.com/Kakauiber/Cat_Highlighter/issues)
