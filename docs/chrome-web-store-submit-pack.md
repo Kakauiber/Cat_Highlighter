@@ -18,7 +18,11 @@
 
 短描述：
 
-网页高亮、划线、批注和页面笔记工具，支持导出到 Markdown、HTML、墨问、Notion、Obsidian 和思源笔记。
+在网页和 AI 对话中高亮、划线、记录灵感，并整理导出到 Markdown、Notion、Obsidian、墨问和思源。
+
+英文短描述：
+
+Highlight, annotate, capture thoughts, and export web or AI chat insights to Markdown, Notion, Obsidian, Mowen, and SiYuan.
 
 类别建议：
 
@@ -38,29 +42,75 @@ https://github.com/Kakauiber/Cat_Highlighter/blob/main/PRIVACY.md
 
 ## 详细描述
 
-划线猫是一款面向网页阅读、资料研究和大模型对话场景的标注与笔记工具。
+你是否经常在 ChatGPT、Gemini、Kimi、DeepSeek 等 AI 对话中看到重要内容，却很快被新的回复淹没？
 
-你可以在网页中选中文字并快速高亮或划线，为重要内容添加批注，也可以在侧边栏为当前页面写下笔记、问题和后续追问点。所有记录会按页面保存，刷新或重新打开页面后仍可恢复高亮。
+你是否在阅读长网页、报告或 AI 答复时，脑子里突然冒出一个问题、一个判断、一个后续追问点，但转眼就忘了？
 
-划线猫特别适合在 ChatGPT、Gemini、Kimi、DeepSeek、Perplexity / Comet 等大模型对话页面中使用，帮助你把分散在对话中的重要信息沉淀下来。
+划线猫就是为这种“边阅读、边思考、边整理”的场景设计的。
 
-主要功能：
+它可以帮你在网页和 AI 对话中快速高亮、划线、添加批注，并在侧边栏为当前页面写下笔记。每个网页、每个 AI 对话都会单独保存记录，刷新或重新打开后仍可恢复，让重要内容不再散落在浏览历史和聊天记录里。
 
-- 在网页上高亮或划线所选文字。
-- 支持黄色、蓝色、红色高亮和划线。
-- 支持为单条高亮添加批注。
-- 支持当前页面笔记。
-- 支持侧边栏查看、复制、删除和导出当前页。
-- 支持管理页统一搜索、筛选、批量复制和批量删除。
-- 支持刷新后恢复高亮。
-- 支持导出为 Markdown 和 HTML。
-- 支持导出到墨问、Notion、Obsidian 和思源笔记。
+你可以用划线猫做这些事：
+
+- 在网页或 AI 答复中高亮重要句子。
+- 用黄色、蓝色、红色区分不同类型的信息。
+- 对单条高亮添加批注，记录当时的判断和想法。
+- 在侧边栏为当前页面写页面笔记，保存问题、总结和后续追问点。
+- 在管理页统一查看、搜索、筛选和整理所有记录。
+- 将高亮、批注和页面笔记导出为 Markdown、HTML，或发送到墨问、Notion、Obsidian、思源笔记。
+
+划线猫特别适合：
+
+- 高频使用 ChatGPT、Gemini、Kimi、DeepSeek、Perplexity / Comet 的用户。
+- 经常阅读网页文章、研究资料、报告和长文档的用户。
+- 想把 AI 对话中的重要信息沉淀成笔记和知识库的用户。
+- 需要在阅读过程中随手捕捉想法、问题和行动项的用户。
+
+划线猫不是另一个复杂的知识库，而是你在网页和 AI 对话现场的“思考捕捉器”。
 
 数据与隐私：
 
 划线猫默认把高亮、批注、页面笔记和配置保存在浏览器本地。插件没有自建服务器，不会主动上传你的网页内容。只有当你主动点击导出到墨问、Notion 或思源笔记时，相关内容才会发送到你选择的第三方服务。导出到 Obsidian 使用本地 Obsidian 协议和剪贴板完成，不会发送到划线猫服务器。
 
 隐私政策：https://github.com/Kakauiber/Cat_Highlighter/blob/main/PRIVACY.md
+
+## English Full Description
+
+Do important ideas in AI chats get buried as new replies come in?
+
+Do questions, insights, or follow-up prompts occur to you while reading, only to disappear a moment later?
+
+Cat Highlighter is designed for this exact workflow: read, think, and organize.
+
+Highlight, underline, annotate, and write page notes directly on web pages and AI chat pages. Each page or conversation is saved separately, so your highlights can be restored after refreshing or reopening.
+
+With Cat Highlighter, you can:
+
+Highlight important sentences on web pages and in AI responses.
+
+Use different highlight colors to organize different types of information.
+
+Add annotations to individual highlights.
+
+Write page notes to capture questions, summaries, prompts, and action items.
+
+Review, search, filter, and organize saved records on the management page.
+
+Export your highlights, annotations, and notes to Markdown, HTML, Mowen, Notion, Obsidian, or SiYuan.
+
+Cat Highlighter is especially useful for people who:
+
+Frequently use ChatGPT, Gemini, Kimi, DeepSeek, Perplexity, Comet, and other AI tools.
+
+Read long articles, reports, research materials, or documentation.
+
+Want to turn AI conversations into structured notes.
+
+Need to capture thoughts and key points while reading.
+
+Cat Highlighter is not another complicated knowledge base. It is a lightweight tool that helps you capture ideas while you read and chat with AI.
+
+By default, all highlights, annotations, page notes, and settings are stored locally in your browser. Content is only sent to third-party services when you explicitly choose to export it.
 
 ## 单一用途说明
 
