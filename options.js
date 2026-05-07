@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const sortSelect = document.getElementById('sort-select');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const mowenPanel = document.getElementById('mowen-panel');
+  const updateHistoryPanel = document.getElementById('update-history-panel');
+  const updateHistoryList = document.getElementById('update-history-list');
   const mowenSummaryMeta = document.getElementById('mowen-summary-meta');
   const configSummaryToggleText = document.getElementById('config-summary-toggle-text');
   const mowenTargetCard = document.getElementById('mowen-target-card');
@@ -135,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSiyuanSummary(lastSiyuanSettings);
     updateSelectCount();
     renderOverviewStats();
+    renderUpdateHistory();
     renderList();
   }
 
@@ -438,6 +441,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     syncMowenPanelState();
     syncSettingsPanelState();
+  }
+
+  function renderUpdateHistory() {
+    if (!updateHistoryList || !window.CatReleaseNotes) {
+      return;
+    }
+
+    const language = window.CatI18n && typeof window.CatI18n.getLanguage === 'function'
+      ? window.CatI18n.getLanguage()
+      : 'zh_CN';
+    const notes = window.CatReleaseNotes.getAllNotes(language);
+    updateHistoryList.innerHTML = '';
+
+    if (!notes.length) {
+      const empty = document.createElement('div');
+      empty.className = 'update-history-empty';
+      empty.textContent = t('noUpdateHistory', null, '暂无更新记录');
+      updateHistoryList.appendChild(empty);
+      return;
+    }
+
+    notes.forEach((note, index) => {
+      const item = document.createElement('details');
+      item.className = 'update-history-item';
+      item.open = index === 0;
+
+      const summary = document.createElement('summary');
+      summary.className = 'update-history-item-summary';
+
+      const title = document.createElement('span');
+      title.className = 'update-history-item-title';
+      title.textContent = note.title || `v${note.version}`;
+      summary.appendChild(title);
+
+      const chevron = document.createElement('span');
+      chevron.className = 'update-history-item-chevron';
+      chevron.setAttribute('aria-hidden', 'true');
+      summary.appendChild(chevron);
+      item.appendChild(summary);
+
+      const list = document.createElement('ul');
+      list.className = 'update-history-item-list';
+      (note.items || []).forEach(text => {
+        const listItem = document.createElement('li');
+        listItem.textContent = text;
+        list.appendChild(listItem);
+      });
+      item.appendChild(list);
+      updateHistoryList.appendChild(item);
+    });
+  }
+
+  function openUpdateHistoryFromHash() {
+    if (window.location.hash !== '#updates' || !updateHistoryPanel) {
+      return;
+    }
+
+    setSettingsPanelVisible(true);
+    updateHistoryPanel.open = true;
+    window.setTimeout(() => {
+      updateHistoryPanel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 80);
   }
 
   function openMowenPanel() {
@@ -3131,8 +3196,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('cat:i18n-ready', applyLocalizedChrome);
+  window.addEventListener('hashchange', openUpdateHistoryFromHash);
   if (window.CatI18n && window.CatI18n.ready && typeof window.CatI18n.ready.then === 'function') {
-    window.CatI18n.ready.then(applyLocalizedChrome).catch(() => { });
+    window.CatI18n.ready.then(() => {
+      applyLocalizedChrome();
+      openUpdateHistoryFromHash();
+    }).catch(() => { });
   }
 
   let storageReloadTimer = null;

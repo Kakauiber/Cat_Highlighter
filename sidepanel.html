@@ -86,6 +86,25 @@
             </div>
         </section>
 
+        <section id="update-notice-card" class="update-notice-card hidden" aria-label="版本更新" data-i18n-aria-label="updateNotice">
+            <div class="update-notice-head">
+                <div class="update-notice-copy">
+                    <div class="update-notice-eyebrow" data-i18n="updateNoticeEyebrow">版本更新</div>
+                    <h2 id="update-notice-title" class="update-notice-title">划线猫已更新</h2>
+                </div>
+                <button id="update-notice-dismiss-btn" class="update-notice-dismiss-btn" type="button" title="知道了" data-i18n-title="gotIt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </div>
+            <ul id="update-notice-list" class="update-notice-list"></ul>
+            <div class="update-notice-footer">
+                <button id="update-notice-history-btn" class="update-notice-history-btn" type="button" data-i18n="viewUpdateHistory">查看更新记录</button>
+                <button id="update-notice-confirm-btn" class="update-notice-confirm-btn" type="button" data-i18n="gotIt">知道了</button>
+            </div>
+        </section>
+
         <div id="current-page-info" class="page-info"></div>
 
         <div class="tabs">
@@ -151,6 +170,7 @@
     </div>
 
     <script src="i18n.js"></script>
+    <script src="release-notes.js"></script>
     <script src="note-repo.js"></script>
     <script src="page-note-service.js"></script>
     <script src="feature-gate.js"></script>

@@ -22,6 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const onboardingAvailability = document.getElementById('onboarding-availability');
     const onboardingDismissBtn = document.getElementById('onboarding-dismiss-btn');
     const onboardingManageBtn = document.getElementById('onboarding-manage-btn');
+    const updateNoticeCard = document.getElementById('update-notice-card');
+    const updateNoticeTitle = document.getElementById('update-notice-title');
+    const updateNoticeList = document.getElementById('update-notice-list');
+    const updateNoticeDismissBtn = document.getElementById('update-notice-dismiss-btn');
+    const updateNoticeConfirmBtn = document.getElementById('update-notice-confirm-btn');
+    const updateNoticeHistoryBtn = document.getElementById('update-notice-history-btn');
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const manageBtn = document.getElementById('manage-btn');
@@ -75,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateNoteWordCount();
         updateNoteUpdateTime();
         updateOnboardingCard();
+        updateUpdateNoticeCard();
         renderCurrentView();
     }
 
@@ -136,6 +143,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getUpdateSeenKey(version) {
+        const prefix = window.CatReleaseNotes && window.CatReleaseNotes.UPDATE_SEEN_PREFIX
+            ? window.CatReleaseNotes.UPDATE_SEEN_PREFIX
+            : 'cat_update_seen_';
+        return prefix + String(version || '').trim();
+    }
+
+    function updateUpdateNoticeCard() {
+        if (!updateNoticeCard || !window.CatReleaseNotes || !pendingUpdateNotice) {
+            if (updateNoticeCard) {
+                updateNoticeCard.classList.add('hidden');
+            }
+            return;
+        }
+
+        const version = String(pendingUpdateNotice.version || '').trim();
+        const currentVersion = window.CatReleaseNotes.getCurrentVersion
+            ? window.CatReleaseNotes.getCurrentVersion()
+            : version;
+        const shouldShow = Boolean(
+            version &&
+            (!currentVersion || version === currentVersion) &&
+            !pendingUpdateNotice.seen &&
+            !isSelectionMode
+        );
+
+        updateNoticeCard.classList.toggle('hidden', !shouldShow);
+        if (!shouldShow) return;
+
+        const notes = window.CatReleaseNotes.getNotes(version);
+        updateNoticeTitle.textContent = notes.title || t('updateNoticeDefaultTitle', { version }, `划线猫已更新到 v${version}`);
+        updateNoticeList.innerHTML = '';
+        (notes.items || []).forEach(text => {
+            const item = document.createElement('li');
+            item.textContent = text;
+            updateNoticeList.appendChild(item);
+        });
+    }
+
+    async function loadUpdateNoticeState() {
+        if (!window.CatReleaseNotes) {
+            return;
+        }
+
+        try {
+            const key = window.CatReleaseNotes.UPDATE_NOTICE_KEY || 'cat_pending_update_notice';
+            const result = await chrome.storage.local.get([key]);
+            const notice = result && result[key];
+            if (!notice || !notice.version) {
+                pendingUpdateNotice = null;
+                updateUpdateNoticeCard();
+                return;
+            }
+
+            const seenKey = getUpdateSeenKey(notice.version);
+            const seenResult = await chrome.storage.local.get([seenKey]);
+            pendingUpdateNotice = {
+                ...notice,
+                seen: Boolean(notice.seen || seenResult[seenKey])
+            };
+        } catch (err) {
+            console.warn('[SidePanel] Failed to load update notice:', err);
+            pendingUpdateNotice = null;
+        }
+
+        updateUpdateNoticeCard();
+    }
+
+    async function dismissUpdateNotice() {
+        if (!pendingUpdateNotice || !pendingUpdateNotice.version) {
+            return;
+        }
+
+        pendingUpdateNotice = {
+            ...pendingUpdateNotice,
+            seen: true
+        };
+        updateUpdateNoticeCard();
+
+        try {
+            const key = window.CatReleaseNotes && window.CatReleaseNotes.UPDATE_NOTICE_KEY
+                ? window.CatReleaseNotes.UPDATE_NOTICE_KEY
+                : 'cat_pending_update_notice';
+            await chrome.storage.local.set({
+                [getUpdateSeenKey(pendingUpdateNotice.version)]: true,
+                [key]: pendingUpdateNotice
+            });
+        } catch (err) {
+            console.warn('[SidePanel] Failed to persist update notice dismissal:', err);
+        }
+    }
+
+    function openUpdateHistory() {
+        const url = chrome.runtime.getURL('options.html#updates');
+        if (chrome.tabs && chrome.tabs.create) {
+            chrome.tabs.create({ url }).catch(() => openManagePage());
+        } else {
+            window.open(url);
+        }
+    }
+
     // --- Manage Button ---
     manageBtn.addEventListener('click', openManagePage);
     if (refreshPageBtn) {
@@ -154,6 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
         onboardingDismissBtn.addEventListener('click', () => {
             dismissOnboarding();
         });
+    }
+    if (updateNoticeDismissBtn) {
+        updateNoticeDismissBtn.addEventListener('click', dismissUpdateNotice);
+    }
+    if (updateNoticeConfirmBtn) {
+        updateNoticeConfirmBtn.addEventListener('click', dismissUpdateNotice);
+    }
+    if (updateNoticeHistoryBtn) {
+        updateNoticeHistoryBtn.addEventListener('click', openUpdateHistory);
     }
 
     // State
@@ -186,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MOWEN_TESTED_KEY = 'mowen_last_tested_key';
     const ONBOARDING_DISMISSED_KEY = 'sidepanel_onboarding_dismissed';
     let onboardingDismissed = false;
+    let pendingUpdateNotice = null;
     let currentActivePageUrl = null;
 
     function syncTabChrome() {
@@ -645,6 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCurrentView() {
         syncSelectionModeUI();
         updateOnboardingCard();
+        updateUpdateNoticeCard();
         renderCurrentPage();
     }
 
@@ -1888,12 +2007,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (area === 'local') {
             const changedKeys = Object.keys(changes);
             const i18nStorageKey = window.CatI18n && window.CatI18n.STORAGE_KEY;
+            const updateNoticeKey = window.CatReleaseNotes && window.CatReleaseNotes.UPDATE_NOTICE_KEY;
+            const updateSeenPrefix = window.CatReleaseNotes && window.CatReleaseNotes.UPDATE_SEEN_PREFIX;
             const hasLanguageChange = Boolean(i18nStorageKey && changedKeys.includes(i18nStorageKey));
             const hasOnboardingChanges = changedKeys.includes(ONBOARDING_DISMISSED_KEY);
+            const hasUpdateNoticeChanges = changedKeys.some(k =>
+                (updateNoticeKey && k === updateNoticeKey) ||
+                (updateSeenPrefix && k.startsWith(updateSeenPrefix))
+            );
             const hasHighlightChanges = changedKeys.some(k =>
                 !k.startsWith('page_notes_') &&
                 k !== ONBOARDING_DISMISSED_KEY &&
-                k !== i18nStorageKey
+                k !== i18nStorageKey &&
+                k !== updateNoticeKey &&
+                !(updateSeenPrefix && k.startsWith(updateSeenPrefix))
             );
             const hasNoteChanges = changedKeys.some(k => k.startsWith('page_notes_'));
 
@@ -1909,6 +2036,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hasOnboardingChanges) {
                 onboardingDismissed = Boolean(changes[ONBOARDING_DISMISSED_KEY].newValue);
                 updateOnboardingCard();
+            }
+
+            if (hasUpdateNoticeChanges) {
+                loadUpdateNoticeState();
             }
 
             // If only page_notes_ keys changed, skip full highlight reload
@@ -2060,5 +2191,6 @@ document.addEventListener('DOMContentLoaded', () => {
     syncTabChrome();
     updateBatchActionVisibility();
     loadOnboardingState();
+    loadUpdateNoticeState();
     loadAllData();
 });

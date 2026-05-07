@@ -281,6 +281,17 @@
         </div>
       </details>
 
+      <details id="update-history-panel" class="settings-section update-history-section">
+        <summary class="update-history-summary">
+          <div>
+            <h2 data-i18n="updateHistoryTitle">更新记录</h2>
+            <p data-i18n="updateHistoryDesc">查看每个版本的主要变化。</p>
+          </div>
+          <span class="config-summary-chevron" aria-hidden="true"></span>
+        </summary>
+        <div id="update-history-list" class="update-history-list"></div>
+      </details>
+
       <section id="blacklist-section" class="settings-section">
         <div class="settings-section-head">
           <div>
@@ -367,6 +378,7 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="release-notes.js"></script>
   <script src="note-repo.js"></script>
   <script src="page-note-service.js"></script>
   <script src="feature-gate.js"></script>
