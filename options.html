@@ -65,7 +65,7 @@
     </header>
 
     <section id="settings-panel" class="settings-panel hidden" aria-label="设置" data-i18n-aria-label="configPanel">
-      <details id="mowen-panel" class="config-panel" aria-label="导出配置" data-i18n-aria-label="exportConfig" open>
+      <details id="mowen-panel" class="config-panel" aria-label="导出配置" data-i18n-aria-label="exportConfig">
         <summary class="config-summary">
           <div class="config-summary-main">
             <span class="config-summary-icon" aria-hidden="true">
@@ -110,7 +110,7 @@
                 <span id="notion-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="notion-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="notion-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">请配置</button>
                 <button id="notion-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
@@ -124,7 +124,7 @@
                 <span id="obsidian-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="obsidian-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="obsidian-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">请配置</button>
                 <button id="obsidian-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
@@ -138,7 +138,7 @@
                 <span id="siyuan-target-status" class="export-target-status export-target-status-muted" data-i18n="notConfigured">未配置</span>
               </div>
               <div class="export-target-actions">
-                <button id="siyuan-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">去配置</button>
+                <button id="siyuan-config-edit-btn" class="target-action-btn" type="button" data-i18n="configure">请配置</button>
                 <button id="siyuan-test-btn" class="target-action-btn" type="button" data-i18n="test">测试</button>
               </div>
             </article>
@@ -285,9 +285,10 @@
         <div class="settings-section-head">
           <div>
             <h2 data-i18n="blacklistTitle">黑名单管理</h2>
-            <p data-i18n="blacklistDesc">这些网站已被排除在划线和高亮之外。</p>
           </div>
         </div>
+        <div id="global-disable-card" class="global-disable-card" aria-live="polite"></div>
+        <p class="blacklist-desc" data-i18n="blacklistDesc">这些网站已被排除在划线和高亮之外：</p>
         <div id="blacklist-container" class="blacklist-container"></div>
       </section>
     </section>

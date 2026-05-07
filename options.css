@@ -1468,7 +1468,74 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
+}
+
+.blacklist-desc {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.global-disable-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(184, 176, 167, 0.62);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.global-disable-card.is-disabled {
+  border-color: rgba(193, 84, 84, 0.34);
+  background: rgba(255, 244, 239, 0.86);
+}
+
+.global-disable-copy {
+  min-width: 0;
+}
+
+.global-disable-title {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.global-disable-desc {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.global-disable-restore {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 11px;
+  border: 1px solid rgba(193, 84, 84, 0.34);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--danger-strong);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.global-disable-restore:hover {
+  border-color: rgba(193, 84, 84, 0.52);
+  background: rgba(255, 239, 232, 0.92);
+  transform: translateY(-1px);
+}
+
+.global-disable-restore:disabled {
+  cursor: progress;
+  opacity: 0.68;
+  transform: none;
 }
 
 .blacklist-tag {

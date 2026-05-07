@@ -6,8 +6,8 @@
 // interface can aggregate highlights across all pages.
 
 // Blacklist check: if current domain is disabled or globally disabled, do nothing
-const hostname = window.location.hostname;
-const EARLY_FRAME_DEBUG_ENABLED = /(^|\.)perplexity\.ai$/i.test(hostname) || /comet/i.test(hostname);
+var hostname = window.location.hostname;
+var EARLY_FRAME_DEBUG_ENABLED = /(^|\.)perplexity\.ai$/i.test(hostname) || /comet/i.test(hostname);
 
 function logEarlyFrameDebug(eventName, extra = {}) {
   if (!EARLY_FRAME_DEBUG_ENABLED) return;
@@ -50,6 +50,10 @@ chrome.storage.local.get(['disabled_domains', 'global_disabled'], (res) => {
 });
 
 function initExtension() {
+  if (window.__highlightCatInitialized) {
+    return;
+  }
+  window.__highlightCatInitialized = true;
 
   // Define available highlight colours.  Each entry defines the background
   // colour for a highlight.  Underlines always use the unified colour
@@ -1152,6 +1156,27 @@ function initExtension() {
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
+
+      if (changes.global_disabled) {
+        if (changes.global_disabled.newValue === true) {
+          window._hlCatGlobalDisabledSession = true;
+          hideToolbar();
+          return;
+        }
+        window._hlCatGlobalDisabledSession = false;
+      }
+
+      if (changes.disabled_domains) {
+        const nextDisabledDomains = Array.isArray(changes.disabled_domains.newValue)
+          ? changes.disabled_domains.newValue
+          : [];
+        const isCurrentHostDisabled = nextDisabledDomains.includes(hostname);
+        window._hlCatSiteDisabledSession = isCurrentHostDisabled;
+        if (isCurrentHostDisabled) {
+          hideToolbar();
+          return;
+        }
+      }
 
       const storageKey = getStorageKey();
       const pageChange = changes[storageKey];
@@ -2728,20 +2753,24 @@ function initExtension() {
       } else if (action === 'disable-site') {
         // Add current domain to disabled list
         const hostname = window.location.hostname;
+        window._hlCatSiteDisabledSession = true;
+        hideToolbar();
         chrome.storage.local.get(['disabled_domains'], (res) => {
           const disabled = res.disabled_domains || [];
           if (!disabled.includes(hostname)) {
             disabled.push(hostname);
             chrome.storage.local.set({ disabled_domains: disabled }, () => {
-              hideToolbar();
-              alert('已在此网站禁用划线猫，刷新页面后生效');
+              alert('已在此网站禁用划线猫，可在管理页的“禁用网站”区域恢复。');
             });
+          } else {
+            alert('已在此网站禁用划线猫，可在管理页的“禁用网站”区域恢复。');
           }
         });
       } else if (action === 'disable-global') {
+        window._hlCatGlobalDisabledSession = true;
+        hideToolbar();
         chrome.storage.local.set({ global_disabled: true }, () => {
-          hideToolbar();
-          alert('已全局禁用划线猫，可在管理页面重新启用');
+          alert('已全局禁用划线猫，可在管理页的“禁用网站”区域重新启用。');
         });
       }
       closeDropdown.style.display = 'none';
@@ -2800,9 +2829,17 @@ function initExtension() {
   /**
    * Show the toolbar at a given coordinate.
    */
+  function isToolbarSuppressed() {
+    return !!(
+      window._hlCatHiddenSession ||
+      window._hlCatGlobalDisabledSession ||
+      window._hlCatSiteDisabledSession
+    );
+  }
+
   function showToolbarAt(x, y) {
     // Check if hidden for this session
-    if (window._hlCatHiddenSession) return;
+    if (isToolbarSuppressed()) return;
 
     let toolbar = document.getElementById('hl-cat-toolbar');
     if (!toolbar) {

@@ -367,6 +367,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mowenFormCard) return;
     mowenFormExpanded = !!visible;
     mowenFormCard.classList.toggle('hidden', !visible);
+    if (mowenConfigEditBtn) {
+      const hasApiKey = !!String(lastMowenSettings && lastMowenSettings.apiKey || '').trim();
+      mowenConfigEditBtn.textContent = visible
+        ? t('collapseConfig', null, '收起配置')
+        : (hasApiKey ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置'));
+    }
   }
 
   function setNotionFormVisible(visible) {
@@ -377,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const hasParent = !!String(lastNotionSettings && lastNotionSettings.parentPageId || '').trim();
       notionConfigEditBtn.textContent = visible
         ? t('collapseConfig', null, '收起配置')
-        : (hasParent ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置'));
+        : (hasParent ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置'));
     }
   }
 
@@ -385,6 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!obsidianFormCard) return;
     obsidianFormExpanded = !!visible;
     obsidianFormCard.classList.toggle('hidden', !visible);
+    if (obsidianConfigEditBtn) {
+      const hasVault = !!String(lastObsidianSettings && lastObsidianSettings.vault || '').trim();
+      obsidianConfigEditBtn.textContent = visible
+        ? t('collapseConfig', null, '收起配置')
+        : (hasVault ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置'));
+    }
   }
 
   function setSiyuanFormVisible(visible) {
@@ -395,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const hasNotebook = !!String(lastSiyuanSettings && lastSiyuanSettings.notebookId || '').trim();
       siyuanConfigEditBtn.textContent = visible
         ? t('collapseConfig', null, '收起配置')
-        : (hasNotebook ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置'));
+        : (hasNotebook ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置'));
     }
   }
 
@@ -417,12 +429,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function setSettingsPanelVisible(visible) {
     if (!settingsPanel) return;
     settingsPanel.classList.toggle('hidden', !visible);
-    if (!visible) {
-      setMowenFormVisible(false);
-      setNotionFormVisible(false);
-      setObsidianFormVisible(false);
-      setSiyuanFormVisible(false);
+    setMowenFormVisible(false);
+    setNotionFormVisible(false);
+    setObsidianFormVisible(false);
+    setSiyuanFormVisible(false);
+    if (visible && mowenPanel) {
+      mowenPanel.open = false;
     }
+    syncMowenPanelState();
     syncSettingsPanelState();
   }
 
@@ -559,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (mowenConfigEditBtn) {
-      mowenConfigEditBtn.textContent = apiKey ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置');
+      mowenConfigEditBtn.textContent = apiKey ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置');
     }
 
     if (!apiKey) {
@@ -606,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (notionConfigEditBtn) {
-      notionConfigEditBtn.textContent = hasToken && hasParent ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置');
+      notionConfigEditBtn.textContent = hasToken && hasParent ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置');
     }
 
     if (!hasToken || !hasParent) {
@@ -646,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (obsidianConfigEditBtn) {
-      obsidianConfigEditBtn.textContent = hasVault ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置');
+      obsidianConfigEditBtn.textContent = hasVault ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置');
     }
 
     if (!hasVault) {
@@ -738,7 +752,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (siyuanConfigEditBtn) {
-      siyuanConfigEditBtn.textContent = hasNotebook ? t('reconfigure', null, '重新配置') : t('configure', null, '去配置');
+      siyuanConfigEditBtn.textContent = hasNotebook ? t('reconfigure', null, '重新配置') : t('configure', null, '请配置');
     }
 
     if (!hasToken || !hasNotebook) {
@@ -1812,6 +1826,90 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
+  function queryInjectableTabs() {
+    return new Promise(resolve => {
+      if (!(chrome.tabs && chrome.tabs.query)) {
+        resolve([]);
+        return;
+      }
+      chrome.tabs.query({ url: ['http://*/*', 'https://*/*', 'file://*/*'] }, tabs => {
+        resolve(Array.isArray(tabs) ? tabs : []);
+      });
+    });
+  }
+
+  function injectContentScriptIntoTab(tabId) {
+    return new Promise(resolve => {
+      if (!(chrome.scripting && chrome.scripting.executeScript) || !tabId) {
+        resolve(false);
+        return;
+      }
+      chrome.scripting.executeScript(
+        {
+          target: { tabId, allFrames: true },
+          files: ['content.js']
+        },
+        () => {
+          resolve(!chrome.runtime.lastError);
+        }
+      );
+    });
+  }
+
+  async function wakeOpenPagesAfterGlobalRestore() {
+    const tabs = await queryInjectableTabs();
+    const results = await Promise.allSettled(
+      tabs.map(tab => injectContentScriptIntoTab(tab.id))
+    );
+    return results.filter(result => result.status === 'fulfilled' && result.value).length;
+  }
+
+  function renderGlobalDisableStatus() {
+    chrome.storage.local.get(['global_disabled'], (res) => {
+      const card = document.getElementById('global-disable-card');
+      if (!card) return;
+
+      const isDisabled = !!res.global_disabled;
+      card.className = `global-disable-card${isDisabled ? ' is-disabled' : ''}`;
+      card.innerHTML = '';
+
+      const copy = document.createElement('div');
+      copy.className = 'global-disable-copy';
+
+      const title = document.createElement('div');
+      title.className = 'global-disable-title';
+      title.textContent = isDisabled
+        ? t('globalDisabledTitle', null, '划线猫已全局禁用')
+        : t('globalEnabledTitle', null, '划线猫全局功能已启用');
+
+      const desc = document.createElement('div');
+      desc.className = 'global-disable-desc';
+      desc.textContent = isDisabled
+        ? t('globalDisabledDesc', null, '当前所有网站都不会弹出工具条。点击右侧按钮可重新启用。')
+        : t('globalEnabledDesc', null, '如需恢复某个被禁用的网站，请在下方移除对应网站。');
+
+      copy.appendChild(title);
+      copy.appendChild(desc);
+      card.appendChild(copy);
+
+      if (!isDisabled) return;
+
+      const restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'global-disable-restore';
+      restoreBtn.textContent = t('restoreGlobalHighlighting', null, '重新启用');
+      restoreBtn.addEventListener('click', () => {
+        restoreBtn.disabled = true;
+        chrome.storage.local.remove('global_disabled', async () => {
+          await wakeOpenPagesAfterGlobalRestore().catch(() => 0);
+          renderGlobalDisableStatus();
+          alert(t('globalRestoredAlert', null, '已重新启用划线猫，并已尝试唤起已打开网页。若某个页面仍未出现工具条，请刷新该页面一次。'));
+        });
+      });
+      card.appendChild(restoreBtn);
+    });
+  }
+
   function renderBlacklist() {
     chrome.storage.local.get(['disabled_domains'], (res) => {
       const list = res.disabled_domains || [];
@@ -2473,6 +2571,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (mowenConfigEditBtn) {
     mowenConfigEditBtn.addEventListener('click', () => {
+      if (settingsPanel && !settingsPanel.classList.contains('hidden') && mowenFormCard && !mowenFormCard.classList.contains('hidden')) {
+        setMowenFormVisible(false);
+        return;
+      }
       openMowenPanel();
       setMowenFormVisible(true);
       setNotionFormVisible(false);
@@ -2498,6 +2600,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (obsidianConfigEditBtn) {
     obsidianConfigEditBtn.addEventListener('click', () => {
+      if (settingsPanel && !settingsPanel.classList.contains('hidden') && obsidianFormCard && !obsidianFormCard.classList.contains('hidden')) {
+        setObsidianFormVisible(false);
+        return;
+      }
       openObsidianPanel();
       if (obsidianVaultInput) {
         obsidianVaultInput.focus();
@@ -2772,6 +2878,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadData();
   warmOpenTabsHighlights();
+  renderGlobalDisableStatus();
   renderBlacklist();
   loadMowenSettings().catch(err => {
     console.warn('加载墨问设置失败', err);
@@ -3047,10 +3154,16 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         applyLocalizedChrome();
       }
+      renderGlobalDisableStatus();
+      renderBlacklist();
     }
 
     if (changedKeys.some(key => key === 'disabled_domains')) {
       renderBlacklist();
+    }
+
+    if (changedKeys.some(key => key === 'global_disabled')) {
+      renderGlobalDisableStatus();
     }
 
     if (changedKeys.some(key =>
