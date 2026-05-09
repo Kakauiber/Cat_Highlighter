@@ -581,6 +581,9 @@ function initExtension() {
 
   // Track the last selected colour across toolbar interactions
   let lastSelectedColor = 'yellow';
+  const TOOLBAR_AUTO_HIDE_MS = 3000;
+  let toolbarAutoHideTimer = null;
+  let toolbarAutoHidePaused = false;
 
   // Remember the most recent selection so that we can highlight even after
   // focus shifts away from the page (e.g. when the popup is opened)
@@ -2779,10 +2782,22 @@ function initExtension() {
     toolbar.appendChild(closeBtn);
     toolbar.appendChild(closeDropdown);
 
+    toolbar.addEventListener('mouseenter', pauseToolbarAutoHide);
+    toolbar.addEventListener('mouseleave', resumeToolbarAutoHide);
+    toolbar.addEventListener('focusin', pauseToolbarAutoHide);
+    toolbar.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (!toolbar.contains(document.activeElement)) {
+          resumeToolbarAutoHide();
+        }
+      }, 0);
+    });
+
     // Make toolbar draggable using standard pattern to avoid leaks
     toolbar.addEventListener('mousedown', (e) => {
       // Only allow dragging if not clicking on a button
       if (e.target.closest('button')) return;
+      pauseToolbarAutoHide();
 
       const startX = e.clientX;
       const startY = e.clientY;
@@ -2817,6 +2832,7 @@ function initExtension() {
         toolbar.style.cursor = 'move';
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
+        resumeToolbarAutoHide();
       }
 
       document.addEventListener('mousemove', onMouseMove);
@@ -2837,6 +2853,33 @@ function initExtension() {
     );
   }
 
+  function clearToolbarAutoHideTimer() {
+    if (toolbarAutoHideTimer) {
+      clearTimeout(toolbarAutoHideTimer);
+      toolbarAutoHideTimer = null;
+    }
+  }
+
+  function scheduleToolbarAutoHide() {
+    if (!TOOLBAR_AUTO_HIDE_MS || toolbarAutoHidePaused) return;
+
+    clearToolbarAutoHideTimer();
+    toolbarAutoHideTimer = setTimeout(() => {
+      toolbarAutoHideTimer = null;
+      hideToolbar();
+    }, TOOLBAR_AUTO_HIDE_MS);
+  }
+
+  function pauseToolbarAutoHide() {
+    toolbarAutoHidePaused = true;
+    clearToolbarAutoHideTimer();
+  }
+
+  function resumeToolbarAutoHide() {
+    toolbarAutoHidePaused = false;
+    scheduleToolbarAutoHide();
+  }
+
   function showToolbarAt(x, y) {
     // Check if hidden for this session
     if (isToolbarSuppressed()) return;
@@ -2853,9 +2896,12 @@ function initExtension() {
     toolbar.style.top = `${y}px`;
     toolbar.style.left = `${x}px`;
     toolbar.style.display = 'flex';
+    scheduleToolbarAutoHide();
   }
 
   function hideToolbar() {
+    clearToolbarAutoHideTimer();
+    toolbarAutoHidePaused = false;
     const toolbar = document.getElementById('hl-cat-toolbar');
     if (toolbar) toolbar.remove();
     clearActiveHighlight();
@@ -3038,10 +3084,13 @@ function initExtension() {
         elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         elem.classList.add('hl-flash');
         setTimeout(() => elem.classList.remove('hl-flash'), 1000);
+        sendResponse({ found: true });
       } else if (isTopWindowSafe()) {
         forwardCommandToChildFrames('scrollToHighlight', { id });
+        sendResponse({ found: false, forwarded: true });
+      } else {
+        sendResponse({ found: false });
       }
-      sendResponse({});
     } else if (message.command === 'removeHighlight') {
       const id = message.id;
       removeHighlightLocally(id);

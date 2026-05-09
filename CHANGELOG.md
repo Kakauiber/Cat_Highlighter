@@ -2,6 +2,19 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
+## v1.2.0 - 2026-05-09
+
+### Added
+
+- Toolbar auto-hide after selecting text when no action is taken.
+- Manager page source navigation: open original pages and jump back to individual highlights.
+- Update notice card and release history support for this release.
+
+### Improved
+
+- More reliable highlight locating on slower AI chat pages such as ChatGPT.
+- Existing highlight locating now restores the target highlight on demand before scrolling.
+
 ## v1.1.0 - 2026-04-30
 
 ### Added

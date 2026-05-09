@@ -120,6 +120,10 @@
       deletePageRecordConfirm: '确定删除“{{title}}”的整页记录吗？这会删除该页的高亮和页面笔记。',
       highlightContent: '高亮内容',
       containsAnnotation: '含批注',
+      openOriginalTitle: '打开原文',
+      openHighlightTitle: '打开原文并定位此高亮',
+      openOriginalFailed: '无法打开原文页面',
+      locateHighlightFailed: '已打开原文，但未能定位到该条高亮。',
 
       settings: '设置',
       exportAll: '导出全部',
@@ -449,6 +453,10 @@
       deletePageRecordConfirm: 'Delete all records for “{{title}}”? This will delete both highlights and the page note.',
       highlightContent: 'Highlights',
       containsAnnotation: 'Has Annotation',
+      openOriginalTitle: 'Open Original Page',
+      openHighlightTitle: 'Open Original Page and Locate This Highlight',
+      openOriginalFailed: 'Unable to open the original page',
+      locateHighlightFailed: 'Original page opened, but this highlight could not be located.',
 
       settings: 'Settings',
       exportAll: 'Export All',

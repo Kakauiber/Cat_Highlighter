@@ -7,6 +7,24 @@
 
     // Add one entry here for each public release that should be shown to users.
     const RELEASE_NOTES = {
+        '1.2.0': {
+            zh_CN: {
+                title: '划线猫已更新到 v1.2.0',
+                items: [
+                    '新增工具条自动隐藏，选中文本后未操作会自动收起。',
+                    '管理页支持点击页面或高亮记录跳转回原文。',
+                    '优化 GPT 等慢加载对话页的高亮定位稳定性。'
+                ]
+            },
+            en: {
+                title: 'Cat Highlighter Updated to v1.2.0',
+                items: [
+                    'The toolbar now auto-hides when no action is taken after selecting text.',
+                    'Open original pages and highlights directly from the manager page.',
+                    'Improved highlight locating reliability on slower AI chat pages such as ChatGPT.'
+                ]
+            }
+        },
         '1.1.0': {
             zh_CN: {
                 title: '划线猫已更新到 v1.1.0',

@@ -1826,6 +1826,129 @@ document.addEventListener('DOMContentLoaded', () => {
     ));
   }
 
+  function isOpenablePageUrl(url) {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:', 'file:'].includes(parsed.protocol);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function focusTab(tab) {
+    if (!tab || !tab.id) return null;
+    try {
+      if (chrome.windows && tab.windowId) {
+        await chrome.windows.update(tab.windowId, { focused: true });
+      }
+    } catch (err) {
+      // Focusing the window is best-effort; activating the tab is enough.
+    }
+    return chrome.tabs.update(tab.id, { active: true });
+  }
+
+  async function waitForTabReady(tabId, timeoutMs = 8000) {
+    if (!tabId || !(chrome.tabs && chrome.tabs.get)) return;
+
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab && tab.status === 'complete') return;
+    } catch (err) {
+      return;
+    }
+
+    await new Promise(resolve => {
+      let settled = false;
+      const timer = setTimeout(done, timeoutMs);
+
+      function done() {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+
+      function listener(updatedTabId, changeInfo) {
+        if (updatedTabId === tabId && changeInfo.status === 'complete') {
+          done();
+        }
+      }
+
+      chrome.tabs.onUpdated.addListener(listener);
+    });
+  }
+
+  async function getOrCreateSourceTab(url) {
+    const tabs = await chrome.tabs.query({});
+    const existing = tabs.find(tab => tab && tab.id && tab.url === url);
+    if (existing) {
+      return focusTab(existing);
+    }
+    return chrome.tabs.create({ url, active: true });
+  }
+
+  async function locateHighlightInTab(tab, highlightId) {
+    if (!tab || !tab.id || !highlightId) return;
+
+    await waitForTabReady(tab.id);
+    let readyTab = tab;
+    try {
+      readyTab = await chrome.tabs.get(tab.id);
+    } catch (err) {
+      readyTab = tab;
+    }
+    const reinjected = await ensureContentScript(readyTab);
+    if (reinjected) {
+      await wait(300);
+    }
+
+    const delays = [0, 300, 700, 1200, 1800, 2500, 3500];
+    let delivered = false;
+    let forwardedToFrame = false;
+    for (const delay of delays) {
+      if (delay) await wait(delay);
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, { command: 'scrollToHighlight', id: highlightId }, { frameId: 0 });
+        if (response && response.found) {
+          delivered = true;
+          break;
+        }
+        if (response && response.forwarded) {
+          forwardedToFrame = true;
+        }
+      } catch (err) {
+        // The target page may still be restoring content; retry below.
+      }
+    }
+
+    if (!delivered && !forwardedToFrame) {
+      alert(t('locateHighlightFailed', null, '已打开原文，但未能定位到该条高亮。'));
+    }
+  }
+
+  async function openSourcePage(page, highlightId) {
+    if (!page || !isOpenablePageUrl(page.url)) {
+      alert(t('openOriginalFailed', null, '无法打开原文页面'));
+      return;
+    }
+
+    try {
+      const tab = await getOrCreateSourceTab(page.url);
+      if (highlightId) {
+        await locateHighlightInTab(tab, highlightId);
+      }
+    } catch (err) {
+      console.warn('打开原文失败', err);
+      alert(t('openOriginalFailed', null, '无法打开原文页面'));
+    }
+  }
+
   async function removeIdsFromSyncIndex(ids) {
     if (!ids || ids.length === 0) return;
 
@@ -2089,10 +2212,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const titleRow = document.createElement('div');
       titleRow.className = 'page-title-row';
 
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'page-title';
-      titleSpan.textContent = page.title;
-      titleRow.appendChild(titleSpan);
+      const titleLink = document.createElement('button');
+      titleLink.type = 'button';
+      titleLink.className = 'page-title page-source-link';
+      titleLink.textContent = page.title;
+      titleLink.title = t('openOriginalTitle', null, '打开原文');
+      titleLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isSelectionMode) {
+          openSourcePage(page);
+        }
+      });
+      titleRow.appendChild(titleLink);
 
       if (page.highlights.length > 0) {
         const highlightBadge = document.createElement('span');
@@ -2113,11 +2245,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const metaLine = document.createElement('div');
       metaLine.className = 'page-meta-line';
 
-      const urlSpan = document.createElement('span');
-      urlSpan.className = 'page-url';
-      urlSpan.textContent = getPageDomain(page.url);
-      urlSpan.title = page.url;
-      metaLine.appendChild(urlSpan);
+      const urlLink = document.createElement('button');
+      urlLink.type = 'button';
+      urlLink.className = 'page-url page-source-link';
+      urlLink.textContent = getPageDomain(page.url);
+      urlLink.title = page.url;
+      urlLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isSelectionMode) {
+          openSourcePage(page);
+        }
+      });
+      metaLine.appendChild(urlLink);
 
       const separator = document.createElement('span');
       separator.className = 'page-meta-separator';
@@ -2268,6 +2408,21 @@ document.addEventListener('DOMContentLoaded', () => {
               checkbox.checked = !checkbox.checked;
               toggleSelection(h.id, page.key, checkbox.checked);
               row.classList.toggle('selected', checkbox.checked);
+            });
+          } else {
+            row.classList.add('jumpable');
+            row.tabIndex = 0;
+            row.setAttribute('role', 'button');
+            row.title = t('openHighlightTitle', null, '打开原文并定位此高亮');
+            row.addEventListener('click', (e) => {
+              if (e.target.closest('button, input, a')) return;
+              openSourcePage(page, h.id);
+            });
+            row.addEventListener('keydown', (e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              if (e.target.closest('button, input, a')) return;
+              e.preventDefault();
+              openSourcePage(page, h.id);
             });
           }
 
