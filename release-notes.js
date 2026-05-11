@@ -7,6 +7,24 @@
 
     // Add one entry here for each public release that should be shown to users.
     const RELEASE_NOTES = {
+        '1.3.0': {
+            zh_CN: {
+                title: '划线猫已更新到 v1.3.0',
+                items: [
+                    '新增键盘快捷键，选中文本后可快速高亮或划线。',
+                    'Mac 使用 Control + Y/B/R/U，Windows/Linux 使用 Alt + Y/B/R/U。',
+                    '设置页可开启或关闭快捷键，工具条自动隐藏更轻巧。'
+                ]
+            },
+            en: {
+                title: 'Cat Highlighter Updated to v1.3.0',
+                items: [
+                    'Added keyboard shortcuts for quick highlighting and underlining after selecting text.',
+                    'Use Control + Y/B/R/U on Mac, or Alt + Y/B/R/U on Windows/Linux.',
+                    'Keyboard shortcuts can be enabled or disabled in Settings, and the toolbar now hides sooner.'
+                ]
+            }
+        },
         '1.2.0': {
             zh_CN: {
                 title: '划线猫已更新到 v1.2.0',

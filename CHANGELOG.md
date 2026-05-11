@@ -2,6 +2,19 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
+## v1.3.0 - 2026-05-11
+
+### Added
+
+- Keyboard shortcuts for quick highlighting and underlining after selecting text.
+- Mac shortcuts use `Control + Y/B/R/U`; Windows and Linux shortcuts use `Alt + Y/B/R/U`.
+- Settings switch for enabling or disabling keyboard shortcuts.
+
+### Improved
+
+- Toolbar auto-hide delay reduced to make selection workflows less intrusive.
+- Keyboard shortcut help text now adapts to the current platform.
+
 ## v1.2.0 - 2026-05-09
 
 ### Added
