@@ -75,6 +75,7 @@ function initExtension() {
   const HC_PAGE_CONTEXT_RESPONSE = 'HC_PAGE_CONTEXT_RESPONSE';
   const HC_PAGE_CONTEXT_BROADCAST = 'HC_PAGE_CONTEXT_BROADCAST';
   const HC_FORWARD_COMMAND = 'HC_FORWARD_COMMAND';
+  const KEYBOARD_SHORTCUTS_ENABLED_KEY = 'keyboard_shortcuts_enabled';
 
   function isTopWindowSafe() {
     try {
@@ -581,15 +582,18 @@ function initExtension() {
 
   // Track the last selected colour across toolbar interactions
   let lastSelectedColor = 'yellow';
-  const TOOLBAR_AUTO_HIDE_MS = 3000;
+  const TOOLBAR_AUTO_HIDE_MS = 1500;
+  const KEYBOARD_SHORTCUT_SELECTION_TTL_MS = 10000;
   let toolbarAutoHideTimer = null;
   let toolbarAutoHidePaused = false;
+  let keyboardShortcutsEnabled = true;
 
   // Remember the most recent selection so that we can highlight even after
   // focus shifts away from the page (e.g. when the popup is opened)
   let lastSelection = {
     range: null,
-    text: ''
+    text: '',
+    updatedAt: 0
   };
   let activeHighlightId = null;
 
@@ -597,6 +601,22 @@ function initExtension() {
   let pinnedAnnotationId = null;
   const NOTE_PREFIX = 'page_notes_';
   let highlightStorageQueue = Promise.resolve();
+
+  function rememberSelection(range, text) {
+    lastSelection = {
+      range: range || null,
+      text: String(text || '').trim(),
+      updatedAt: Date.now()
+    };
+  }
+
+  function clearRememberedSelection() {
+    lastSelection = {
+      range: null,
+      text: '',
+      updatedAt: 0
+    };
+  }
 
   function getCurrentPageUrl() {
     if (isTopWindowSafe()) {
@@ -910,7 +930,7 @@ function initExtension() {
     if (nextUrl === currentPageUrl) return false;
 
     currentPageUrl = nextUrl;
-    lastSelection = { range: null, text: '' };
+    clearRememberedSelection();
     unwrapRenderedHighlights();
     notifyPageHighlightsChangedFromStorage(getStorageKey(nextUrl));
     return true;
@@ -1160,6 +1180,10 @@ function initExtension() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'local') return;
 
+      if (changes[KEYBOARD_SHORTCUTS_ENABLED_KEY]) {
+        keyboardShortcutsEnabled = changes[KEYBOARD_SHORTCUTS_ENABLED_KEY].newValue !== false;
+      }
+
       if (changes.global_disabled) {
         if (changes.global_disabled.newValue === true) {
           window._hlCatGlobalDisabledSession = true;
@@ -1186,6 +1210,14 @@ function initExtension() {
       if (!pageChange) return;
 
       syncCurrentFrameDomWithStorage(pageChange.newValue);
+    });
+  }
+
+  function loadKeyboardShortcutPreference() {
+    if (!chrome.storage || !chrome.storage.local) return;
+
+    chrome.storage.local.get([KEYBOARD_SHORTCUTS_ENABLED_KEY], (res) => {
+      keyboardShortcutsEnabled = res[KEYBOARD_SHORTCUTS_ENABLED_KEY] !== false;
     });
   }
 
@@ -1515,10 +1547,7 @@ function initExtension() {
     if (!snapshot) return null;
 
     activeHighlightId = snapshot.id;
-    lastSelection = {
-      range: null,
-      text: snapshot.text
-    };
+    rememberSelection(null, snapshot.text);
 
     if (TOOLBAR_COLOR_ORDER.includes(snapshot.color)) {
       lastSelectedColor = snapshot.color;
@@ -2527,6 +2556,74 @@ function initExtension() {
     });
   }
 
+  function applyHighlightAction(color, options = {}) {
+    const allowActiveHighlight = options.allowActiveHighlight !== false;
+
+    if (allowActiveHighlight) {
+      const activeHighlight = getActiveHighlightSnapshot();
+      if (activeHighlight) {
+        updateHighlightStyle(activeHighlight.id, color, 'highlight');
+        hideToolbar();
+        clearSelection();
+        return activeHighlight;
+      }
+    }
+
+    let result = null;
+    if (lastSelection.range && rangeInEditable(lastSelection.range)) {
+      result = highlightCurrentSelection(color);
+    } else {
+      if (lastSelection.range) {
+        const clone = lastSelection.range.cloneRange();
+        result = highlightRange(clone, color);
+      }
+      if (!result && lastSelection.text) {
+        result = highlightText(lastSelection.text, color);
+      }
+      if (!result) {
+        result = highlightCurrentSelection(color);
+      }
+    }
+
+    hideToolbar();
+    clearSelection();
+    return result;
+  }
+
+  function applyUnderlineAction(options = {}) {
+    const allowActiveHighlight = options.allowActiveHighlight !== false;
+
+    if (allowActiveHighlight) {
+      const activeHighlight = getActiveHighlightSnapshot();
+      if (activeHighlight) {
+        updateHighlightStyle(activeHighlight.id, activeHighlight.color || lastSelectedColor, 'underline');
+        hideToolbar();
+        clearSelection();
+        return activeHighlight;
+      }
+    }
+
+    let result = null;
+    if (lastSelection.range && rangeInEditable(lastSelection.range)) {
+      result = underlineCurrentSelection(lastSelectedColor);
+    } else {
+      if (lastSelection.range) {
+        const clone = lastSelection.range.cloneRange();
+        result = underlineRange(clone, lastSelectedColor);
+      }
+      if (!result && lastSelection.text) {
+        result = underlineText(lastSelection.text, lastSelectedColor);
+      }
+      if (!result) {
+        result = underlineCurrentSelection(lastSelectedColor);
+      }
+    }
+
+    hideToolbar();
+    clearSelection();
+    return result;
+  }
+
   /**
    * Create the floating toolbar element.  The toolbar allows the user
    * to select a colour to highlight with, underline, copy or annotate the
@@ -2557,31 +2654,7 @@ function initExtension() {
           option.classList.toggle('active', option.dataset.color === col);
         });
         setTimeout(() => {
-          const activeHighlight = getActiveHighlightSnapshot();
-          if (activeHighlight) {
-            updateHighlightStyle(activeHighlight.id, col, 'highlight');
-            hideToolbar();
-            clearSelection();
-            return;
-          }
-
-          let result = null;
-          if (lastSelection.range && rangeInEditable(lastSelection.range)) {
-            result = highlightCurrentSelection(col);
-          } else {
-            if (lastSelection.range) {
-              const clone = lastSelection.range.cloneRange();
-              result = highlightRange(clone, col);
-            }
-            if (!result && lastSelection.text) {
-              result = highlightText(lastSelection.text, col);
-            }
-            if (!result) {
-              result = highlightCurrentSelection(col);
-            }
-          }
-          hideToolbar();
-          clearSelection();
+          applyHighlightAction(col, { allowActiveHighlight: true });
         }, 0);
       });
       swatch.classList.toggle('active', col === lastSelectedColor);
@@ -2594,32 +2667,7 @@ function initExtension() {
     underlineBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 17c3.31 0 6-2.69 6-6V5h-2v6c0 2.21-1.79 4-4 4s-4-1.79-4-4V5H6v6c0 3.31 2.69 6 6 6zM5 19v2h14v-2H5z"/></svg>';
     underlineBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const activeHighlight = getActiveHighlightSnapshot();
-      if (activeHighlight) {
-        updateHighlightStyle(activeHighlight.id, activeHighlight.color || lastSelectedColor, 'underline');
-        hideToolbar();
-        clearSelection();
-        return;
-      }
-
-      let result = null;
-      if (lastSelection.range && rangeInEditable(lastSelection.range)) {
-        result = underlineCurrentSelection(lastSelectedColor);
-      } else {
-        if (lastSelection.range) {
-          const clone = lastSelection.range.cloneRange();
-          result = underlineRange(clone, lastSelectedColor);
-        }
-        // Text-based fallback when range operation fails
-        if (!result && lastSelection.text) {
-          result = underlineText(lastSelection.text, lastSelectedColor);
-        }
-        if (!result) {
-          result = underlineCurrentSelection(lastSelectedColor);
-        }
-      }
-      hideToolbar();
-      clearSelection();
+      applyUnderlineAction({ allowActiveHighlight: true });
     });
     toolbar.appendChild(underlineBtn);
     // Copy button
@@ -2921,7 +2969,111 @@ function initExtension() {
     return true;
   }
 
+  function isMacKeyboardPlatform() {
+    const platform = String(
+      (navigator.userAgentData && navigator.userAgentData.platform) ||
+      navigator.platform ||
+      ''
+    );
+    return /mac/i.test(platform);
+  }
+
+  function hasKeyboardShortcutModifier(event) {
+    if (!event || event.metaKey) return false;
+    if (isMacKeyboardPlatform()) {
+      return event.ctrlKey && !event.altKey;
+    }
+    return event.altKey && !event.ctrlKey;
+  }
+
+  function getKeyboardShortcutAction(event) {
+    if (!hasKeyboardShortcutModifier(event)) return null;
+
+    const key = String(event.key || '').toLowerCase();
+    const keyCode = event.keyCode || event.which || event.charCode;
+
+    switch (event.code) {
+      case 'KeyY':
+        return { type: 'highlight', color: 'yellow' };
+      case 'KeyB':
+        return { type: 'highlight', color: 'blue' };
+      case 'KeyR':
+        return { type: 'highlight', color: 'red' };
+      case 'KeyU':
+        return { type: 'underline' };
+      default:
+        break;
+    }
+
+    if (key === 'y' || keyCode === 89) return { type: 'highlight', color: 'yellow' };
+    if (key === 'b' || keyCode === 66) return { type: 'highlight', color: 'blue' };
+    if (key === 'r' || keyCode === 82) return { type: 'highlight', color: 'red' };
+    if (key === 'u' || keyCode === 85) return { type: 'underline' };
+
+    return null;
+  }
+
+  function getKeyboardShortcutRange() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+
+    const text = sel.toString().trim();
+    if (!text) return null;
+
+    const range = sel.getRangeAt(0).cloneRange();
+    if (shouldSuppressToolbarForRange(range)) return null;
+
+    return { range, text };
+  }
+
+  function getRememberedKeyboardShortcutRange() {
+    if (!lastSelection.range || !lastSelection.text) return null;
+    if (Date.now() - (lastSelection.updatedAt || 0) > KEYBOARD_SHORTCUT_SELECTION_TTL_MS) return null;
+
+    try {
+      const range = lastSelection.range.cloneRange();
+      if (shouldSuppressToolbarForRange(range)) return null;
+      return { range, text: lastSelection.text };
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function handleKeyboardShortcut(event) {
+    const action = getKeyboardShortcutAction(event);
+    if (!action) return;
+    if (!keyboardShortcutsEnabled || isToolbarSuppressed()) return;
+    if (event.isComposing) return;
+
+    const selection = getKeyboardShortcutRange() || getRememberedKeyboardShortcutRange();
+    if (!selection) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    lastSelection.range = selection.range;
+    lastSelection.text = selection.text;
+    lastSelection.updatedAt = Date.now();
+
+    if (action.type === 'underline') {
+      const result = applyUnderlineAction({ allowActiveHighlight: false });
+      if (result) clearRememberedSelection();
+      return;
+    }
+
+    lastSelectedColor = action.color;
+    const result = applyHighlightAction(action.color, { allowActiveHighlight: false });
+    if (result) clearRememberedSelection();
+  }
+
   // Event listeners for selection and toolbar display
+  window.addEventListener('keydown', handleKeyboardShortcut, true);
+  document.addEventListener('keydown', handleKeyboardShortcut, true);
+  window.addEventListener('keypress', handleKeyboardShortcut, true);
+  document.addEventListener('keypress', handleKeyboardShortcut, true);
+  window.addEventListener('keyup', handleKeyboardShortcut, true);
+  document.addEventListener('keyup', handleKeyboardShortcut, true);
+
   document.addEventListener('mouseup', (e) => {
     // If clicking on the toolbar (e.g. finishing a drag), do not reset position
     const toolbar = document.getElementById('hl-cat-toolbar');
@@ -2951,8 +3103,7 @@ function initExtension() {
     }
     const text = sel.toString().trim();
     if (text) {
-      lastSelection.range = range;
-      lastSelection.text = text;
+      rememberSelection(range, text);
       const rect = range.getBoundingClientRect();
       const top = window.scrollY + rect.top - 40;
       const left = window.scrollX + rect.left;
@@ -3006,8 +3157,7 @@ function initExtension() {
       hideToolbar();
       return;
     }
-    lastSelection.range = range;
-    lastSelection.text = text;
+    rememberSelection(range, text);
     const rect = range.getBoundingClientRect();
     const top = window.scrollY + rect.top - 40;
     const left = window.scrollX + rect.left;
@@ -3175,6 +3325,7 @@ function initExtension() {
     });
   }
 
+  loadKeyboardShortcutPreference();
   installStorageSyncListener();
   requestTopFramePageContext()
     .then((resolvedContext) => {

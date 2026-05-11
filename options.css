@@ -1501,6 +1501,67 @@ textarea {
   color: var(--text-secondary);
 }
 
+.keyboard-shortcuts-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.keyboard-shortcuts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.keyboard-shortcuts-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.keyboard-shortcuts-switch {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(143, 126, 104, 0.28);
+  border: 1px solid rgba(117, 88, 50, 0.16);
+  position: relative;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.keyboard-shortcuts-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fffdf8;
+  box-shadow: 0 2px 8px rgba(77, 56, 31, 0.18);
+  transition: transform 0.18s ease;
+}
+
+.keyboard-shortcuts-toggle input:checked + .keyboard-shortcuts-switch {
+  background: rgba(220, 167, 67, 0.58);
+  border-color: rgba(181, 122, 19, 0.28);
+}
+
+.keyboard-shortcuts-toggle input:checked + .keyboard-shortcuts-switch::after {
+  transform: translateX(18px);
+}
+
+.keyboard-shortcuts-toggle input:focus-visible + .keyboard-shortcuts-switch {
+  box-shadow: 0 0 0 3px rgba(220, 167, 67, 0.16);
+}
+
 .update-history-section {
   padding: 0;
   overflow: hidden;

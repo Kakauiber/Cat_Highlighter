@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const mowenConfigToggle = document.getElementById('mowen-config-toggle');
   const languageSelect = document.getElementById('language-select');
   const settingsPanel = document.getElementById('settings-panel');
+  const keyboardShortcutsToggle = document.getElementById('keyboard-shortcuts-toggle');
+  const keyboardShortcutsDesc = document.getElementById('keyboard-shortcuts-desc');
   const sortSelect = document.getElementById('sort-select');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const mowenPanel = document.getElementById('mowen-panel');
@@ -121,11 +123,27 @@ document.addEventListener('DOMContentLoaded', () => {
       : '：';
   }
 
+  function isMacKeyboardPlatform() {
+    const platform = String(
+      (navigator.userAgentData && navigator.userAgentData.platform) ||
+      navigator.platform ||
+      ''
+    );
+    return /mac/i.test(platform);
+  }
+
+  function updateKeyboardShortcutsDescription() {
+    if (!keyboardShortcutsDesc) return;
+    const key = isMacKeyboardPlatform() ? 'keyboardShortcutsDescMac' : 'keyboardShortcutsDescDefault';
+    keyboardShortcutsDesc.textContent = t(key, null, keyboardShortcutsDesc.textContent);
+  }
+
   function applyLocalizedChrome() {
     if (window.CatI18n && typeof window.CatI18n.applyToDocument === 'function') {
       window.CatI18n.applyToDocument(document);
       window.CatI18n.updateDocumentTitle('optionsTitle');
     }
+    updateKeyboardShortcutsDescription();
     if (languageSelect && window.CatI18n && typeof window.CatI18n.getPreference === 'function') {
       languageSelect.value = window.CatI18n.getPreference();
     }
@@ -160,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const SIYUAN_FOLDER_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_FOLDER_KEY) || 'siyuan_folder';
   const SIYUAN_LAST_TESTED_AT_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_LAST_TESTED_AT_KEY) || 'siyuan_last_tested_at';
   const SIYUAN_LAST_TESTED_SIGNATURE_KEY = (window.HighlightSiyuanExporter && window.HighlightSiyuanExporter.SIYUAN_LAST_TESTED_SIGNATURE_KEY) || 'siyuan_last_tested_signature';
+  const KEYBOARD_SHORTCUTS_ENABLED_KEY = 'keyboard_shortcuts_enabled';
 
   // Cache of page data: { key, url, title, highlights: [...], note: record|null }
   let pagesData = [];
@@ -252,6 +271,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getSiyuanFolderInput() {
     return String(siyuanFolderInput && siyuanFolderInput.value || '').trim();
+  }
+
+  function setKeyboardShortcutsToggle(enabled) {
+    if (keyboardShortcutsToggle) {
+      keyboardShortcutsToggle.checked = enabled !== false;
+    }
+  }
+
+  async function loadKeyboardShortcutSettings() {
+    const result = await chrome.storage.local.get([KEYBOARD_SHORTCUTS_ENABLED_KEY]);
+    setKeyboardShortcutsToggle(result[KEYBOARD_SHORTCUTS_ENABLED_KEY] !== false);
+  }
+
+  async function saveKeyboardShortcutSettings() {
+    if (!keyboardShortcutsToggle) return;
+    await chrome.storage.local.set({
+      [KEYBOARD_SHORTCUTS_ENABLED_KEY]: keyboardShortcutsToggle.checked !== false
+    });
   }
 
   function getObsidianSettingsSignature(settings) {
@@ -3100,6 +3137,9 @@ document.addEventListener('DOMContentLoaded', () => {
   warmOpenTabsHighlights();
   renderGlobalDisableStatus();
   renderBlacklist();
+  loadKeyboardShortcutSettings().catch(err => {
+    console.warn('加载键盘快捷键设置失败', err);
+  });
   loadMowenSettings().catch(err => {
     console.warn('加载墨问设置失败', err);
     setMowenStatus(t('loadMowenSettingsFailed', null, '加载墨问设置失败。'), 'error');
@@ -3350,6 +3390,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (keyboardShortcutsToggle) {
+    keyboardShortcutsToggle.addEventListener('change', () => {
+      saveKeyboardShortcutSettings().catch(err => {
+        console.warn('保存键盘快捷键设置失败', err);
+      });
+    });
+  }
+
   window.addEventListener('cat:i18n-ready', applyLocalizedChrome);
   window.addEventListener('hashchange', openUpdateHistoryFromHash);
   if (window.CatI18n && window.CatI18n.ready && typeof window.CatI18n.ready.then === 'function') {
@@ -3388,6 +3436,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (changedKeys.some(key => key === 'global_disabled')) {
       renderGlobalDisableStatus();
+    }
+
+    if (changedKeys.some(key => key === KEYBOARD_SHORTCUTS_ENABLED_KEY)) {
+      setKeyboardShortcutsToggle(changes[KEYBOARD_SHORTCUTS_ENABLED_KEY].newValue !== false);
     }
 
     if (changedKeys.some(key =>
