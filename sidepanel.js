@@ -2,6 +2,8 @@
 // Provides a persistent sidebar for viewing and managing highlights
 
 document.addEventListener('DOMContentLoaded', () => {
+    const META_PREFIX = 'page_meta_';
+
     // Color mapping
     const colorMap = {
         yellow: '#FFEA8A',
@@ -68,6 +70,74 @@ document.addEventListener('DOMContentLoaded', () => {
             count,
             countLabel: formatCount(count, type)
         };
+    }
+
+    function getMetaKey(url) {
+        return META_PREFIX + String(url || '');
+    }
+
+    function normalizeTagName(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function normalizeTags(tags) {
+        const raw = Array.isArray(tags)
+            ? tags
+            : String(tags || '').split(/[,，]/);
+        const seen = new Set();
+        const normalized = [];
+
+        raw.forEach(tag => {
+            const name = normalizeTagName(tag);
+            if (!name) return;
+            const key = name.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            normalized.push(name);
+        });
+
+        return normalized;
+    }
+
+    async function loadPageTags(url) {
+        if (!url) return [];
+
+        try {
+            const result = await chrome.storage.local.get([getMetaKey(url)]);
+            const record = result[getMetaKey(url)];
+            return normalizeTags(record && record.tags);
+        } catch (err) {
+            console.warn('[SidePanel] Failed to load page tags:', err);
+            return [];
+        }
+    }
+
+    async function savePageTags(page, tags) {
+        if (!page || !page.url) return;
+
+        const normalized = normalizeTags(tags);
+        const key = getMetaKey(page.url);
+
+        if (normalized.length === 0) {
+            await chrome.storage.local.remove(key);
+        } else {
+            await chrome.storage.local.set({
+                [key]: {
+                    pageUrl: page.url,
+                    pageTitle: page.title || page.url,
+                    tags: normalized,
+                    updatedAt: Date.now()
+                }
+            });
+        }
+
+        if (currentPageData && currentPageData.url === page.url) {
+            currentPageData = {
+                ...currentPageData,
+                tags: normalized
+            };
+            renderCurrentView();
+        }
     }
 
     function applyLocalizedChrome() {
@@ -647,7 +717,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 key: responseMatchesTab && response?.storageKey ? response.storageKey : (prefix + resolvedUrl),
                 url: resolvedUrl,
                 title,
-                highlights
+                highlights,
+                tags: []
             };
         } catch (err) {
             console.warn('[SidePanel] Failed to get highlights from active tab:', err);
@@ -694,6 +765,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if ((!currentPageData || currentPageData.highlights.length === 0) && allPagesData.length > 0) {
                     currentPageData = allPagesData.find(p => p.key === currentKey) || allPagesData.find(p => p.url === resolvedCurrentUrl) || currentPageData;
                     console.log('[SidePanel] Storage fallback:', currentPageData ? 'found' : 'not found');
+                }
+
+                if (currentPageData && currentPageData.url) {
+                    currentPageData = {
+                        ...currentPageData,
+                        tags: await loadPageTags(currentPageData.url)
+                    };
                 }
 
                 currentPageAccessState = currentPageData ? 'ready' : 'restricted';
@@ -1029,6 +1107,52 @@ document.addEventListener('DOMContentLoaded', () => {
         return item;
     }
 
+    function createPageTagEditor(page) {
+        const wrap = document.createElement('div');
+        wrap.className = 'page-tags page-tags-inline';
+
+        normalizeTags(page && page.tags).forEach(tag => {
+            const chip = document.createElement('span');
+            chip.className = 'page-tag-chip';
+
+            const label = document.createElement('span');
+            label.textContent = tag;
+            chip.appendChild(label);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'page-tag-remove';
+            removeBtn.textContent = '×';
+            removeBtn.title = t('removeTag', { tag }, `移除标签：${tag}`);
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const nextTags = normalizeTags(page.tags || []).filter(item => item.toLowerCase() !== tag.toLowerCase());
+                savePageTags(page, nextTags).catch(err => console.warn('[SidePanel] Failed to remove page tag:', err));
+            });
+
+            chip.appendChild(removeBtn);
+            wrap.appendChild(chip);
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'page-tag-add';
+        addBtn.textContent = t('addTag', null, '+ 标签');
+        addBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const input = prompt(t('addTagPrompt', null, '输入标签，多个标签可用逗号分隔：'));
+            if (input === null) return;
+            const nextTags = normalizeTags([...(page.tags || []), ...normalizeTags(input)]);
+            if (nextTags.length === normalizeTags(page.tags || []).length) return;
+            savePageTags(page, nextTags).catch(err => console.warn('[SidePanel] Failed to add page tag:', err));
+        });
+        wrap.appendChild(addBtn);
+
+        return wrap;
+    }
+
     function createPageActions(page, variant = 'card') {
         const actions = document.createElement('div');
         actions.className = variant === 'group' ? 'page-group-actions' : 'page-card-actions';
@@ -1043,18 +1167,6 @@ document.addEventListener('DOMContentLoaded', () => {
             await copyPageHighlights(page, copyBtn);
         });
         actions.appendChild(copyBtn);
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'page-meta-btn danger';
-        deleteBtn.textContent = t('deletePage', null, '删除本页');
-        deleteBtn.disabled = page.highlights.length === 0;
-        deleteBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (confirm(t('deletePageConfirm', { title: page.title }, `确定删除“${page.title}”的全部高亮吗？`))) {
-                await deletePageHighlights(page);
-            }
-        });
-        actions.appendChild(deleteBtn);
 
         const exportMenu = document.createElement('div');
         exportMenu.className = 'page-export-menu';
@@ -1104,6 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         exportMenu.appendChild(exportDropdown);
         actions.appendChild(exportMenu);
+        actions.appendChild(createPageTagEditor(page));
 
         return actions;
     }

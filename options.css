@@ -482,14 +482,20 @@ textarea {
 .tool-mode-btn,
 .search-field,
 .sort-shell,
+.tag-filter-shell,
 .batch-header,
 .cancel-btn,
 #pages-list details,
 .summary-action-btn,
 .summary-badge,
+.page-tag-chip,
+.page-tag-add,
 .page-note-panel,
 .detail-actions button,
 .settings-section,
+.tag-management-row,
+.tag-management-count,
+.tag-management-btn,
 .blacklist-tag,
 .batch-action-bar,
 .batch-btn,
@@ -885,7 +891,7 @@ textarea {
 
 .list-toolbar {
   display: grid;
-  grid-template-columns: auto minmax(220px, 1fr) auto auto;
+  grid-template-columns: auto minmax(220px, 1fr) auto auto auto;
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
@@ -929,7 +935,8 @@ textarea {
 }
 
 .search-field,
-.sort-shell {
+.sort-shell,
+.tag-filter-shell {
   min-height: 38px;
   border-radius: 12px;
   border: 1px solid rgba(191, 181, 171, 0.72);
@@ -969,14 +976,26 @@ textarea {
   outline: none;
 }
 
-.sort-shell {
+.sort-shell,
+.tag-filter-shell {
   display: inline-flex;
   align-items: center;
   padding: 0 11px;
   flex-shrink: 0;
 }
 
-.sort-select {
+.tag-filter-shell {
+  gap: 8px;
+}
+
+.tag-filter-shell span {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sort-select,
+.tag-filter-select {
   border: none;
   background: transparent;
   color: var(--text-primary);
@@ -992,11 +1011,21 @@ textarea {
   cursor: pointer;
 }
 
+.tag-filter-select {
+  min-width: 92px;
+  max-width: 150px;
+}
+
+.tag-filter-select.has-value {
+  color: var(--accent-strong);
+}
+
 .tool-mode-btn {
   justify-self: end;
 }
 
-.sort-select:focus {
+.sort-select:focus,
+.tag-filter-select:focus {
   outline: none;
 }
 
@@ -1225,6 +1254,66 @@ textarea {
 
 .page-updated {
   white-space: nowrap;
+}
+
+.page-tags-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.page-tag-chip,
+.page-tag-add {
+  min-height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(176, 165, 154, 0.52);
+  background: rgba(255, 250, 242, 0.78);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.page-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px 0 8px;
+}
+
+.page-tag-remove,
+.page-tag-add {
+  cursor: pointer;
+}
+
+.page-tag-remove {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  padding: 0 1px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.page-tag-remove:hover,
+.page-tag-remove:focus-visible {
+  color: var(--danger-strong);
+  outline: none;
+}
+
+.page-tag-add {
+  padding: 0 8px;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.page-tag-add:hover,
+.page-tag-add:focus-visible {
+  background: var(--accent-soft);
+  border-color: rgba(104, 126, 167, 0.25);
+  color: var(--accent-strong);
+  outline: none;
 }
 
 .page-summary-actions {
@@ -1562,6 +1651,120 @@ textarea {
   box-shadow: 0 0 0 3px rgba(220, 167, 67, 0.16);
 }
 
+.tag-management-section {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tag-management-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tag-management-summary::-webkit-details-marker {
+  display: none;
+}
+
+.tag-management-summary h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tag-management-summary p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.tag-management-section[open] .config-summary-chevron {
+  transform: rotate(225deg);
+}
+
+.tag-management-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 18px 16px;
+}
+
+.tag-management-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(117, 88, 50, 0.12);
+  background: rgba(255, 252, 247, 0.7);
+}
+
+.tag-management-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tag-management-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--settings-ink, var(--text-primary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-management-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--settings-ink-soft, var(--text-secondary));
+  background: rgba(143, 126, 104, 0.12);
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.tag-management-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.tag-management-btn {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--settings-action-border, rgba(117, 88, 50, 0.2));
+  background: rgba(255, 250, 242, 0.72);
+  color: var(--settings-ink, var(--text-primary));
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag-management-btn:hover,
+.tag-management-btn:focus-visible {
+  background: rgba(255, 252, 247, 0.9);
+  border-color: rgba(220, 167, 67, 0.34);
+  outline: none;
+}
+
+.tag-management-btn.danger:hover,
+.tag-management-btn.danger:focus-visible {
+  color: var(--danger-strong);
+  border-color: rgba(193, 84, 84, 0.45);
+  background: rgba(193, 84, 84, 0.12);
+}
+
+.tag-management-empty {
+  color: var(--settings-ink-soft, var(--text-secondary));
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 0;
+}
+
 .update-history-section {
   padding: 0;
   overflow: hidden;
@@ -1897,7 +2100,8 @@ textarea {
     justify-self: auto;
   }
 
-  .sort-shell {
+  .sort-shell,
+  .tag-filter-shell {
     flex: 1 1 180px;
   }
 }
@@ -1965,14 +2169,20 @@ textarea {
 .tool-mode-btn,
 .search-field,
 .sort-shell,
+.tag-filter-shell,
 .batch-header,
 .cancel-btn,
 #pages-list details,
 .summary-action-btn,
 .summary-badge,
+.page-tag-chip,
+.page-tag-add,
 .page-note-panel,
 .detail-actions button,
 .settings-section,
+.tag-management-row,
+.tag-management-count,
+.tag-management-btn,
 .blacklist-tag,
 .batch-action-bar,
 .batch-btn,

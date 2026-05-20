@@ -295,6 +295,17 @@
         </div>
       </section>
 
+      <details id="tag-management-panel" class="settings-section tag-management-section">
+        <summary class="tag-management-summary">
+          <div>
+            <h2 data-i18n="manageTags">管理标签</h2>
+            <p data-i18n="manageTagsDesc">重命名或删除页面标签。</p>
+          </div>
+          <span class="config-summary-chevron" aria-hidden="true"></span>
+        </summary>
+        <div id="tag-management-list" class="tag-management-list"></div>
+      </details>
+
       <details id="update-history-panel" class="settings-section update-history-section">
         <summary class="update-history-summary">
           <div>
@@ -352,6 +363,12 @@
         <select id="sort-select" class="sort-select">
           <option value="updated-desc" data-i18n="updatedDesc">最近更新</option>
           <option value="updated-asc" data-i18n="updatedAsc">最早更新</option>
+        </select>
+      </label>
+      <label class="tag-filter-shell" for="tag-filter-select">
+        <span data-i18n="tagFilterLabel">标签</span>
+        <select id="tag-filter-select" class="tag-filter-select">
+          <option value="" data-i18n="allTags">全部标签</option>
         </select>
       </label>
       <button id="select-mode-btn" class="tool-mode-btn" type="button" data-i18n="select">多选</button>

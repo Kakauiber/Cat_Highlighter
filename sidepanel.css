@@ -277,6 +277,67 @@ body {
     overflow: hidden;
 }
 
+.page-tags {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 7px;
+}
+
+.page-tags-inline {
+    margin-top: 0;
+}
+
+.page-tag-chip,
+.page-tag-add {
+    min-height: 23px;
+    border-radius: 999px;
+    border: 1px solid rgba(178, 164, 148, 0.5);
+    background: rgba(255, 250, 242, 0.75);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.page-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px 0 8px;
+}
+
+.page-tag-remove {
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    padding: 0;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.page-tag-remove:hover,
+.page-tag-remove:focus-visible {
+    color: var(--danger);
+    outline: none;
+}
+
+.page-tag-add {
+    padding: 0 8px;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.page-tag-add:hover,
+.page-tag-add:focus-visible {
+    background: var(--accent-soft);
+    border-color: rgba(176, 135, 47, 0.32);
+    color: var(--accent-strong);
+    outline: none;
+}
+
 .page-card-actions {
     display: flex;
     gap: 6px;

@@ -7,6 +7,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const HIGHLIGHT_PREFIX = 'page_highlights_';
   const NOTE_PREFIX = (window.PageNotes && window.PageNotes.NOTE_PREFIX) || 'page_notes_';
+  const META_PREFIX = 'page_meta_';
+  const TAG_FILTER_UNTAGGED = '__cat_highlighter_untagged__';
 
   const pagesList = document.getElementById('pages-list');
   const listEndMarker = document.getElementById('list-end-marker');
@@ -28,7 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const keyboardShortcutsToggle = document.getElementById('keyboard-shortcuts-toggle');
   const keyboardShortcutsDesc = document.getElementById('keyboard-shortcuts-desc');
   const sortSelect = document.getElementById('sort-select');
+  const tagFilterSelect = document.getElementById('tag-filter-select');
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
+  const tagManagementList = document.getElementById('tag-management-list');
   const mowenPanel = document.getElementById('mowen-panel');
   const updateHistoryPanel = document.getElementById('update-history-panel');
   const updateHistoryList = document.getElementById('update-history-list');
@@ -113,6 +117,92 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${year}${month}${day}`;
   }
 
+  function getMetaKey(url) {
+    return META_PREFIX + String(url || '');
+  }
+
+  function normalizeTagName(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function normalizeTags(tags) {
+    const raw = Array.isArray(tags)
+      ? tags
+      : String(tags || '').split(/[,，]/);
+    const seen = new Set();
+    const normalized = [];
+
+    raw.forEach(tag => {
+      const name = normalizeTagName(tag);
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      normalized.push(name);
+    });
+
+    return normalized;
+  }
+
+  function tagsEqual(a, b) {
+    const left = normalizeTags(a);
+    const right = normalizeTags(b);
+    return left.length === right.length && left.every((tag, index) => tag === right[index]);
+  }
+
+  function sortTags(tags) {
+    return normalizeTags(tags).sort((a, b) => a.localeCompare(b));
+  }
+
+  async function savePageTags(page, tags) {
+    if (!page || !page.url) return;
+
+    const normalized = normalizeTags(tags);
+    const key = getMetaKey(page.url);
+
+    if (normalized.length === 0) {
+      await chrome.storage.local.remove(key);
+    } else {
+      await chrome.storage.local.set({
+        [key]: {
+          pageUrl: page.url,
+          pageTitle: page.title || page.url,
+          tags: normalized,
+          updatedAt: Date.now()
+        }
+      });
+    }
+
+    page.tags = normalized;
+    page.meta = normalized.length > 0 ? {
+      pageUrl: page.url,
+      pageTitle: page.title || page.url,
+      tags: normalized,
+      updatedAt: Date.now()
+    } : null;
+  }
+
+  function getTagPromptValue() {
+    const input = prompt(t('addTagPrompt', null, '输入标签，多个标签可用逗号分隔：'));
+    return input === null ? null : normalizeTags(input);
+  }
+
+  async function addTagsToPage(page) {
+    const tags = getTagPromptValue();
+    if (tags === null || tags.length === 0) return;
+    const nextTags = normalizeTags([...(page.tags || []), ...tags]);
+    if (tagsEqual(page.tags, nextTags)) return;
+    await savePageTags(page, nextTags);
+    loadData();
+  }
+
+  async function removeTagFromPage(page, tag) {
+    const key = String(tag || '').toLowerCase();
+    const nextTags = normalizeTags(page.tags || []).filter(item => item.toLowerCase() !== key);
+    await savePageTags(page, nextTags);
+    loadData();
+  }
+
   function getFullExportNoteTitle(timestamp) {
     return `${t('fullExportTitle', null, '划线猫全部导出')}_${formatExportDateStamp(timestamp)}`;
   }
@@ -156,6 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSelectCount();
     renderOverviewStats();
     renderUpdateHistory();
+    renderTagFilterOptions();
+    renderTagManagement();
     renderList();
   }
 
@@ -196,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedIds = new Set();
   let selectionMap = new Map(); // id -> pageKey
   let activeFilter = 'all';
+  let activeTagFilter = '';
   let activeSort = 'updated-desc';
   let mowenIsBusy = false;
   let mowenFormExpanded = false;
@@ -1656,7 +1749,8 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(h => `${h.text || ''} ${h.annotation || ''}`)
       .join(' ');
 
-    return `${page.title} ${page.url} ${noteTitle} ${noteText} ${highlightText}`.toLowerCase();
+    const tagText = normalizeTags(page.tags || []).join(' ');
+    return `${page.title} ${page.url} ${tagText} ${noteTitle} ${noteText} ${highlightText}`.toLowerCase();
   }
 
   function matchesViewFilter(page) {
@@ -1680,6 +1774,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const keyword = searchInput.value.trim().toLowerCase();
     const visiblePages = pagesData.filter(page => {
       if (!matchesViewFilter(page)) return false;
+      const pageTags = normalizeTags(page.tags || []);
+      if (activeTagFilter === TAG_FILTER_UNTAGGED && pageTags.length > 0) return false;
+      if (activeTagFilter && activeTagFilter !== TAG_FILTER_UNTAGGED && !pageTags.some(tag => tag === activeTagFilter)) return false;
       if (!keyword) return true;
       return getPageSearchText(page).includes(keyword);
     });
@@ -1739,6 +1836,204 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function getAllTags() {
+    return sortTags(pagesData.flatMap(page => page.tags || []));
+  }
+
+  function getTagUsage() {
+    const usage = new Map();
+    pagesData.forEach(page => {
+      normalizeTags(page.tags || []).forEach(tag => {
+        usage.set(tag, (usage.get(tag) || 0) + 1);
+      });
+    });
+    return usage;
+  }
+
+  function renderTagFilterOptions() {
+    if (!tagFilterSelect) return;
+
+    const tags = getAllTags();
+    const previous = activeTagFilter;
+    tagFilterSelect.innerHTML = '';
+
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = t('allTags', null, '全部标签');
+    tagFilterSelect.appendChild(allOption);
+
+    tags.forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      tagFilterSelect.appendChild(option);
+    });
+
+    const untaggedOption = document.createElement('option');
+    untaggedOption.value = TAG_FILTER_UNTAGGED;
+    untaggedOption.textContent = t('untaggedPages', null, '无标签');
+    tagFilterSelect.appendChild(untaggedOption);
+
+    activeTagFilter = previous === TAG_FILTER_UNTAGGED || tags.includes(previous) ? previous : '';
+    tagFilterSelect.value = activeTagFilter;
+    tagFilterSelect.classList.toggle('has-value', Boolean(activeTagFilter));
+  }
+
+  function renderPageTagsLine(page) {
+    const wrap = document.createElement('div');
+    wrap.className = 'page-tags-line';
+    wrap.addEventListener('click', (e) => e.stopPropagation());
+
+    normalizeTags(page.tags || []).forEach(tag => {
+      const chip = document.createElement('span');
+      chip.className = 'page-tag-chip';
+
+      const label = document.createElement('span');
+      label.textContent = tag;
+      chip.appendChild(label);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'page-tag-remove';
+      removeBtn.textContent = '×';
+      removeBtn.title = t('removeTag', { tag }, `移除标签：${tag}`);
+      removeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        removeTagFromPage(page, tag).catch(err => console.warn('移除标签失败', err));
+      });
+      chip.appendChild(removeBtn);
+      wrap.appendChild(chip);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'page-tag-add';
+    addBtn.textContent = t('addTag', null, '+ 标签');
+    addBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      addTagsToPage(page).catch(err => console.warn('添加标签失败', err));
+    });
+    wrap.appendChild(addBtn);
+
+    return wrap;
+  }
+
+  function renderTagManagement() {
+    if (!tagManagementList) return;
+
+    tagManagementList.innerHTML = '';
+    const usage = getTagUsage();
+    const tags = Array.from(usage.keys()).sort((a, b) => a.localeCompare(b));
+
+    if (tags.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'tag-management-empty';
+      empty.textContent = t('noTags', null, '暂无标签');
+      tagManagementList.appendChild(empty);
+      return;
+    }
+
+    tags.forEach(tag => {
+      const row = document.createElement('div');
+      row.className = 'tag-management-row';
+
+      const main = document.createElement('div');
+      main.className = 'tag-management-main';
+
+      const name = document.createElement('span');
+      name.className = 'tag-management-name';
+      name.textContent = tag;
+      main.appendChild(name);
+
+      const count = document.createElement('span');
+      count.className = 'tag-management-count';
+      count.textContent = t('tagPageCount', countParams(usage.get(tag) || 0, 'page'), formatCount(usage.get(tag) || 0, 'page'));
+      main.appendChild(count);
+      row.appendChild(main);
+
+      const actions = document.createElement('div');
+      actions.className = 'tag-management-actions';
+
+      const renameBtn = document.createElement('button');
+      renameBtn.type = 'button';
+      renameBtn.className = 'tag-management-btn';
+      renameBtn.textContent = t('renameTag', null, '重命名');
+      renameBtn.addEventListener('click', () => {
+        renameTagAcrossPages(tag).catch(err => console.warn('重命名标签失败', err));
+      });
+      actions.appendChild(renameBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'tag-management-btn danger';
+      deleteBtn.textContent = t('deleteTag', null, '删除');
+      deleteBtn.addEventListener('click', () => {
+        deleteTagAcrossPages(tag).catch(err => console.warn('删除标签失败', err));
+      });
+      actions.appendChild(deleteBtn);
+
+      row.appendChild(actions);
+      tagManagementList.appendChild(row);
+    });
+  }
+
+  async function updateTagAcrossPages(oldTag, mapper) {
+    const all = await chrome.storage.local.get(null);
+    const updates = {};
+    const removeKeys = [];
+    const oldKey = String(oldTag || '').toLowerCase();
+
+    Object.keys(all).forEach(key => {
+      if (!key.startsWith(META_PREFIX)) return;
+
+      const record = all[key];
+      const tags = normalizeTags(record && record.tags);
+      if (!tags.some(tag => tag.toLowerCase() === oldKey)) return;
+
+      const nextTags = normalizeTags(mapper(tags));
+      if (nextTags.length === 0) {
+        removeKeys.push(key);
+      } else {
+        updates[key] = {
+          ...(record && typeof record === 'object' ? record : {}),
+          pageUrl: (record && record.pageUrl) || key.substring(META_PREFIX.length),
+          tags: nextTags,
+          updatedAt: Date.now()
+        };
+      }
+    });
+
+    if (Object.keys(updates).length > 0) {
+      await chrome.storage.local.set(updates);
+    }
+    if (removeKeys.length > 0) {
+      await chrome.storage.local.remove(removeKeys);
+    }
+  }
+
+  async function renameTagAcrossPages(oldTag) {
+    const nextTag = normalizeTagName(prompt(t('renameTagPrompt', { tag: oldTag }, `将“${oldTag}”重命名为：`), oldTag));
+    if (!nextTag || nextTag === oldTag) return;
+
+    await updateTagAcrossPages(oldTag, tags => tags.map(tag => tag.toLowerCase() === oldTag.toLowerCase() ? nextTag : tag));
+    if (activeTagFilter && activeTagFilter.toLowerCase() === oldTag.toLowerCase()) {
+      activeTagFilter = nextTag;
+    }
+    loadData();
+  }
+
+  async function deleteTagAcrossPages(tag) {
+    if (!confirm(t('deleteTagConfirm', { tag }, `确定从所有页面中删除“${tag}”标签吗？\n\n这只会移除标签，不会删除页面、高亮或笔记。`))) return;
+
+    await updateTagAcrossPages(tag, tags => tags.filter(item => item.toLowerCase() !== tag.toLowerCase()));
+    if (activeTagFilter && activeTagFilter.toLowerCase() === tag.toLowerCase()) {
+      activeTagFilter = '';
+    }
+    loadData();
+  }
+
   function loadData() {
     chrome.storage.local.get(null, (all) => {
       const pagesByUrl = new Map();
@@ -1753,7 +2048,9 @@ document.addEventListener('DOMContentLoaded', () => {
             url,
             title: title || url,
             highlights: [],
-            note: null
+            note: null,
+            meta: null,
+            tags: []
           };
           pagesByUrl.set(url, page);
         } else if ((!page.title || page.title === page.url) && title) {
@@ -1784,6 +2081,19 @@ document.addEventListener('DOMContentLoaded', () => {
           if (page) {
             page.note = record;
           }
+        } else if (key.startsWith(META_PREFIX)) {
+          const record = all[key];
+          const url = (record && record.pageUrl) || key.substring(META_PREFIX.length);
+          if (!record || typeof record !== 'object' || !url) return;
+
+          const page = ensurePage(url, record.pageTitle || url);
+          if (page) {
+            page.meta = record;
+            page.tags = normalizeTags(record.tags);
+            if ((!page.title || page.title === page.url) && record.pageTitle) {
+              page.title = record.pageTitle;
+            }
+          }
         }
       });
 
@@ -1793,6 +2103,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       renderOverviewStats();
       updateFilterChips();
+      renderTagFilterOptions();
+      renderTagManagement();
       renderList();
       getMowenSettings().then(settings => syncMowenActionState(settings.lastTestedKey));
       getMowenSettings().then(settings => updateMowenSummary(settings));
@@ -2027,6 +2339,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (page.note && page.note.content) {
       removeKeys.push(NOTE_PREFIX + ((page.note.pageUrl || page.url)));
     }
+
+    removeKeys.push(getMetaKey(page.url));
 
     if (removeKeys.length > 0) {
       await chrome.storage.local.remove(removeKeys);
@@ -2311,6 +2625,7 @@ document.addEventListener('DOMContentLoaded', () => {
       metaLine.appendChild(updatedSpan);
 
       infoDiv.appendChild(metaLine);
+      infoDiv.appendChild(renderPageTagsLine(page));
       summaryMain.appendChild(infoDiv);
       summary.appendChild(summaryMain);
 
@@ -3398,6 +3713,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (tagFilterSelect) {
+    tagFilterSelect.addEventListener('change', () => {
+      activeTagFilter = tagFilterSelect.value || '';
+      tagFilterSelect.classList.toggle('has-value', Boolean(activeTagFilter));
+      renderList();
+    });
+  }
+
   window.addEventListener('cat:i18n-ready', applyLocalizedChrome);
   window.addEventListener('hashchange', openUpdateHistoryFromHash);
   if (window.CatI18n && window.CatI18n.ready && typeof window.CatI18n.ready.then === 'function') {
@@ -3449,7 +3772,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const shouldReloadPages = changedKeys.some(key =>
-      key.startsWith(HIGHLIGHT_PREFIX) || key.startsWith(NOTE_PREFIX)
+      key.startsWith(HIGHLIGHT_PREFIX) || key.startsWith(NOTE_PREFIX) || key.startsWith(META_PREFIX)
     );
 
     if (!shouldReloadPages) return;
