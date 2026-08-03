@@ -131,6 +131,46 @@
     target.push(buildParagraphNode(title));
   }
 
+  function buildTemplateContent(markdown) {
+    const content = [];
+    const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n');
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (content.length > 0 && content[content.length - 1].content.length > 0) {
+          content.push(buildEmptyParagraphNode());
+        }
+        return;
+      }
+
+      const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
+      if (headingMatch) {
+        content.push(buildParagraphNode(headingMatch[1]));
+        return;
+      }
+
+      const linkMatch = trimmed.match(/^\[([^\]]+)\]\((https?:\/\/[^)]+)\)$/);
+      if (linkMatch) {
+        content.push(buildLinkParagraphNode(linkMatch[1], linkMatch[2]));
+        return;
+      }
+
+      const sourceMatch = trimmed.match(/^(?:链接|Link):\s*(https?:\/\/\S+)$/i);
+      if (sourceMatch) {
+        content.push(buildLinkParagraphNode(`【${t('originalLink', null, '原文链接')}】`, sourceMatch[1]));
+        return;
+      }
+
+      content.push(buildParagraphNode(trimmed.replace(/^[-*]\s+/, '')));
+    });
+
+    while (content.length > 0 && content[content.length - 1].content.length === 0) {
+      content.pop();
+    }
+    return content;
+  }
+
   function buildBundleContent(bundle, noteTitle) {
     const content = [];
     if (!bundle || !Array.isArray(bundle.pages)) return content;
@@ -139,6 +179,15 @@
     if (exportTitle) {
       content.push(buildParagraphNode(exportTitle));
       content.push(buildEmptyParagraphNode());
+    }
+
+    if (
+      window.HighlightExport &&
+      typeof window.HighlightExport.exportBundleToMarkdown === 'function' &&
+      typeof window.HighlightExport.hasCustomMarkdownTemplate === 'function' &&
+      window.HighlightExport.hasCustomMarkdownTemplate()
+    ) {
+      return content.concat(buildTemplateContent(window.HighlightExport.exportBundleToMarkdown(bundle)));
     }
 
     bundle.pages.forEach((page, pageIndex) => {

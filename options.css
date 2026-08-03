@@ -1590,6 +1590,269 @@ textarea {
   color: var(--text-secondary);
 }
 
+.export-template-section {
+  padding: 0;
+  overflow: hidden;
+}
+
+.export-template-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.export-template-summary::-webkit-details-marker {
+  display: none;
+}
+
+.export-template-summary h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.export-template-summary p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.export-template-section[open] .config-summary-chevron {
+  transform: rotate(180deg);
+}
+
+.export-template-body {
+  padding: 16px 18px 18px;
+  border-top: 1px solid rgba(191, 163, 126, 0.28);
+}
+
+.export-template-scope,
+.export-template-help {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.export-template-intro {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-left: 3px solid rgba(181, 122, 19, 0.52);
+  background: rgba(255, 247, 231, 0.72);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.export-template-intro strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.export-template-field {
+  display: grid;
+  gap: 8px;
+}
+
+.export-template-field > span,
+.export-template-variables-label {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.export-template-field textarea {
+  width: 100%;
+  min-height: 210px;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid var(--settings-action-border);
+  background: rgba(255, 253, 249, 0.94);
+  color: var(--text-primary);
+  font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.export-template-field textarea:focus-visible {
+  outline: 2px solid rgba(220, 167, 67, 0.38);
+  outline-offset: 1px;
+}
+
+.export-template-variables {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-template-variable-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.export-template-variable-list button {
+  min-height: 30px;
+  padding: 5px 9px;
+  border: 1px solid var(--settings-action-border);
+  background: rgba(255, 250, 242, 0.72);
+  color: var(--settings-ink);
+  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  cursor: pointer;
+}
+
+.export-template-variable-list button:hover,
+.export-template-variable-list button:focus-visible {
+  border-color: rgba(181, 122, 19, 0.42);
+  background: rgba(255, 244, 222, 0.92);
+}
+
+.export-template-help {
+  margin-top: 10px;
+}
+
+.export-template-guide {
+  margin-top: 10px;
+  border: 1px solid rgba(191, 163, 126, 0.32);
+  background: rgba(255, 253, 249, 0.72);
+}
+
+.export-template-guide > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 10px 12px;
+  color: var(--settings-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.export-template-guide > summary::-webkit-details-marker {
+  display: none;
+}
+
+.export-template-guide > summary::after {
+  content: '+';
+  float: right;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.export-template-guide[open] > summary::after {
+  content: '\2212';
+}
+
+.export-template-guide-body {
+  padding: 12px;
+  border-top: 1px solid rgba(191, 163, 126, 0.24);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.export-template-guide-body h3 {
+  margin: 0 0 7px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.export-template-guide-body h3:not(:first-child) {
+  margin-top: 14px;
+}
+
+.export-template-guide-body ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.export-template-variable-reference {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 16px;
+}
+
+.export-template-variable-reference > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.export-template-variable-reference code {
+  flex: 0 0 auto;
+  color: var(--settings-ink);
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.export-template-guide pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid rgba(191, 163, 126, 0.28);
+  background: rgba(255, 250, 242, 0.72);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.export-template-guide pre code {
+  font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@media (max-width: 720px) {
+  .export-template-variable-reference {
+    grid-template-columns: 1fr;
+  }
+}
+
+.export-template-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-template-actions button {
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid var(--settings-action-border);
+  background: rgba(255, 250, 242, 0.72);
+  color: var(--settings-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.export-template-actions button:first-child {
+  border-color: rgba(181, 122, 19, 0.38);
+  background: rgba(245, 193, 79, 0.2);
+}
+
+.export-template-actions button:hover,
+.export-template-actions button:focus-visible {
+  background: rgba(255, 244, 222, 0.92);
+}
+
+.export-template-status {
+  min-height: 20px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.export-template-status.success {
+  color: var(--settings-success);
+}
+
+.export-template-status.error {
+  color: var(--danger-strong);
+}
+
 .keyboard-shortcuts-head {
   align-items: center;
   display: flex;

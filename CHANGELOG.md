@@ -2,6 +2,20 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
+## v1.4.0 - 2026-05-20
+
+### Added
+
+- Page-level tags for saved web pages and AI conversations.
+- Add or remove page tags from the side panel and manager page.
+- Filter manager records by tag, including a `No Tags` view.
+- Manage tags in Settings, including renaming or deleting tags across all pages.
+
+### Improved
+
+- Deleting a tag now clearly explains that only the tag is removed; pages, highlights, and notes are not deleted.
+- The side panel current-page action area is more compact: page tags now sit next to page export, while low-frequency page deletion remains available from the manager.
+
 ## v1.3.0 - 2026-05-11
 
 ### Added

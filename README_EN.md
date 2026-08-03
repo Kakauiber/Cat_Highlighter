@@ -173,7 +173,7 @@ Setup:
 
 ## Data And Privacy
 
-Cat Highlighter stores highlights, annotations, page notes, and export settings locally in the browser through `chrome.storage.local`. The extension does not run its own server and does not upload your page content automatically.
+Cat Highlighter stores highlights, annotations, page notes, page tags, and export settings locally in the browser through `chrome.storage.local`. The extension does not run its own server and does not upload your page content automatically.
 
 Content is sent to third-party services only when you explicitly export to Mowen, Notion, or SiYuan. See [PRIVACY.md](PRIVACY.md) for details.
 

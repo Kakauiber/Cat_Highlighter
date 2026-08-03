@@ -4,6 +4,21 @@
 (function () {
   'use strict';
 
+  const MARKDOWN_TEMPLATE_KEY = 'cat_markdown_export_template';
+  const MAX_TEMPLATE_LENGTH = 20000;
+  const TEMPLATE_VARIABLE_NAMES = [
+    'title',
+    'url',
+    'source_link',
+    'date',
+    'note',
+    'highlights',
+    'note_section',
+    'highlights_section'
+  ];
+  let customMarkdownTemplate = '';
+  let templateLoaded = false;
+
   const TARGET_FEATURE_MAP = {
     html: 'export.markdown',
     markdown: 'export.markdown',
@@ -61,6 +76,108 @@
       .replace(/[ \t]+\n/g, '\n')
       .replace(/\n{2,}/g, '\n')
       .trim();
+  }
+
+  function getDefaultMarkdownTemplate() {
+    return [
+      '## {{title}}',
+      '{{source_link}}',
+      '',
+      '{{note_section}}',
+      '',
+      '{{highlights_section}}'
+    ].join('\n');
+  }
+
+  function normalizeTemplate(value) {
+    return String(value || '').replace(/\r\n/g, '\n').trim();
+  }
+
+  function getActiveMarkdownTemplate() {
+    return customMarkdownTemplate || getDefaultMarkdownTemplate();
+  }
+
+  function hasCustomMarkdownTemplate() {
+    return Boolean(customMarkdownTemplate);
+  }
+
+  function validateMarkdownTemplate(value) {
+    const template = normalizeTemplate(value);
+    if (!template) {
+      return { valid: false, reason: 'empty', unsupported: [] };
+    }
+    if (template.length > MAX_TEMPLATE_LENGTH) {
+      return { valid: false, reason: 'too_long', unsupported: [] };
+    }
+
+    const unsupported = [];
+    const variablePattern = /{{\s*([^{}]+?)\s*}}/g;
+    let match = variablePattern.exec(template);
+    while (match) {
+      const name = String(match[1] || '').trim();
+      if (!TEMPLATE_VARIABLE_NAMES.includes(name) && !unsupported.includes(name)) {
+        unsupported.push(name);
+      }
+      match = variablePattern.exec(template);
+    }
+
+    return {
+      valid: unsupported.length === 0,
+      reason: unsupported.length > 0 ? 'unsupported' : '',
+      unsupported
+    };
+  }
+
+  async function loadMarkdownTemplate(options) {
+    if (templateLoaded && !(options && options.force)) {
+      return getActiveMarkdownTemplate();
+    }
+
+    const result = await chrome.storage.local.get([MARKDOWN_TEMPLATE_KEY]);
+    const stored = normalizeTemplate(result[MARKDOWN_TEMPLATE_KEY]);
+    const validation = stored ? validateMarkdownTemplate(stored) : { valid: true };
+    customMarkdownTemplate = stored && validation.valid ? stored : '';
+    templateLoaded = true;
+    return getActiveMarkdownTemplate();
+  }
+
+  async function saveMarkdownTemplate(value) {
+    const template = normalizeTemplate(value);
+    const validation = validateMarkdownTemplate(template);
+    if (!validation.valid) {
+      return validation;
+    }
+
+    if (template === normalizeTemplate(getDefaultMarkdownTemplate())) {
+      await chrome.storage.local.remove([MARKDOWN_TEMPLATE_KEY]);
+      customMarkdownTemplate = '';
+      templateLoaded = true;
+      return { valid: true, reason: '', unsupported: [], isDefault: true };
+    }
+
+    await chrome.storage.local.set({ [MARKDOWN_TEMPLATE_KEY]: template });
+    customMarkdownTemplate = template;
+    templateLoaded = true;
+    return { valid: true, reason: '', unsupported: [], isDefault: false };
+  }
+
+  async function resetMarkdownTemplate() {
+    await chrome.storage.local.remove([MARKDOWN_TEMPLATE_KEY]);
+    customMarkdownTemplate = '';
+    templateLoaded = true;
+    return getDefaultMarkdownTemplate();
+  }
+
+  function renderTemplate(template, variables) {
+    return normalizeTemplate(template).replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (match, name) => {
+      return Object.prototype.hasOwnProperty.call(variables, name)
+        ? String(variables[name] || '')
+        : match;
+    });
+  }
+
+  function formatTemplateDate(timestamp) {
+    return new Date(timestamp || Date.now()).toLocaleDateString(getExportLocale());
   }
 
   function normalizeHighlightType(type) {
@@ -169,28 +286,33 @@
     };
   }
 
-  function renderPageMarkdown(page) {
-    const lines = [];
-    lines.push(`## ${page.title || page.url || t('unnamedPage', null, '未命名页面')}`);
-    if (page.url) {
-      lines.push(`${t('link', null, '链接')}${labelSeparator()}${page.url}`);
-    }
+  function renderPageMarkdown(page, bundle) {
+    const title = page.title || page.url || t('unnamedPage', null, '未命名页面');
+    const note = page.note ? normalizeMarkdownDisplayText(page.note) : '';
+    const highlights = page.highlights.length > 0
+      ? page.highlights.flatMap(renderHighlightMarkdownLines).join('\n')
+      : '';
+    const noteSection = note
+      ? `### ${t('pageNote', null, '页面笔记')}\n${note}`
+      : '';
+    const highlightsSection = highlights
+      ? `### ${t('annotations', null, '标注')}\n${highlights}`
+      : '';
+    const rendered = renderTemplate(getActiveMarkdownTemplate(), {
+      title: normalizeMarkdownDisplayText(title),
+      url: page.url || '',
+      source_link: page.url ? `${t('link', null, '链接')}${labelSeparator()}${page.url}` : '',
+      date: formatTemplateDate(bundle && bundle.exportedAt),
+      note,
+      highlights,
+      note_section: noteSection,
+      highlights_section: highlightsSection
+    });
 
-    if (page.note) {
-      lines.push('');
-      lines.push(`### ${t('pageNote', null, '页面笔记')}`);
-      lines.push(normalizeMarkdownDisplayText(page.note));
-    }
-
-    if (page.highlights.length > 0) {
-      lines.push('');
-      lines.push(`### ${t('annotations', null, '标注')}`);
-      page.highlights.forEach(item => {
-        lines.push(...renderHighlightMarkdownLines(item));
-      });
-    }
-
-    return lines.join('\n');
+    return rendered
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   function exportBundleToMarkdown(bundle) {
@@ -198,7 +320,7 @@
       return '';
     }
 
-    return bundle.pages.map(renderPageMarkdown).join('\n\n');
+    return bundle.pages.map(page => renderPageMarkdown(page, bundle)).filter(Boolean).join('\n\n');
   }
 
   function exportBundleToSiyuan(bundle) {
@@ -248,6 +370,10 @@
   function exportBundleToNotion(bundle) {
     if (!bundle || !Array.isArray(bundle.pages) || bundle.pages.length === 0) {
       return '';
+    }
+
+    if (hasCustomMarkdownTemplate()) {
+      return exportBundleToMarkdown(bundle);
     }
 
     const isSinglePage = bundle.pages.length === 1;
@@ -363,7 +489,9 @@
       '---'
     ];
 
-    const body = bundle.pages.map(renderPageObsidian).join('\n\n');
+    const body = hasCustomMarkdownTemplate()
+      ? exportBundleToMarkdown(bundle)
+      : bundle.pages.map(renderPageObsidian).join('\n\n');
     return frontmatter.concat(['', `# ${title}`, '', body]).join('\n');
   }
 
@@ -566,4 +694,28 @@
   window.HighlightExport.normalizeHighlightColor = normalizeHighlightColor;
   window.HighlightExport.getHighlightStyleLabel = getHighlightStyleLabel;
   window.HighlightExport.renderHighlightMarkdownLines = renderHighlightMarkdownLines;
+  window.HighlightExport.MARKDOWN_TEMPLATE_KEY = MARKDOWN_TEMPLATE_KEY;
+  window.HighlightExport.MAX_TEMPLATE_LENGTH = MAX_TEMPLATE_LENGTH;
+  window.HighlightExport.TEMPLATE_VARIABLE_NAMES = TEMPLATE_VARIABLE_NAMES.slice();
+  window.HighlightExport.getDefaultMarkdownTemplate = getDefaultMarkdownTemplate;
+  window.HighlightExport.getActiveMarkdownTemplate = getActiveMarkdownTemplate;
+  window.HighlightExport.hasCustomMarkdownTemplate = hasCustomMarkdownTemplate;
+  window.HighlightExport.validateMarkdownTemplate = validateMarkdownTemplate;
+  window.HighlightExport.loadMarkdownTemplate = loadMarkdownTemplate;
+  window.HighlightExport.saveMarkdownTemplate = saveMarkdownTemplate;
+  window.HighlightExport.resetMarkdownTemplate = resetMarkdownTemplate;
+
+  loadMarkdownTemplate().catch(err => {
+    console.warn('[HighlightExport] Failed to load export template:', err);
+  });
+
+  if (chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'local' || !changes[MARKDOWN_TEMPLATE_KEY]) return;
+      const nextValue = normalizeTemplate(changes[MARKDOWN_TEMPLATE_KEY].newValue);
+      const validation = nextValue ? validateMarkdownTemplate(nextValue) : { valid: true };
+      customMarkdownTemplate = nextValue && validation.valid ? nextValue : '';
+      templateLoaded = true;
+    });
+  }
 })();

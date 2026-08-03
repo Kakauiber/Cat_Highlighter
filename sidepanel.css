@@ -115,6 +115,8 @@ body {
 .header-actions {
     display: flex;
     gap: 4px;
+    position: relative;
+    z-index: 20;
 }
 
 .header-btn {
@@ -128,8 +130,40 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0;
+    position: relative;
     backdrop-filter: blur(12px);
     transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+@media (hover: hover) {
+    .header-btn::after {
+        content: attr(aria-label);
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        padding: 5px 8px;
+        border: 1px solid rgba(247, 210, 142, 0.18);
+        border-radius: 7px;
+        background: #2a2420;
+        color: #fff8ed;
+        box-shadow: 0 6px 18px rgba(38, 30, 24, 0.2);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(-3px);
+        transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+    }
+
+    .header-btn:hover::after,
+    .header-btn:focus-visible::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
 }
 
 .header-btn:hover {

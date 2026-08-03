@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPageInfo = document.getElementById('current-page-info');
     const currentHighlights = document.getElementById('current-highlights');
     const manageBtn = document.getElementById('manage-btn');
+    const feedbackBtn = document.getElementById('feedback-btn');
     const refreshPageBtn = document.getElementById('refresh-page-btn');
     // Batch Selection Elements
     const selectModeBtn = document.getElementById('select-mode-btn');
@@ -161,6 +162,49 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             window.open(chrome.runtime.getURL('options.html'));
         }
+    }
+
+    function getOperatingSystemLabel() {
+        const platform = String(
+            (navigator.userAgentData && navigator.userAgentData.platform) ||
+            navigator.platform ||
+            navigator.userAgent ||
+            ''
+        ).toLowerCase();
+
+        if (platform.includes('mac')) return 'macOS';
+        if (platform.includes('win')) return 'Windows';
+        if (platform.includes('cros')) return 'ChromeOS';
+        if (platform.includes('linux')) return 'Linux';
+        if (platform.includes('iphone') || platform.includes('ipad') || platform.includes('ios')) return 'iOS';
+        return t('unknownOperatingSystem', null, '未知');
+    }
+
+    function getExtensionVersionLabel() {
+        const manifest = chrome.runtime.getManifest();
+        if (manifest.version_name) return manifest.version_name;
+        return manifest.version ? `v${manifest.version}` : '';
+    }
+
+    function openFeedbackEmail() {
+        const isEnglish = window.CatI18n && window.CatI18n.getLanguage() === 'en';
+        const separator = isEnglish ? ': ' : '：';
+        const subject = t('feedbackEmailSubject', null, '[划线猫反馈]');
+        const body = [
+            t('feedbackEmailPrompt', null, '请描述您遇到的问题或希望增加的功能：'),
+            '',
+            '',
+            '',
+            `${t('feedbackExtensionVersion', null, '插件版本')}${separator}${getExtensionVersionLabel()}`,
+            `${t('feedbackOperatingSystem', null, '操作系统')}${separator}${getOperatingSystemLabel()}`
+        ].join('\n');
+        const mailtoUrl = `mailto:kakasummercat@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        const link = document.createElement('a');
+        link.href = mailtoUrl;
+        link.hidden = true;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     }
 
     function getPageHostLabel(url) {
@@ -316,6 +360,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Manage Button ---
     manageBtn.addEventListener('click', openManagePage);
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', openFeedbackEmail);
+    }
     if (refreshPageBtn) {
         refreshPageBtn.addEventListener('click', () => {
             refreshPageBtn.classList.add('is-refreshing');
@@ -793,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     updatePageInfoNoteStatus();
                 }
             } else {
-                clearNoteUI();
+                await clearNoteUI();
             }
 
             // Render after both highlight and note state are refreshed.
@@ -1334,6 +1381,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (typeof window.HighlightExport.loadMarkdownTemplate === 'function') {
+            try {
+                await window.HighlightExport.loadMarkdownTemplate({ force: true });
+            } catch (err) {
+                console.warn('[SidePanel] Failed to refresh export template:', err);
+            }
+        }
         const bundle = window.HighlightExport.buildExportBundle([exportPage], { source: 'sidepanel' });
         const targetFormat = format || 'markdown';
         let ok = false;
@@ -1639,14 +1693,17 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadCurrentPageNote(url, title) {
         // Guard: never operate on undefined/empty URL
         if (!url) {
-            clearNoteUI();
+            await clearNoteUI();
             return;
         }
 
         const isSameUrlReload = currentNoteUrl === url;
         if (currentNoteUrl && currentNoteUrl !== url) {
             await flushPendingNoteSave();
+        } else if (isSameUrlReload && noteIsDirty && document.activeElement !== noteTextarea) {
+            await flushPendingNoteSave();
         }
+        const keepLocalDraft = isSameUrlReload && noteIsDirty && document.activeElement === noteTextarea;
 
         const requestToken = ++noteLoadRequestToken;
         currentNoteUrl = url;
@@ -1674,7 +1731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Populate textarea only if user isn't actively editing
-        if (document.activeElement !== noteTextarea) {
+        if (!keepLocalDraft && document.activeElement !== noteTextarea) {
             noteTextarea.value = (currentNoteRecord && currentNoteRecord.content) || '';
         }
 
@@ -1682,7 +1739,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateNoteWordCount();
         updateNoteUpdateTime();
         setSaveStatusUI('idle');
-        noteIsDirty = false;
+        if (!keepLocalDraft) {
+            noteIsDirty = false;
+        }
 
         if (currentPageData && currentPageData.url === url && currentNoteRecord && shouldPreferTitle(currentNoteRecord.pageTitle, currentPageData.title)) {
             currentPageData.title = normalizePageTitle(currentNoteRecord.pageTitle);
@@ -1698,7 +1757,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /** Clear all note UI when there's no valid page. */
-    function clearNoteUI() {
+    async function clearNoteUI() {
+        const didFlush = await flushPendingNoteSave();
+        if (!didFlush && noteIsDirty) {
+            return;
+        }
         noteLoadRequestToken += 1;
         if (noteSaveTimer) {
             clearTimeout(noteSaveTimer);
@@ -1804,21 +1867,28 @@ document.addEventListener('DOMContentLoaded', () => {
             noteSaveTimer = null;
         }
 
-        if (noteIsDirty && currentNoteUrl && !isNoteSaving) {
-            await saveCurrentNote();
+        if (noteIsDirty && (!currentNoteUrl || isNoteSaving)) {
+            return false;
         }
+
+        if (noteIsDirty && currentNoteUrl) {
+            return saveCurrentNote();
+        }
+        return true;
     }
 
     /** Perform the actual save. */
     async function saveCurrentNote() {
-        if (!currentNoteUrl) return;
-        if (isNoteSaving) return;
+        if (!currentNoteUrl) return false;
+        if (isNoteSaving) return false;
 
+        const savingUrl = currentNoteUrl;
         const content = noteTextarea.value;
+        const previousRecord = currentNoteRecord;
         // Don't save if content is empty and there's no existing record
-        if (!content.trim() && !currentNoteRecord) {
+        if (!content.trim() && !previousRecord) {
             noteIsDirty = false;
-            return;
+            return true;
         }
 
         isNoteSaving = true;
@@ -1826,34 +1896,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // If content cleared and a record exists, delete instead of saving empty
-            if (!content.trim() && currentNoteRecord) {
-                await window.PageNotes.deletePageNote(currentNoteUrl);
-                currentNoteRecord = null;
+            if (!content.trim() && previousRecord) {
+                await window.PageNotes.deletePageNote(savingUrl);
+                if (currentNoteUrl === savingUrl) {
+                    currentNoteRecord = null;
+                    noteIsDirty = false;
+                    setSaveStatusUI('saved');
+                    updateNoteSummary();
+                    updateNoteUpdateTime();
+                    updatePageInfoNoteStatus();
+                }
+                return true;
+            }
+
+            const pageTitle = (currentPageData && currentPageData.url === savingUrl && currentPageData.title) || savingUrl;
+            const draft = window.PageNotes.createNoteDraft(
+                savingUrl, pageTitle, content, previousRecord
+            );
+            await window.PageNotes.savePageNote(savingUrl, draft);
+
+            if (currentNoteUrl === savingUrl) {
+                currentNoteRecord = draft;
                 noteIsDirty = false;
                 setSaveStatusUI('saved');
                 updateNoteSummary();
                 updateNoteUpdateTime();
+
+                // Also update the page info card note status if visible
                 updatePageInfoNoteStatus();
-                return;
             }
-
-            const pageTitle = (currentPageData && currentPageData.title) || currentNoteUrl;
-            const draft = window.PageNotes.createNoteDraft(
-                currentNoteUrl, pageTitle, content, currentNoteRecord
-            );
-            await window.PageNotes.savePageNote(currentNoteUrl, draft);
-
-            currentNoteRecord = draft;
-            noteIsDirty = false;
-            setSaveStatusUI('saved');
-            updateNoteSummary();
-            updateNoteUpdateTime();
-
-            // Also update the page info card note status if visible
-            updatePageInfoNoteStatus();
+            return true;
         } catch (err) {
             console.error('[PageNotes] Save failed:', err);
             setSaveStatusUI('error');
+            return false;
         } finally {
             isNoteSaving = false;
         }

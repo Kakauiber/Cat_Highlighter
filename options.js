@@ -34,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterChips = Array.from(document.querySelectorAll('.filter-chip'));
   const tagManagementList = document.getElementById('tag-management-list');
   const mowenPanel = document.getElementById('mowen-panel');
+  const exportTemplateInput = document.getElementById('export-template-input');
+  const exportTemplateSaveBtn = document.getElementById('export-template-save-btn');
+  const exportTemplateResetBtn = document.getElementById('export-template-reset-btn');
+  const exportTemplateStatus = document.getElementById('export-template-status');
+  const exportTemplateVariableButtons = Array.from(document.querySelectorAll('[data-template-variable]'));
   const updateHistoryPanel = document.getElementById('update-history-panel');
   const updateHistoryList = document.getElementById('update-history-list');
   const mowenSummaryMeta = document.getElementById('mowen-summary-meta');
@@ -382,6 +387,74 @@ document.addEventListener('DOMContentLoaded', () => {
     await chrome.storage.local.set({
       [KEYBOARD_SHORTCUTS_ENABLED_KEY]: keyboardShortcutsToggle.checked !== false
     });
+  }
+
+  function setExportTemplateStatus(message, type) {
+    if (!exportTemplateStatus) return;
+    exportTemplateStatus.textContent = message || '';
+    exportTemplateStatus.classList.toggle('success', type === 'success');
+    exportTemplateStatus.classList.toggle('error', type === 'error');
+  }
+
+  function getExportTemplateErrorMessage(validation) {
+    if (!validation || validation.valid) return '';
+    if (validation.reason === 'empty') {
+      return t('exportTemplateEmpty', null, '模板不能为空。');
+    }
+    if (validation.reason === 'too_long') {
+      return t('exportTemplateTooLong', null, '模板内容过长，请缩短后重试。');
+    }
+    if (validation.reason === 'unsupported') {
+      const variables = (validation.unsupported || []).map(name => `{{${name}}}`).join(', ');
+      return t('exportTemplateUnsupported', { variables }, `包含不支持的变量：${variables}`);
+    }
+    return t('exportTemplateSaveFailed', null, '保存导出模板失败，请稍后重试。');
+  }
+
+  async function loadExportTemplate() {
+    if (!exportTemplateInput || !window.HighlightExport) return;
+    const template = await window.HighlightExport.loadMarkdownTemplate({ force: true });
+    exportTemplateInput.value = template;
+    setExportTemplateStatus('', '');
+  }
+
+  async function saveExportTemplate() {
+    if (!exportTemplateInput || !window.HighlightExport) return;
+    const validation = await window.HighlightExport.saveMarkdownTemplate(exportTemplateInput.value);
+    if (!validation.valid) {
+      setExportTemplateStatus(getExportTemplateErrorMessage(validation), 'error');
+      return;
+    }
+    exportTemplateInput.value = window.HighlightExport.getActiveMarkdownTemplate();
+    setExportTemplateStatus(t('exportTemplateSaved', null, '导出模板已保存。'), 'success');
+  }
+
+  async function resetExportTemplate() {
+    if (!exportTemplateInput || !window.HighlightExport) return;
+    if (!confirm(t('restoreDefaultTemplateConfirm', null, '确定恢复默认导出模板吗？当前自定义内容将被替换。'))) {
+      return;
+    }
+    exportTemplateInput.value = await window.HighlightExport.resetMarkdownTemplate();
+    setExportTemplateStatus(t('exportTemplateReset', null, '已恢复默认导出模板。'), 'success');
+  }
+
+  function insertExportTemplateVariable(name) {
+    if (!exportTemplateInput || !name) return;
+    const token = `{{${name}}}`;
+    const start = exportTemplateInput.selectionStart;
+    const end = exportTemplateInput.selectionEnd;
+    exportTemplateInput.setRangeText(token, start, end, 'end');
+    exportTemplateInput.focus();
+    setExportTemplateStatus('', '');
+  }
+
+  async function prepareExportTemplate() {
+    if (!window.HighlightExport || typeof window.HighlightExport.loadMarkdownTemplate !== 'function') return;
+    try {
+      await window.HighlightExport.loadMarkdownTemplate({ force: true });
+    } catch (err) {
+      console.warn('导出前加载模板失败，将使用当前模板', err);
+    }
   }
 
   function getObsidianSettingsSignature(settings) {
@@ -1367,6 +1440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await withMowenBusy(async () => {
       setMowenStatus(t('exportingAllMowen', null, '正在导出全部记录到墨问...'), '');
       try {
+        await prepareExportTemplate();
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
         const result = await window.HighlightMowenExporter.exportBundleToMowen(bundle, {
           apiKey,
@@ -1446,6 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await withNotionBusy(async () => {
       setNotionStatus(t('exportingAllNotion', null, '正在导出全部记录到 Notion...'), '');
       try {
+        await prepareExportTemplate();
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
         const result = await window.HighlightNotionExporter.exportBundleToNotion(bundle, {
           settings,
@@ -1633,6 +1708,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await withSiyuanBusy(async () => {
       setSiyuanStatus(t('exportingAllSiyuan', null, '正在导出全部记录到思源...'), '');
       try {
+        await prepareExportTemplate();
         const bundle = window.HighlightExport.buildExportBundle(pagesData, { source: 'options' });
         const result = await window.HighlightSiyuanExporter.exportBundleToSiyuan(bundle, {
           settings,
@@ -2912,6 +2988,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    await prepareExportTemplate();
     const bundle = window.HighlightExport.buildExportBundle(pages, { source: 'options' });
     const noteTitle = options && options.fullExport ? getFullExportNoteTitle(bundle.exportedAt) : (options && options.noteTitle);
     const targetFormat = format || 'markdown';
@@ -3202,6 +3279,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (exportTemplateSaveBtn) {
+    exportTemplateSaveBtn.addEventListener('click', () => {
+      saveExportTemplate().catch(err => {
+        console.warn('保存导出模板失败', err);
+        setExportTemplateStatus(t('exportTemplateSaveFailed', null, '保存导出模板失败，请稍后重试。'), 'error');
+      });
+    });
+  }
+
+  if (exportTemplateResetBtn) {
+    exportTemplateResetBtn.addEventListener('click', () => {
+      resetExportTemplate().catch(err => {
+        console.warn('恢复默认导出模板失败', err);
+        setExportTemplateStatus(t('exportTemplateSaveFailed', null, '保存导出模板失败，请稍后重试。'), 'error');
+      });
+    });
+  }
+
+  exportTemplateVariableButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      insertExportTemplateVariable(button.dataset.templateVariable || '');
+    });
+  });
+
+  if (exportTemplateInput) {
+    exportTemplateInput.addEventListener('input', () => {
+      setExportTemplateStatus('', '');
+    });
+  }
+
   document.addEventListener('click', () => {
     closeExportMenu();
     closePageExportMenus();
@@ -3454,6 +3561,10 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBlacklist();
   loadKeyboardShortcutSettings().catch(err => {
     console.warn('加载键盘快捷键设置失败', err);
+  });
+  loadExportTemplate().catch(err => {
+    console.warn('加载导出模板失败', err);
+    setExportTemplateStatus(t('exportTemplateLoadFailed', null, '加载导出模板失败，请稍后重试。'), 'error');
   });
   loadMowenSettings().catch(err => {
     console.warn('加载墨问设置失败', err);

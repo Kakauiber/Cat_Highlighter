@@ -1,151 +1,101 @@
 # Chrome Web Store 图片素材清单
 
-本清单用于准备划线猫首次上架图片素材。
+本清单用于划线猫 Chrome Web Store 商店页图片上传。
 
-## 需要准备的图片
+## 推荐上传素材
 
-### 1. 应用图标
+### 应用图标
 
 已具备：
 
 - `icons/icon128.png`
 
-用途：
+### 商店截图
 
-- Chrome Web Store 商品图标。
+推荐上传 5 张，尺寸均为 `1280 x 800`，格式为 PNG。
 
-### 2. 商店截图
+中文截图上传顺序：
 
-建议准备 5 张，尺寸统一使用 `1280 x 800`，格式使用 PNG。
+1. `release/store-assets/optimized-zh/01-ai-chat-highlight.png`
+2. `release/store-assets/optimized-zh/02-current-page-records.png`
+3. `release/store-assets/optimized-zh/03-page-note.png`
+4. `release/store-assets/optimized-zh/04-all-records-manager.png`
+5. `release/store-assets/optimized-zh/05-export-to-knowledge-base.png`
 
-推荐文件名：
+英文截图上传顺序：
 
-- `01-toolbar-highlight.png`
-- `02-sidepanel-current-page.png`
-- `03-page-note.png`
-- `04-management-page.png`
-- `05-export-tools.png`
+1. `release/store-assets/optimized-en/01-ai-chat-highlight.png`
+2. `release/store-assets/optimized-en/02-current-page-records.png`
+3. `release/store-assets/optimized-en/03-page-note.png`
+4. `release/store-assets/optimized-en/04-manager-and-settings.png`
+5. `release/store-assets/optimized-en/05-export-to-knowledge-base.png`
 
-### 3. 小型宣传图
+### 小型宣传图
 
-建议准备 1 张，尺寸 `440 x 280`，格式 PNG。
+中文推荐上传：
 
-推荐文件名：
+- `release/store-assets/optimized-zh/promo-small-440x280-local-knowledge-clear.png`
 
-- `promo-small-440x280.png`
+英文推荐上传：
 
-可用于 Chrome Web Store 的宣传图位置。
-
-## 推荐截图内容
-
-### 01-toolbar-highlight.png
-
-目标：
-
-展示“选中文字后弹出工具条，可以选择高亮、划线、复制、批注、删除”。
-
-建议画面：
-
-- 左侧为网页正文。
-- 选中一段文字。
-- 划线猫工具条显示在选区附近。
-- 页面中已经有 1-2 条高亮。
-
-注意：
-
-- 不要截到私人信息。
-- 文字内容可以使用普通文章或测试网页。
-
-### 02-sidepanel-current-page.png
-
-目标：
-
-展示“当前页高亮记录会进入侧边栏”。
-
-建议画面：
-
-- 左侧网页中有多条高亮。
-- 右侧打开划线猫侧边栏。
-- 侧边栏停留在「当前高亮」。
-- 能看到当前页标题、高亮数量和高亮列表。
-
-### 03-page-note.png
-
-目标：
-
-展示“可以为当前页面写页面笔记”。
-
-建议画面：
-
-- 侧边栏切换到「页面笔记」。
-- 输入框中有一段简短笔记。
-- 能看到保存状态。
-
-### 04-management-page.png
-
-目标：
-
-展示“管理页可以统一整理所有页面记录”。
-
-建议画面：
-
-- 打开划线猫管理页。
-- 能看到多个页面卡片。
-- 每个页面卡片显示高亮数量和笔记状态。
-- 尽量不要显示过长 URL 或私人页面。
-
-### 05-export-tools.png
-
-目标：
-
-展示“支持导出到多种工具”。
-
-建议画面：
-
-- 管理页或侧边栏打开导出菜单。
-- 能看到墨问、Notion、Obsidian、思源笔记、Markdown、HTML。
-- 如果使用管理页，展示导出配置区域也可以。
-
-## 小型宣传图建议
+- `release/store-assets/optimized-en/promo-small-440x280-local-knowledge.png`
 
 尺寸：
 
 `440 x 280`
 
-建议文案：
+### Marquee 宣传图
 
-标题：
+中文推荐上传：
 
-划线猫
+- `release/store-assets/optimized-zh/promo-marquee-1400x560-local-knowledge.png`
 
-副标题：
+英文推荐上传：
 
-网页高亮、页面笔记与知识导出工具
+- `release/store-assets/optimized-en/promo-marquee-1400x560-local-knowledge.png`
 
-辅助文案：
+尺寸：
 
-高亮 / 划线 / 批注 / 页面笔记 / 多端导出
+`1400 x 560`
 
-视觉建议：
+## 截图叙事顺序
 
-- 背景使用浅米色或浅金色，保持和插件当前风格一致。
-- 左侧放猫图标或产品名。
-- 右侧放一个简化的侧边栏卡片示意。
-- 不要写太多字。
+这组截图按用户扫图时的理解路径设计：
 
-## 截图质量要求
+1. 先看到可以在 AI 对话和长文中直接划重点。
+2. 再看到当前页高亮会进入侧边栏，并按页面保存。
+3. 再看到可以写页面笔记，记录追问、判断和行动项。
+4. 再看到管理页可以集中搜索和整理所有记录。
+5. 最后看到可以导出到知识库工具。
 
-- 推荐使用 `1280 x 800`。
-- 截图内容要清晰，不要模糊。
-- 尽量使用同一套浅色主题。
-- 不要出现调试工具、浏览器开发者工具、错误提示。
-- 不要出现真实 API Key、Token、邮箱、私人文档内容。
-- 所有截图里的功能要和当前版本一致。
+## 文案控制
 
-## 截图后放置位置
+截图内只保留少量场景标题，避免变成大段说明图。Chrome Web Store 的商店页正文负责详细解释，截图负责让用户快速理解工作流。
 
-建议把最终图片放到：
+## 质量检查
 
-`release/store-assets/`
+上传前确认：
 
-该目录不需要提交到 GitHub。
+- 图片尺寸准确：截图 `1280 x 800`，小型宣传图 `440 x 280`，Marquee `1400 x 560`。
+- 没有出现真实 API Key、Token、邮箱或私人文档内容。
+- 没有浏览器开发者工具、错误提示或调试信息。
+- 所展示功能与当前版本一致。
+- 截图标题没有遮挡核心操作区域。
+
+## 生成脚本
+
+优化后的截图和宣传图由以下脚本生成：
+
+`release/store-assets/create_optimized_store_assets.py`
+
+重新生成：
+
+```bash
+/Users/summer/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3 release/store-assets/create_optimized_store_assets.py
+```
+
+脚本会输出到：
+
+`release/store-assets/optimized-zh/`
+
+`release/store-assets/optimized-en/`

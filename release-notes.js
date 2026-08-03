@@ -7,6 +7,24 @@
 
     // Add one entry here for each public release that should be shown to users.
     const RELEASE_NOTES = {
+        '1.4.0': {
+            zh_CN: {
+                title: '划线猫已更新到 v1.4.0',
+                items: [
+                    '新增页面标签，可为网页或 AI 对话添加一级标签。',
+                    '管理页支持按标签筛选，也可以查看无标签页面。',
+                    '设置页新增管理标签，可统一重命名或删除标签，删除标签不会删除页面、高亮或笔记。'
+                ]
+            },
+            en: {
+                title: 'Cat Highlighter Updated to v1.4.0',
+                items: [
+                    'Added page-level tags for web pages and AI conversations.',
+                    'Filter manager records by tag, including a No Tags view.',
+                    'Manage tags in Settings: rename or delete tags without deleting pages, highlights, or notes.'
+                ]
+            }
+        },
         '1.3.0': {
             zh_CN: {
                 title: '划线猫已更新到 v1.3.0',

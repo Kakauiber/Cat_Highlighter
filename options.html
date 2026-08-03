@@ -281,6 +281,76 @@
         </div>
       </details>
 
+      <details id="export-template-panel" class="settings-section export-template-section">
+        <summary class="export-template-summary">
+          <div>
+            <h2 data-i18n="exportTemplateTitle">导出模板</h2>
+            <p data-i18n="exportTemplateDesc">自定义 Markdown 与笔记类导出的页面结构。</p>
+          </div>
+          <span class="config-summary-chevron" aria-hidden="true"></span>
+        </summary>
+        <div class="export-template-body">
+          <p class="export-template-scope" data-i18n="exportTemplateScope">模板会逐页应用于 Markdown、墨问、Notion、Obsidian 和思源；HTML 与复制保持原样。</p>
+          <div id="export-template-intro" class="export-template-intro">
+            <strong data-i18n="exportTemplateOptional">这是可选功能，保持默认模板即可正常导出。</strong>
+            <span data-i18n="exportTemplateIntro">导出时，花括号中的变量会自动替换为页面内容。你可以修改固定文字、Markdown 标题和章节顺序，也可以删除不需要的部分；请勿修改变量名称。点击下方变量按钮，可将变量插入光标位置。</span>
+          </div>
+          <label class="export-template-field" for="export-template-input">
+            <span data-i18n="pageTemplate">页面模板</span>
+            <textarea id="export-template-input" rows="10" spellcheck="false" aria-describedby="export-template-intro export-template-help export-template-status"></textarea>
+          </label>
+          <div class="export-template-variables" aria-label="可用变量" data-i18n-aria-label="availableVariables">
+            <span class="export-template-variables-label" data-i18n="insertVariable">插入变量</span>
+            <div class="export-template-variable-list">
+              <button type="button" data-template-variable="title" data-i18n-title="templateVarTitle" title="页面标题">{{title}}</button>
+              <button type="button" data-template-variable="url" data-i18n-title="templateVarUrl" title="原始网址">{{url}}</button>
+              <button type="button" data-template-variable="source_link" data-i18n-title="templateVarSourceLink" title="可点击的原文链接">{{source_link}}</button>
+              <button type="button" data-template-variable="date" data-i18n-title="templateVarDate" title="导出日期">{{date}}</button>
+              <button type="button" data-template-variable="note" data-i18n-title="templateVarNote" title="页面笔记正文">{{note}}</button>
+              <button type="button" data-template-variable="highlights" data-i18n-title="templateVarHighlights" title="标注列表">{{highlights}}</button>
+              <button type="button" data-template-variable="note_section" data-i18n-title="templateVarNoteSection" title="完整笔记章节，无笔记时留空">{{note_section}}</button>
+              <button type="button" data-template-variable="highlights_section" data-i18n-title="templateVarHighlightsSection" title="完整标注章节，无标注时留空">{{highlights_section}}</button>
+            </div>
+          </div>
+          <p id="export-template-help" class="export-template-help" data-i18n="exportTemplateHelp">建议使用 section 变量：没有笔记或标注时会自动省略整个章节。多页面导出会按原顺序逐页套用模板。</p>
+          <details class="export-template-guide">
+            <summary data-i18n="exportTemplateGuideTitle">查看变量说明与示例</summary>
+            <div class="export-template-guide-body">
+              <h3 data-i18n="exportTemplateEditableTitle">可以修改什么</h3>
+              <ul>
+                <li data-i18n="exportTemplateEditableText">修改普通文字、Markdown 标题符号和章节顺序。</li>
+                <li data-i18n="exportTemplateEditableVariables">调整或删除变量，但不要修改花括号内的变量名称。</li>
+                <li data-i18n="exportTemplateEditableLimits">暂不支持条件判断、循环、自定义颜色或复杂排版。</li>
+              </ul>
+              <h3 data-i18n="exportTemplateVariableTitle">变量说明</h3>
+              <div class="export-template-variable-reference">
+                <div><code>{{title}}</code><span data-i18n="templateVarTitle">页面标题</span></div>
+                <div><code>{{url}}</code><span data-i18n="templateVarUrl">原始网址</span></div>
+                <div><code>{{source_link}}</code><span data-i18n="templateVarSourceLink">可点击的原文链接</span></div>
+                <div><code>{{date}}</code><span data-i18n="templateVarDate">导出日期</span></div>
+                <div><code>{{note}}</code><span data-i18n="templateVarNote">页面笔记正文</span></div>
+                <div><code>{{highlights}}</code><span data-i18n="templateVarHighlights">标注列表</span></div>
+                <div><code>{{note_section}}</code><span data-i18n="templateVarNoteSection">完整笔记章节，无笔记时留空</span></div>
+                <div><code>{{highlights_section}}</code><span data-i18n="templateVarHighlightsSection">完整标注章节，无标注时留空</span></div>
+              </div>
+              <h3 data-i18n="exportTemplateExampleTitle">示例</h3>
+              <pre><code data-i18n="exportTemplateExample"># {{title}}
+整理日期：{{date}}
+{{source_link}}
+
+{{note_section}}
+
+{{highlights_section}}</code></pre>
+            </div>
+          </details>
+          <div class="export-template-actions">
+            <button id="export-template-save-btn" type="button" data-i18n="saveTemplate">保存模板</button>
+            <button id="export-template-reset-btn" class="secondary" type="button" data-i18n="restoreDefault">恢复默认</button>
+          </div>
+          <div id="export-template-status" class="export-template-status" aria-live="polite"></div>
+        </div>
+      </details>
+
       <section id="keyboard-shortcuts-section" class="settings-section keyboard-shortcuts-section">
         <div class="settings-section-head keyboard-shortcuts-head">
           <div>
