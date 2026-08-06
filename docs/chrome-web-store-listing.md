@@ -55,7 +55,9 @@ Highlight AI chats and web pages, capture page notes, and export your reading in
 - 给单条高亮添加批注，记录当时的判断和想法。
 - 在侧边栏写页面笔记，保存总结、追问点和后续任务。
 - 在管理页统一查看、搜索、筛选和整理全部页面记录。
+- 自定义 Markdown 与笔记类导出的页面结构和字段顺序。
 - 将高亮、批注和页面笔记导出为 Markdown、HTML，或发送到墨问、Notion、Obsidian、思源笔记。
+- 从侧边栏通过邮件提交问题或功能建议。
 
 划线猫特别适合：
 
@@ -91,7 +93,9 @@ With Cat Highlighter, you can:
 - Add annotations to individual highlights.
 - Write page notes for summaries, follow-up prompts, and next steps.
 - Review, search, filter, and organize all saved page records.
+- Customize the page structure and field order used by Markdown and note-service exports.
 - Export highlights, annotations, and page notes to Markdown, HTML, Mowen, Notion, Obsidian, or SiYuan.
+- Send feedback or feature requests by email from the side panel.
 
 Cat Highlighter is especially useful for people who:
 

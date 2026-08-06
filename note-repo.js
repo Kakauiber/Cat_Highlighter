@@ -9,14 +9,33 @@
 
   var NOTE_PREFIX = 'page_notes_';
 
+  function getStablePageUrl(url) {
+    var raw = String(url || '').trim();
+    if (!raw) return raw;
+
+    try {
+      var parsed = new URL(raw);
+      var host = parsed.hostname.toLowerCase();
+      var segments = parsed.pathname.split('/').filter(Boolean);
+      var isKimiHost = /(\.|^)(kimi\.com|moonshot\.cn)$/i.test(host);
+
+      if (isKimiHost && segments[0] && segments[0].toLowerCase() === 'chat' && segments.length >= 2) {
+        var path = parsed.pathname.replace(/\/+$/, '');
+        return 'https://www.kimi.com' + path;
+      }
+    } catch (err) { }
+
+    return raw;
+  }
+
   /**
    * Build the storage key for a given URL.
-   * Uses the full URL as-is — no normalization, no fuzzy matching.
+   * Kimi chat URLs use a stable conversation identity; other URLs remain exact.
    * @param {string} url
    * @returns {string}
    */
   function getNoteStorageKey(url) {
-    return NOTE_PREFIX + url;
+    return NOTE_PREFIX + getStablePageUrl(url);
   }
 
   /**

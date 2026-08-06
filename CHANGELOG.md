@@ -2,6 +2,19 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
+## v1.5.0 - 2026-08-03
+
+### Added
+
+- Custom export templates for Markdown and note-service exports, with variables for page titles, source links, dates, page notes, and highlights.
+- A collapsible template guide with variable descriptions, insertion controls, and an editable example.
+- A side-panel feedback entry that prepares an email with the extension version and operating system.
+
+### Improved
+
+- Page-note saving is more resilient during long-running AI conversations and asynchronous page updates.
+- Chrome Web Store copy, privacy documentation, and release materials now cover export templates and email feedback.
+
 ## v1.4.0 - 2026-05-20
 
 ### Added

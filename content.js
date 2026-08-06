@@ -625,12 +625,33 @@ function initExtension() {
     return pageContext.pageUrl || window.location.href;
   }
 
+  function getStablePageUrl(url = getCurrentPageUrl()) {
+    const raw = String(url || '').trim();
+    if (!raw) return raw;
+
+    try {
+      const parsed = new URL(raw);
+      const host = parsed.hostname.toLowerCase();
+      const segments = parsed.pathname.split('/').filter(Boolean);
+      const isKimiHost = /(\.|^)(kimi\.com|moonshot\.cn)$/i.test(host);
+
+      // Kimi chat identity lives in /chat/<id>. Query/hash values are
+      // transient across browser restarts and must not split one conversation.
+      if (isKimiHost && segments[0]?.toLowerCase() === 'chat' && segments.length >= 2) {
+        const path = parsed.pathname.replace(/\/+$/, '');
+        return `https://www.kimi.com${path}`;
+      }
+    } catch (err) { }
+
+    return raw;
+  }
+
   function getStorageKey(url = getCurrentPageUrl()) {
-    return 'page_highlights_' + url;
+    return 'page_highlights_' + getStablePageUrl(url);
   }
 
   function getNoteStorageKey(url = getCurrentPageUrl()) {
-    return NOTE_PREFIX + url;
+    return NOTE_PREFIX + getStablePageUrl(url);
   }
 
   function isKimiEntryPageUrl(url = getCurrentPageUrl()) {
@@ -865,7 +886,7 @@ function initExtension() {
   }
 
   function syncCurrentPageTitleMetadata(callback) {
-    const currentUrl = getCurrentPageUrl();
+    const currentUrl = getStablePageUrl();
     const preferredTitle = getPreferredPageTitle();
     updatePageContext({ pageTitle: preferredTitle, pageUrl: currentUrl });
     const storageKey = getStorageKey(currentUrl);
@@ -953,7 +974,7 @@ function initExtension() {
     if (!hlObj.pageTitle) {
       hlObj.pageTitle = getPreferredPageTitle();
     }
-    hlObj.pageUrl = getCurrentPageUrl();
+    hlObj.pageUrl = getStablePageUrl();
     hlObj.frameKey = getCurrentFrameKey();
     hlObj.frameUrl = getCurrentFrameUrl();
     // Add timestamp for sync ordering
@@ -986,7 +1007,7 @@ function initExtension() {
       if (!chrome.runtime || !chrome.runtime.sendMessage) return;
       const payload = {
         command: 'pageHighlightsChanged',
-        pageUrl: getCurrentPageUrl(),
+        pageUrl: getStablePageUrl(),
         storageKey: storageKey || getStorageKey(),
         pageTitle: getPreferredPageTitle(),
         highlights: Array.isArray(highlights) ? highlights : []
@@ -1350,7 +1371,7 @@ function initExtension() {
   }
 
   function recoverCurrentPageHighlightsFromSync(callback) {
-    const currentUrl = getCurrentPageUrl();
+    const currentUrl = getStablePageUrl();
     const currentKey = getStorageKey(currentUrl);
 
     if (!chrome.storage || !chrome.storage.local || !chrome.storage.sync) {
@@ -3185,7 +3206,7 @@ function initExtension() {
       logFrameDebug('message:getHighlights');
       handleUrlChange();
       const storageKey = getStorageKey();
-      const currentPageUrl = getCurrentPageUrl();
+      const currentPageUrl = getStablePageUrl();
       syncCurrentPageTitleMetadata(() => {
         chrome.storage.local.get([storageKey], (result) => {
           let data = Array.isArray(result[storageKey]) ? result[storageKey] : [];

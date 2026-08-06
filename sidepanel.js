@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMetaKey(url) {
-        return META_PREFIX + String(url || '');
+        return META_PREFIX + getStablePageUrl(url);
     }
 
     function normalizeTagName(value) {
@@ -479,13 +479,34 @@ document.addEventListener('DOMContentLoaded', () => {
             .trim();
     }
 
-    function normalizePageUrlForCompare(value) {
+    function getStablePageUrl(value) {
         const raw = String(value || '').trim();
         if (!raw) return '';
+
         try {
-            return new URL(raw).href;
+            const parsed = new URL(raw);
+            const host = parsed.hostname.toLowerCase();
+            const segments = parsed.pathname.split('/').filter(Boolean);
+            const isKimiHost = /(\.|^)(kimi\.com|moonshot\.cn)$/i.test(host);
+
+            if (isKimiHost && segments[0]?.toLowerCase() === 'chat' && segments.length >= 2) {
+                const path = parsed.pathname.replace(/\/+$/, '');
+                return `https://www.kimi.com${path}`;
+            }
         } catch (err) {
             return raw;
+        }
+
+        return raw;
+    }
+
+    function normalizePageUrlForCompare(value) {
+        const stable = getStablePageUrl(value);
+        if (!stable) return '';
+        try {
+            return new URL(stable).href;
+        } catch (err) {
+            return stable;
         }
     }
 
@@ -714,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!item || !item.id) return;
 
                 const sourceUrl = key.substring(prefix.length);
-                const targetUrl = item.pageUrl || syncUrlById.get(item.id) || sourceUrl;
+                const targetUrl = getStablePageUrl(item.pageUrl || syncUrlById.get(item.id) || sourceUrl);
                 const targetKey = prefix + targetUrl;
                 if (targetKey !== key) {
                     changed = true;
@@ -742,6 +763,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await chrome.storage.local.set(updates);
         console.log('[SidePanel] Reconciled highlight storage keys');
+    }
+
+    async function reconcileStoredPageAliases() {
+        const all = await chrome.storage.local.get(null);
+        const updates = {};
+        const removals = [];
+
+        const noteGroups = new Map();
+        const metaGroups = new Map();
+
+        Object.keys(all).forEach(key => {
+            let prefix = '';
+            let groups = null;
+            if (key.startsWith('page_notes_')) {
+                prefix = 'page_notes_';
+                groups = noteGroups;
+            } else if (key.startsWith(META_PREFIX)) {
+                prefix = META_PREFIX;
+                groups = metaGroups;
+            } else {
+                return;
+            }
+
+            const record = all[key];
+            if (!record || typeof record !== 'object') return;
+
+            const sourceUrl = record.pageUrl || key.substring(prefix.length);
+            const stableUrl = getStablePageUrl(sourceUrl);
+            if (!stableUrl || stableUrl === sourceUrl && key === prefix + stableUrl) return;
+
+            const targetKey = prefix + stableUrl;
+            const candidates = groups.get(targetKey) || [];
+            candidates.push({ key, record: { ...record, pageUrl: stableUrl } });
+
+            const existing = all[targetKey];
+            if (existing && typeof existing === 'object' && !candidates.some(item => item.key === targetKey)) {
+                candidates.push({ key: targetKey, record: { ...existing, pageUrl: stableUrl } });
+            }
+            groups.set(targetKey, candidates);
+        });
+
+        noteGroups.forEach((candidates, targetKey) => {
+            const selected = candidates
+                .map(item => item.record)
+                .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+            if (selected) updates[targetKey] = selected;
+            candidates.forEach(item => {
+                if (item.key !== targetKey) removals.push(item.key);
+            });
+        });
+
+        metaGroups.forEach((candidates, targetKey) => {
+            const records = candidates.map(item => item.record);
+            const selected = records.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+            if (selected) {
+                updates[targetKey] = {
+                    ...selected,
+                    tags: normalizeTags(records.flatMap(record => record.tags || []))
+                };
+            }
+            candidates.forEach(item => {
+                if (item.key !== targetKey) removals.push(item.key);
+            });
+        });
+
+        if (Object.keys(updates).length > 0) {
+            await chrome.storage.local.set(updates);
+        }
+        if (removals.length > 0) {
+            await chrome.storage.local.remove(Array.from(new Set(removals)));
+        }
     }
 
     async function getCurrentPageDataFromTab(tab, prefix) {
@@ -784,6 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPageFallbackTitle = '';
             const prefix = 'page_highlights_';
             await reconcileStoredHighlights(prefix);
+            await reconcileStoredPageAliases();
             allPagesData = await loadStoredPagesData(prefix);
 
             // Get current page data
@@ -810,7 +903,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[SidePanel] Tab data match:', currentPageData ? currentPageData.highlights.length : 'no response');
 
                 if ((!currentPageData || currentPageData.highlights.length === 0) && allPagesData.length > 0) {
-                    currentPageData = allPagesData.find(p => p.key === currentKey) || allPagesData.find(p => p.url === resolvedCurrentUrl) || currentPageData;
+                    currentPageData = allPagesData.find(p => p.key === currentKey)
+                        || allPagesData.find(p => p.url === resolvedCurrentUrl)
+                        || allPagesData.find(p => isSamePageUrl(p.url, resolvedCurrentUrl))
+                        || currentPageData;
                     console.log('[SidePanel] Storage fallback:', currentPageData ? 'found' : 'not found');
                 }
 

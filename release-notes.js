@@ -7,6 +7,24 @@
 
     // Add one entry here for each public release that should be shown to users.
     const RELEASE_NOTES = {
+        '1.5.0': {
+            zh_CN: {
+                title: '划线猫已更新到 v1.5.0',
+                items: [
+                    '新增可自定义导出模板，可调整标题、原文链接、页面笔记和标注的导出结构。',
+                    '侧边栏新增反馈与建议入口，可通过邮件提交问题或功能需求。',
+                    '优化页面笔记保存可靠性，减少长时间打开 AI 对话时笔记丢失的风险。'
+                ]
+            },
+            en: {
+                title: 'Cat Highlighter Updated to v1.5.0',
+                items: [
+                    'Added customizable export templates for titles, source links, page notes, and highlights.',
+                    'Added a side-panel feedback entry for reporting issues or requesting features by email.',
+                    'Improved page-note saving reliability during long-running AI conversations.'
+                ]
+            }
+        },
         '1.4.0': {
             zh_CN: {
                 title: '划线猫已更新到 v1.4.0',
