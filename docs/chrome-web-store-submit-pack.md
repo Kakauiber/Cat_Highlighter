@@ -6,17 +6,17 @@
 
 上传文件：
 
-`release/cat-highlighter-v1.5.0-chrome-web-store.zip`
+`release/cat-highlighter-v1.5.5-chrome-web-store.zip`
 
-## v1.5.0 更新说明
+## v1.5.5 更新说明
 
 中文：
 
-新增可自定义导出模板，可调整 Markdown、墨问、Notion、Obsidian 和思源笔记导出时的页面标题、原文链接、页面笔记与标注结构。侧边栏新增“反馈与建议”入口，可通过邮件提交问题或功能需求。同时优化页面笔记保存可靠性，降低长时间打开 AI 对话时笔记丢失的风险。
+优化 ChatGPT 页面上的选区工具条位置，优先与原生菜单并排显示，减少重叠与遮挡。修复滚动时工具条过早消失的问题，改善窄窗口下的定位。工具条停留时间延长至 5 秒，点击工具条按钮时保留选区，方便高亮、复制和批注。
 
 English:
 
-Added customizable export templates for Markdown, Mowen, Notion, Obsidian, and SiYuan, with variables for page titles, source links, page notes, and highlights. Added a side-panel feedback entry for reporting issues or requesting features by email. Improved page-note saving reliability during long-running AI conversations.
+Improved selection-toolbar positioning on ChatGPT pages by placing it beside the native menu. Fixed premature toolbar dismissal during scrolling and improved positioning in narrow windows. Extended toolbar visibility to 5 seconds and preserved selected text when clicking toolbar buttons.
 
 ## 基本信息
 
