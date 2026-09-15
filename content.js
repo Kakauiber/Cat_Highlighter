@@ -582,10 +582,19 @@ function initExtension() {
 
   // Track the last selected colour across toolbar interactions
   let lastSelectedColor = 'yellow';
-  const TOOLBAR_AUTO_HIDE_MS = 1500;
+  const TOOLBAR_AUTO_HIDE_MS = 5000;
+  const TOOLBAR_VIEWPORT_MARGIN = 8;
+  const TOOLBAR_SELECTION_GAP = 12;
+  const TOOLBAR_SELECTION_RIGHT_OFFSET = 32;
+  const TOOLBAR_CHATGPT_MENU_OFFSET = 320;
+  const IS_CHATGPT_PAGE = /(^|\.)chatgpt\.com$/i.test(window.location.hostname) ||
+    /^chat\.openai\.com$/i.test(window.location.hostname);
   const KEYBOARD_SHORTCUT_SELECTION_TTL_MS = 10000;
   let toolbarAutoHideTimer = null;
   let toolbarAutoHidePaused = false;
+  let toolbarSelectionRange = null;
+  let toolbarPositionFrame = null;
+  let toolbarMenuAlignmentTimer = null;
   let keyboardShortcutsEnabled = true;
 
   // Remember the most recent selection so that we can highlight even after
@@ -2573,7 +2582,7 @@ function initExtension() {
       e.stopPropagation();
       e.preventDefault();
       hideAnnotationTooltip();
-      showToolbarAt(window.scrollX + e.clientX, window.scrollY + e.clientY - 44);
+      showToolbarAt(e.clientX, e.clientY - 44);
     });
   }
 
@@ -2865,8 +2874,13 @@ function initExtension() {
     // Make toolbar draggable using standard pattern to avoid leaks
     toolbar.addEventListener('mousedown', (e) => {
       // Only allow dragging if not clicking on a button
-      if (e.target.closest('button')) return;
+      if (e.target.closest('button')) {
+        // Keep the page selection until the button's click action consumes it.
+        e.preventDefault();
+        return;
+      }
       pauseToolbarAutoHide();
+      toolbarSelectionRange = null;
 
       const startX = e.clientX;
       const startY = e.clientY;
@@ -2885,16 +2899,27 @@ function initExtension() {
         let newLeft = e.clientX - offsetX;
         let newTop = e.clientY - offsetY;
 
-        // Bounds checking (keep within viewport)
-        const maxLeft = window.innerWidth - toolbar.offsetWidth;
-        const maxTop = window.innerHeight - toolbar.offsetHeight;
+        // Bounds checking (keep within the viewport safe margin)
+        const viewportBounds = getVisibleViewportBounds();
+        const toolbarRect = toolbar.getBoundingClientRect();
+        const toolbarWidth = toolbarRect.width || toolbar.offsetWidth;
+        const toolbarHeight = toolbarRect.height || toolbar.offsetHeight;
+        const minLeft = viewportBounds.left + TOOLBAR_VIEWPORT_MARGIN;
+        const minTop = viewportBounds.top + TOOLBAR_VIEWPORT_MARGIN;
+        const maxLeft = Math.max(
+          minLeft,
+          viewportBounds.right - toolbarWidth - TOOLBAR_VIEWPORT_MARGIN
+        );
+        const maxTop = Math.max(
+          minTop,
+          viewportBounds.bottom - toolbarHeight - TOOLBAR_VIEWPORT_MARGIN
+        );
 
-        newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-        newTop = Math.max(0, Math.min(newTop, maxTop));
+        newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
+        newTop = Math.max(minTop, Math.min(newTop, maxTop));
 
-        // Apply position (convert to page coordinates for absolute positioning)
-        toolbar.style.left = `${newLeft + window.scrollX}px`;
-        toolbar.style.top = `${newTop + window.scrollY}px`;
+        toolbar.style.left = `${newLeft}px`;
+        toolbar.style.top = `${newTop}px`;
       }
 
       function onMouseUp() {
@@ -2949,26 +2974,225 @@ function initExtension() {
     scheduleToolbarAutoHide();
   }
 
-  function showToolbarAt(x, y) {
+  function getVisibleViewportBounds() {
+    const visualViewport = window.visualViewport;
+    const rawLeft = visualViewport ? Number(visualViewport.offsetLeft) : 0;
+    const rawTop = visualViewport ? Number(visualViewport.offsetTop) : 0;
+    const rawWidth = visualViewport ? Number(visualViewport.width) : window.innerWidth;
+    const rawHeight = visualViewport ? Number(visualViewport.height) : window.innerHeight;
+    const left = Number.isFinite(rawLeft) ? rawLeft : 0;
+    const top = Number.isFinite(rawTop) ? rawTop : 0;
+    const width = Number.isFinite(rawWidth) && rawWidth > 0 ? rawWidth : window.innerWidth;
+    const height = Number.isFinite(rawHeight) && rawHeight > 0 ? rawHeight : window.innerHeight;
+
+    return {
+      left,
+      top,
+      right: left + width,
+      bottom: top + height
+    };
+  }
+
+  function getToolbarRenderedSize(toolbar) {
+    const rect = toolbar.getBoundingClientRect();
+    return {
+      width: rect.width || toolbar.offsetWidth,
+      height: rect.height || toolbar.offsetHeight
+    };
+  }
+
+  function clampToolbarPositionToViewport(toolbar, left, top) {
+    const viewportBounds = getVisibleViewportBounds();
+    const toolbarSize = getToolbarRenderedSize(toolbar);
+    const viewportLeft = viewportBounds.left;
+    const viewportTop = viewportBounds.top;
+    const minLeft = viewportLeft + TOOLBAR_VIEWPORT_MARGIN;
+    const minTop = viewportTop + TOOLBAR_VIEWPORT_MARGIN;
+    const maxLeft = Math.max(
+      minLeft,
+      viewportBounds.right - toolbarSize.width - TOOLBAR_VIEWPORT_MARGIN
+    );
+    const maxTop = Math.max(
+      minTop,
+      viewportBounds.bottom - toolbarSize.height - TOOLBAR_VIEWPORT_MARGIN
+    );
+
+    return {
+      left: Math.max(minLeft, Math.min(Number.isFinite(left) ? left : minLeft, maxLeft)),
+      top: Math.max(minTop, Math.min(Number.isFinite(top) ? top : minTop, maxTop))
+    };
+  }
+
+  function getChatGPTSelectionMenuRect(selectionRect) {
+    // Use the visible Ask ChatGPT button, without depending on site class names.
+    for (const button of document.querySelectorAll('button, [role="button"]')) {
+      if (!/^(?:询问|问问|Ask)\s*ChatGPT$/i.test(button.textContent.trim())) continue;
+      let menu = button.parentElement;
+      for (let depth = 0; menu && depth < 5; depth += 1, menu = menu.parentElement) {
+        const rect = menu.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0 || rect.height > 96) continue;
+        const nearSelection = Math.abs(rect.bottom - selectionRect.top) < 100 ||
+          Math.abs(rect.top - selectionRect.bottom) < 100;
+        if (nearSelection && menu.querySelectorAll('button, [role="button"]').length >= 2) {
+          return rect;
+        }
+      }
+    }
+    return null;
+  }
+
+  function getToolbarPositionForSelection(toolbar, selectionRect) {
+    const toolbarSize = getToolbarRenderedSize(toolbar);
+    const toolbarWidth = toolbarSize.width;
+    const toolbarHeight = toolbarSize.height;
+    const rawRectLeft = Number(selectionRect.left);
+    const rawRectRight = Number(selectionRect.right);
+    const rawRectTop = Number(selectionRect.top);
+    const rawRectBottom = Number(selectionRect.bottom);
+    const rectLeft = Number.isFinite(rawRectLeft) ? rawRectLeft : 0;
+    const rectRight = Number.isFinite(rawRectRight) ? rawRectRight : rectLeft;
+    const rectTop = Number.isFinite(rawRectTop) ? rawRectTop : 0;
+    const rectBottom = Number.isFinite(rawRectBottom) ? rawRectBottom : rectTop;
+    const viewportBounds = getVisibleViewportBounds();
+    const viewportRight = viewportBounds.right - TOOLBAR_VIEWPORT_MARGIN;
+    const viewportBottom = viewportBounds.bottom - TOOLBAR_VIEWPORT_MARGIN;
+    const viewportTop = viewportBounds.top + TOOLBAR_VIEWPORT_MARGIN;
+    if (IS_CHATGPT_PAGE) {
+      const menuRect = getChatGPTSelectionMenuRect(selectionRect);
+      if (menuRect) {
+        const besideLeft = menuRect.right + TOOLBAR_SELECTION_GAP;
+        const fitsBeside = besideLeft + toolbarWidth <= viewportRight;
+        return clampToolbarPositionToViewport(
+          toolbar,
+          fitsBeside ? besideLeft : menuRect.left,
+          fitsBeside
+            ? menuRect.top + (menuRect.height - toolbarHeight) / 2
+            : menuRect.bottom + TOOLBAR_SELECTION_GAP
+        );
+      }
+    }
+
+    // Prefer the selection's upper-right side so site-native menus that are
+    // commonly left-aligned above a selection (such as ChatGPT's) stay clear.
+    const rightSideLeft = Math.max(
+      rectRight + TOOLBAR_SELECTION_GAP,
+      rectLeft + TOOLBAR_SELECTION_RIGHT_OFFSET
+    );
+    const canFitOnRight = rightSideLeft + toolbarWidth <= viewportRight;
+    const preferredLeft = IS_CHATGPT_PAGE
+      ? rectLeft + TOOLBAR_CHATGPT_MENU_OFFSET
+      : canFitOnRight
+        ? rightSideLeft
+        : Math.max(
+          rectLeft + TOOLBAR_SELECTION_RIGHT_OFFSET,
+          rectRight - toolbarWidth + TOOLBAR_SELECTION_RIGHT_OFFSET
+        );
+
+    // Keep close to the selection while the native menu is still appearing.
+    const aboveTop = rectTop - toolbarHeight - TOOLBAR_SELECTION_GAP;
+    const belowTop = rectBottom + TOOLBAR_SELECTION_GAP;
+    const canFitAbove = aboveTop >= viewportTop;
+    const canFitBelow = belowTop + toolbarHeight <= viewportBottom;
+    let preferredTop;
+
+    if (canFitAbove) {
+      preferredTop = aboveTop;
+    } else if (canFitBelow) {
+      preferredTop = belowTop;
+    } else {
+      const roomAbove = rectTop - viewportTop;
+      const roomBelow = viewportBottom - rectBottom;
+      preferredTop = roomAbove >= roomBelow ? aboveTop : belowTop;
+    }
+
+    return clampToolbarPositionToViewport(
+      toolbar,
+      preferredLeft,
+      preferredTop
+    );
+  }
+
+  function showToolbarAt(x, y, options = {}) {
     // Check if hidden for this session
     if (isToolbarSuppressed()) return;
 
     let toolbar = document.getElementById('hl-cat-toolbar');
     if (!toolbar) {
       toolbar = createToolbarElement();
-      document.body.appendChild(toolbar);
+      document.documentElement.appendChild(toolbar);
     }
+    toolbarSelectionRange = options.selectionRange || null;
     toolbar.dataset.activeColor = lastSelectedColor;
     toolbar.querySelectorAll('.hl-color-option').forEach(option => {
       option.classList.toggle('active', option.dataset.color === lastSelectedColor);
     });
-    toolbar.style.top = `${y}px`;
-    toolbar.style.left = `${x}px`;
+    // Measure while hidden so the first frame is already in its final position.
+    toolbar.style.visibility = 'hidden';
     toolbar.style.display = 'flex';
+    const bounds = getVisibleViewportBounds();
+    toolbar.style.maxWidth = `${Math.max(0, bounds.right - bounds.left - 2 * TOOLBAR_VIEWPORT_MARGIN)}px`;
+    const position = options.selectionRect
+      ? getToolbarPositionForSelection(toolbar, options.selectionRect)
+      : clampToolbarPositionToViewport(toolbar, x, y);
+    toolbar.style.top = `${position.top}px`;
+    toolbar.style.left = `${position.left}px`;
+    toolbar.style.visibility = 'visible';
     scheduleToolbarAutoHide();
+    if (toolbarMenuAlignmentTimer !== null) clearTimeout(toolbarMenuAlignmentTimer);
+    if (IS_CHATGPT_PAGE && toolbarSelectionRange) {
+      // The site's menu may be mounted after its mouseup handler finishes.
+      toolbarMenuAlignmentTimer = setTimeout(() => {
+        toolbarMenuAlignmentTimer = null;
+        updateToolbarForViewportChange();
+      }, 120);
+    }
+  }
+
+  function showToolbarForSelection(range) {
+    if (!range || !range.commonAncestorContainer.isConnected) return;
+    const selectionRect = range.getBoundingClientRect();
+    showToolbarAt(selectionRect.left, selectionRect.top, {
+      selectionRect,
+      selectionRange: range.cloneRange()
+    });
+  }
+
+  function updateToolbarForViewportChange() {
+    if (toolbarPositionFrame !== null || !document.getElementById('hl-cat-toolbar')) return;
+    toolbarPositionFrame = requestAnimationFrame(() => {
+      toolbarPositionFrame = null;
+      const toolbar = document.getElementById('hl-cat-toolbar');
+      if (!toolbar) return;
+      if (toolbarSelectionRange && !toolbarSelectionRange.commonAncestorContainer.isConnected) {
+        hideToolbar();
+        return;
+      }
+      const bounds = getVisibleViewportBounds();
+      toolbar.style.maxWidth = `${Math.max(0, bounds.right - bounds.left - 2 * TOOLBAR_VIEWPORT_MARGIN)}px`;
+      const rect = toolbarSelectionRange && toolbarSelectionRange.getBoundingClientRect();
+      if (rect && (rect.bottom < bounds.top || rect.top > bounds.bottom ||
+          rect.right < bounds.left || rect.left > bounds.right)) {
+        hideToolbar();
+        return;
+      }
+      const position = rect
+        ? getToolbarPositionForSelection(toolbar, rect)
+        : clampToolbarPositionToViewport(toolbar, parseFloat(toolbar.style.left), parseFloat(toolbar.style.top));
+      toolbar.style.left = `${position.left}px`;
+      toolbar.style.top = `${position.top}px`;
+    });
   }
 
   function hideToolbar() {
+    if (toolbarMenuAlignmentTimer !== null) {
+      clearTimeout(toolbarMenuAlignmentTimer);
+      toolbarMenuAlignmentTimer = null;
+    }
+    if (toolbarPositionFrame !== null) {
+      cancelAnimationFrame(toolbarPositionFrame);
+      toolbarPositionFrame = null;
+    }
+    toolbarSelectionRange = null;
     clearToolbarAutoHideTimer();
     toolbarAutoHidePaused = false;
     const toolbar = document.getElementById('hl-cat-toolbar');
@@ -2986,7 +3210,7 @@ function initExtension() {
     if (!snapshot || !snapshot.id) return false;
 
     hideAnnotationTooltip();
-    showToolbarAt(window.scrollX + event.clientX, window.scrollY + event.clientY - 44);
+    showToolbarAt(event.clientX, event.clientY - 44);
     return true;
   }
 
@@ -3125,10 +3349,12 @@ function initExtension() {
     const text = sel.toString().trim();
     if (text) {
       rememberSelection(range, text);
-      const rect = range.getBoundingClientRect();
-      const top = window.scrollY + rect.top - 40;
-      const left = window.scrollX + rect.left;
-      setTimeout(() => showToolbarAt(left, top), 0);
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed && selection.toString().trim() === text) {
+          showToolbarForSelection(range);
+        }
+      }, 0);
     }
   }, true);
 
@@ -3154,7 +3380,13 @@ function initExtension() {
     }
   }, true);
 
-  window.addEventListener('scroll', () => hideToolbar());
+  // Follow the selected text instead of dismissing on every nested scroll.
+  window.addEventListener('scroll', updateToolbarForViewportChange, true);
+  window.addEventListener('resize', updateToolbarForViewportChange);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('scroll', updateToolbarForViewportChange);
+    window.visualViewport.addEventListener('resize', updateToolbarForViewportChange);
+  }
 
   // Update last selection on selectionchange and show toolbar for immediate feedback
   document.addEventListener('selectionchange', () => {
@@ -3179,10 +3411,7 @@ function initExtension() {
       return;
     }
     rememberSelection(range, text);
-    const rect = range.getBoundingClientRect();
-    const top = window.scrollY + rect.top - 40;
-    const left = window.scrollX + rect.left;
-    showToolbarAt(left, top);
+    showToolbarForSelection(range);
   }, true);
 
   // Message handler for interaction with popup
@@ -3364,8 +3593,13 @@ function initExtension() {
 @keyframes hlFlashAnim { 0% { outline: 2px solid red; } 100% { outline: none; } }
 span[data-hl-id] { cursor: pointer; }
 .hl-cat-toolbar {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
   display: flex;
+  width: max-content;
+  box-sizing: border-box;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.96);
@@ -3380,6 +3614,7 @@ span[data-hl-id] { cursor: pointer; }
   user-select: none;
 }
 .hl-color-option {
+  flex-shrink: 0;
   position: relative;
   display: inline-block;
   width: 18px;
@@ -3401,6 +3636,7 @@ span[data-hl-id] { cursor: pointer; }
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 0 0 0 4px rgba(255, 255, 255, 0.92);
 }
 .hl-tool-btn {
+  flex-shrink: 0;
   background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
   border: 1px solid rgba(148, 163, 184, 0.24);
   cursor: pointer;
