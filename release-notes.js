@@ -7,9 +7,9 @@
 
     // Add one entry here for each public release that should be shown to users.
     const RELEASE_NOTES = {
-        '1.5.5': {
+        '1.6': {
             zh_CN: {
-                title: '划线猫已更新到 v1.5.5',
+                title: '划线猫已更新到 v1.6',
                 items: [
                     '优化 ChatGPT 选区工具条位置，优先与原生菜单并排显示，减少遮挡。',
                     '修复滚动时工具条过早消失的问题，工具条跟随选区并适应窗口大小。',
@@ -17,7 +17,7 @@
                 ]
             },
             en: {
-                title: 'Cat Highlighter Updated to v1.5.5',
+                title: 'Cat Highlighter Updated to v1.6',
                 items: [
                     'Positioned the selection toolbar beside ChatGPT’s native menu to reduce overlap.',
                     'Fixed premature toolbar dismissal during scrolling and improved viewport positioning.',

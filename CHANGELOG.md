@@ -2,7 +2,7 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
-## v1.5.5 - 2026-09-15
+## v1.6 - 2026-09-15
 
 ### Fixed
 

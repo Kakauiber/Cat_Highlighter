@@ -6,9 +6,9 @@
 
 上传文件：
 
-`release/cat-highlighter-v1.5.5-chrome-web-store.zip`
+`release/cat-highlighter-v1.6-chrome-web-store.zip`
 
-## v1.5.5 更新说明
+## v1.6 更新说明
 
 中文：
 
