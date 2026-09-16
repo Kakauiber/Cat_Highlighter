@@ -12,11 +12,11 @@
 
 中文：
 
-优化 ChatGPT 页面上的选区工具条位置，优先与原生菜单并排显示，减少重叠与遮挡。修复滚动时工具条过早消失的问题，改善窄窗口下的定位。工具条停留时间延长至 5 秒，点击工具条按钮时保留选区，方便高亮、复制和批注。
+优化 ChatGPT 页面上的选区工具条位置，优先与原生菜单并排显示，减少重叠与遮挡。修复滚动时工具条过早消失的问题，改善窄窗口下的定位。工具条按 3 秒自动隐藏，点击工具条按钮时保留选区，方便高亮、复制和批注。
 
 English:
 
-Improved selection-toolbar positioning on ChatGPT pages by placing it beside the native menu. Fixed premature toolbar dismissal during scrolling and improved positioning in narrow windows. Extended toolbar visibility to 5 seconds and preserved selected text when clicking toolbar buttons.
+Improved selection-toolbar positioning on ChatGPT pages by placing it beside the native menu. Fixed premature toolbar dismissal during scrolling and improved positioning in narrow windows. Kept the toolbar auto-hide delay at 3 seconds and preserved selected text when clicking toolbar buttons.
 
 ## 基本信息
 

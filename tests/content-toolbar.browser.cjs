@@ -101,6 +101,10 @@ async function status(page) {
       if (process.env.TOOLBAR_TEST_SCREENSHOT) {
         await page.screenshot({path:process.env.TOOLBAR_TEST_SCREENSHOT});
       }
+      await page.mouse.move(10,10);
+      await page.waitForTimeout(3200);
+      report.after3200ms=await status(page);
+      assert.equal(report.after3200ms.exists,false,'toolbar auto-hides after 3 seconds');
       assert.deepEqual(errors,[],'full content script must not throw');
     }
     console.log(JSON.stringify(report,null,2));

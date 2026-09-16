@@ -582,7 +582,7 @@ function initExtension() {
 
   // Track the last selected colour across toolbar interactions
   let lastSelectedColor = 'yellow';
-  const TOOLBAR_AUTO_HIDE_MS = 5000;
+  const TOOLBAR_AUTO_HIDE_MS = 3000;
   const TOOLBAR_VIEWPORT_MARGIN = 8;
   const TOOLBAR_SELECTION_GAP = 12;
   const TOOLBAR_SELECTION_RIGHT_OFFSET = 32;

@@ -13,7 +13,7 @@
                 items: [
                     '优化 ChatGPT 选区工具条位置，优先与原生菜单并排显示，减少遮挡。',
                     '修复滚动时工具条过早消失的问题，工具条跟随选区并适应窗口大小。',
-                    '工具条停留时间延长至 5 秒，点击按钮时保留选区，方便高亮、复制和批注。'
+                    '工具条按 3 秒自动隐藏，点击按钮时保留选区，方便高亮、复制和批注。'
                 ]
             },
             en: {
@@ -21,7 +21,7 @@
                 items: [
                     'Positioned the selection toolbar beside ChatGPT’s native menu to reduce overlap.',
                     'Fixed premature toolbar dismissal during scrolling and improved viewport positioning.',
-                    'Extended toolbar visibility to 5 seconds and preserved the selection when clicking toolbar buttons.'
+                    'Kept the toolbar auto-hide delay at 3 seconds and preserved the selection when clicking toolbar buttons.'
                 ]
             }
         },
