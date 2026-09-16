@@ -2,13 +2,13 @@
 
 All notable changes to Cat Highlighter are documented in this file.
 
-## v1.6 - 2026-09-15
+## v1.7 - 2026-09-16
 
 ### Fixed
 
 - Position the selection toolbar beside ChatGPT's native menu, with a small gap and a fallback when space is limited.
 - Keep the toolbar visible during scrolling and reposition it with the selection inside the viewport.
-- Preserve selected text when clicking toolbar buttons and keep the auto-hide delay at 3 seconds.
+- Preserve selected text when clicking toolbar buttons.
 - Add browser regression coverage for toolbar alignment, scrolling, narrow windows, and highlight creation.
 
 ## v1.5.0 - 2026-08-03

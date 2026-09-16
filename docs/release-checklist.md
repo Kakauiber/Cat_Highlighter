@@ -137,7 +137,7 @@ git diff --check
 - 工作区干净。
 - 当前版本已提交。
 - `manifest.json` 版本号已更新。
-- Chrome Web Store 当前公开版本基线是 `v1.6`；后续版本必须以商店后台已发布的版本为准继续递增，并同步更新 Manifest、更新记录和 ZIP 文件名。
+- Chrome Web Store 当前公开版本基线是 `v1.7`；后续版本必须以商店后台已发布的版本为准继续递增，并同步更新 Manifest、更新记录和 ZIP 文件名。
 - 打包 zip 的根目录直接包含 `manifest.json`。
 
 ## 7. 上架流程
